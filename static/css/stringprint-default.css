@@ -1,0 +1,75 @@
+
+/* font settings for all text */
+body {
+		font-family: 'Open Sans', sans-serif;
+		font-size: 13pt;
+}
+
+/* paragraph styling */
+p {
+text-align:justify;
+}
+
+/* header styling */
+h1,
+h2,
+h3 {
+    text-align: center;
+    font-family: 'Raleway', sans-serif;
+}
+
+/* top left 'brand' title styling */
+.short-title {
+	font-weight: bold;
+	font-size: 14pt;
+}
+
+/* style for menu links */
+.nav-text {
+	font-size: 14pt;
+}
+
+/* style for blockquotes */
+.blockquote {
+  background-color: #D6E6FF;
+  border-left: 10px solid #8AB7FF;
+  margin: 5px 10px 10px 10px;
+  padding: 5px 10px 10px 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+}
+
+/* style for inline quotes - e.g. ""hello"" */
+span.quote {
+    font-style: italic; 
+}
+
+/* style for footnote bubbles */
+.footnotes {
+  border: 2px solid lightgrey;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+  word-wrap: break-word;
+}
+
+.footnotes > p {
+  text-align:left;
+}
+
+/* style for aside bubbles */
+.extended  {
+  border: 10px solid lightgrey;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+  display:none;
+}
+
+.content {
+word-wrap: break-word;
+}
+
+/* style applied to content when it has been highlighted by a link */
+.highlighted-content {
+background-color:yellow;
+}

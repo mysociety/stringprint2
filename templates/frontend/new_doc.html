@@ -1,0 +1,33 @@
+{% extends 'frontend/base.html' %}
+    {% block title %}
+    <title>{{SITE_NAME}} - dashboard</title>
+    {% endblock %}
+
+{% block content %}
+<!-- Page Heading -->
+<div class="row">
+    <div class="col-lg-12">
+        <h2 class="page-header">
+            Create New Document
+        </h2>
+        <ol class="breadcrumb">
+            <li>
+                <i class="fa fa-dashboard"></i> Dashboard
+            </li>
+            <li class="active">
+                <i class="fa fa-edit"></i> New document
+            </li>
+        </ol>
+    </div>
+</div>
+<!-- /.row -->
+
+
+
+<div class="row">
+    <div class="col-lg-4">
+        {% include 'frontend/new_doc_form.html' %}
+    </div>
+</div>
+<!-- /.row -->
+{% endblock %}

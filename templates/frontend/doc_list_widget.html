@@ -1,0 +1,10 @@
+                <div class="list-group">
+                    {% for d in documents %}
+                    <div class="list-group-item">
+    
+                        <i class="fa fa-fw fa-file-text"></i> <a  href="{% url 'article_view' d.slug %}">{{d.title}}</a>
+                        <span class="badge"><a target="_blank" style="color:white" href="{% url 'article.settings' d.id %}" >settings</a></span>
+                    </div>
+                    {% endfor %}
+
+                </div>

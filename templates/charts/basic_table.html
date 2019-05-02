@@ -1,0 +1,18 @@
+<table align="center">
+	<tr>
+		{% for h in header %}
+			<th>{{h}}</th>
+		{% endfor %}
+	</tr>
+	{% for row in rows %}
+		<tr>
+		{% for v in row %}
+			<td>{{v}}</td>
+		{% endfor %}
+		</tr>
+	{% endfor %}
+</table>
+
+{% if caption %}
+	<p class="asset-caption">{{caption}}</p>
+{% endif %}

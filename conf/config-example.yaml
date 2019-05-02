@@ -1,0 +1,14 @@
+CHROME_DRIVER: "/usr/bin/chromedriver"
+KINDLEGEN_LOC: "kindlegen/linux/kindlegen"
+SITE_NAME : "stringprint2"
+
+#https://www.miniwebtool.com/django-secret-key-generator/
+SECRET_KEY: ''
+
+#https://tinypng.com/developers
+TINY_PNG_KEY: ""
+
+ORGS:
+  mysociety: 
+    storage_dir: <path to the location of raw markup>
+    publish_dir: <path to the destination repo>

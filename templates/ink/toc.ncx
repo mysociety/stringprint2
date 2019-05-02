@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" 
+   "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+  </head>
+  <docTitle>
+    <text>{{article.title}}</text>
+  </docTitle>
+<navMap>
+
+
+{% for a in content.anchors %}
+    <navPoint id="navpoint-{{a.count}}" playOrder="{{a.count}}"><navLabel><text>{{a.title}}</text></navLabel><content src="text.html#{{a.anchor}}"/></navPoint>
+{% endfor %}
+
+</navMap>
+</ncx>

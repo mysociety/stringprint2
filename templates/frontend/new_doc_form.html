@@ -1,0 +1,14 @@
+{% load bootstrap%}
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title"><i class="fa fa-money fa-fw"></i> Start New Document</h3>
+    </div>
+    <div class="panel-body">
+    <form role="form" method="POST" enctype="multipart/form-data">
+     {% csrf_token %}
+     {{new_document_form|bootstrap}}
+    <input type="submit" class="btn btn-success btn-lg" value="Submit">
+    </form>
+    </div>
+</div>

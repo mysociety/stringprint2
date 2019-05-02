@@ -1,0 +1,22 @@
+var {{chart.ident}}_data = new google.visualization.DataTable();
+{% for c in chart.columns %}
+    {{chart.ident}}_data.addColumn('{{c.type}}', '{{c.name}}');
+{% endfor %}
+{{chart.ident}}_data.addRows({{chart.render_data}});
+
+
+        var options = {{chart.json_options}};
+
+var {{chart.ident}}_chart = new google.visualization.{{chart.google_type}}(document.getElementById('{{chart.ident}}'));
+
+{% if chart.make_static %}
+    var my_div = document.getElementById('{{chart.ident}}');
+
+    google.visualization.events.addListener({{chart.ident}}_chart, 'ready', function () {
+      my_div.innerHTML = '<img src="' + {{chart.ident}}_chart.getImageURI() + '">';
+    });
+
+{% endif %}
+
+
+{{chart.ident}}_chart.draw({{chart.ident}}_data,options);

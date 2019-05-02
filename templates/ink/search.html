@@ -1,0 +1,47 @@
+{% extends "ink/article_main.html" %}
+{% load static %}
+
+
+{% block title_image %}
+{% endblock %}
+
+{% block title %}
+{% endblock %}
+
+{% block content %}
+<div class="block" style="padding-top: 39px;">
+<div class = "container">
+    <div class = "row">
+    <div class = "col-md-offset-2 col-md-8">
+    <form >
+    <h2>Search:</h2>
+    
+    <div class="input-group">
+      <input name="q" id="tipue_search_input"  autocomplete="off"  type="text" class="form-control" placeholder="Search for..." required>
+      <span class="input-group-btn">
+        <button class="btn btn-success" type="submit">Go!</button>
+      </span>
+    </div><!-- /input-group -->
+    </form>
+    <div id="tipue_search_content"></div>
+    <div><p>Search powered by <a href="http://www.tipue.com">Tipue</a>.</p></div>
+    </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block code %}
+<script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}"></script>
+<script type="text/javascript" src="tipuesearch_content.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/tipuesearch.css' %}">
+<script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+     $('#tipue_search_input').tipuesearch({'showURL':false,
+                                           'showTitleCount':false}
+     );
+});
+</script>
+
+{% endblock %}

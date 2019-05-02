@@ -1,0 +1,21 @@
+{% extends 'ink/base.html' %}
+
+{% load bootstrap %}
+
+{% block body %}
+
+{% for b in books %}
+    <div class = "row">
+        <h2>{{b.title}}</h2>
+        {% if b.paywall %}
+        <p class="center-text"><a href="{% url 'article_view' b.slug %}">Read Introduction</a> - <a href="{% url 'access_view' b.slug %}">Get Full Access for {{b.display_price}}</a></p>
+        {% else %}
+        <p class="center-text"><a href="{% url 'article_view' b.slug %}">Read For Free</a></p>
+        {% endif %}
+    </div>
+{% endfor %}
+
+
+
+
+{% endblock %}

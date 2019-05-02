@@ -1,0 +1,99 @@
+body {
+
+		font-family: 'Open Sans', sans-serif;
+		font-size: 13pt;
+}
+	  
+.blockquote {
+  background-color: #D6E6FF;
+  border-left: 10px solid #8AB7FF;
+  margin: 5px 10px 10px 10px;
+  padding: 5px 10px 10px 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+}
+
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+padding-left: 15px;
+}
+
+.extended  {
+  border: 10px solid lightgrey;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+  display:none;
+}
+
+.highlighted-content {
+
+background-color:yellow;
+}
+
+
+p {
+text-align:left;
+}
+
+.cite-link, .catchup-link {
+display:none;
+}
+
+.short-title {
+	font-weight: bold;
+	font-size: 14pt;
+}
+
+.nav-text {
+	font-size: 14pt;
+}
+
+li.hide-item{
+display:none
+}
+
+	  
+  .banner {
+padding: 100px 0;
+color: white;
+text-shadow: 1px 1px 10px black;
+background-size: cover;
+}
+ 
+a.anchor{display: block; position: relative; top: -50px; visibility: hidden;}
+
+h1,
+h2,
+h3 {
+    text-align: center;
+    font-family: 'Raleway', sans-serif;
+}
+
+
+.center-text{
+    text-align: center;}
+
+@media (min-width: 767px) {
+.mobile-menu {
+	display:none;
+}
+.large-menu {
+	display:block;
+}
+
+}
+@media print {
+
+  a[href]:after {
+    content: None;
+  }
+
+}

@@ -1,0 +1,7 @@
+You have been given free access to {{access.article.title}}.
+
+{% include "ink/emails/details.txt" %}
+
+Regards,
+
+inkleby.press (support@inkleby.press)

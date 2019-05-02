@@ -1,0 +1,128 @@
+﻿{% load static %}
+{% load extra_tags %}
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>{{article.title}}</title>
+<link href="{% static 'css/kindle.css' %}" rel="stylesheet"  type='text/css'>
+{% if txt_mode == "text"%}
+<link href="{% static 'css/text_mode.css' %}" rel="stylesheet"  type='text/css'>
+{% endif %}
+</head>
+<body>
+
+<h2>{{article.title}}</h2>
+<h3>{{article.authors}}</h3>
+
+<div id="toc">
+	<h3>
+            <ul>
+            {% if content.sections.0.name == "" %}
+            <li><a href="#intro">Introduction</a>
+            {% endif %}
+            {% for s in content.sections %}
+                {%if s.name %}
+                    
+                    <li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
+                    <ul>
+                    {% for g in s.grafs_with_titles %}
+                        <li><a href="#{{g.anchor}}">{{g.title|safe}}</a></li>
+                    {% endfor %}
+                    </ul>
+                    </li>
+                {% endif %}
+
+            
+            
+            {% endfor %}
+            {% if content.footnotes %}
+            <li><a href="#refs">Notes</a></li>
+            {% endif %}
+            {% if article.paywall %}
+            <li><a href="#onlineaccess">Online Access</a></li>
+            {% endif %}
+            </ul>
+	</h3>
+
+</div>
+<mbp:pagebreak />
+{% for s in content.sections %}
+    <mbp:section />
+    {%if s.name %}
+        <H2 id="{{s.anchor}}">{{s.name|safe}}</h2>
+    {% else %}
+        {% if forloop.counter == 1 %}
+            <h2 id="intro">{{article.short_title|safe}}</a></h2>
+        {% endif %}
+    {% endif %}
+    {% for g in s.get_kindle_grafs %}
+        {%if g.title %}
+            <H3 id="{{g.anchor}}">{{g.title|safe}}</h3>
+        {% endif %}
+        {% if g.tag %}
+            <a name="tag.{{g.tag}}"></a> 
+        {% endif %}
+        {% if g.is_extended_start %}<hr>{% endif %}
+        {% if g.blockquote %}<blockquote>{% endif %}
+        <p>
+        {% if g.asset %}{{article|display_asset_kindle:g.asset}}{% else %}{% if txt_mode == "kindle" %}{{g.display_kindle}}{% else %}{{g.display_text}}{% endif %}{% endif %}
+        {% if g.expand_link.0 == "expand" and article.display_notes == False %}
+         <a name="notes-{{g.expand_link.1}}-link" href="#notes-{{g.expand_link.1}}">(Notes)</a>
+        {% endif %}
+        </p>
+        
+        {% if g.blockquote %}</blockquote>{% endif %}
+        {% if g.is_extended_end %}<hr>{% endif %}
+    
+    {% endfor %}
+    <mbp:pagebreak />
+{% endfor %}
+         {% with content.footnotes as notes %}
+            {% if notes %}
+            <h2 id="refs">Notes</h2>
+                        {% if txt_mode == "text" %}
+                        <hr>
+                        {% endif %}
+            {% for s in content.sections %}
+                {% for g in s.get_kindle_extras %} 
+                        <a name="notes-{{g.order}}"></a>
+                        {% for p in g.self_and_extras %}
+                            <p>{{p.display_kindle}}</p>
+                        {% endfor %}
+                        <a href="#notes-{{g.order}}-link">Return</a>
+                        <mbp:pagebreak />
+                        {% if txt_mode == "text" %}
+                        <hr>
+                        {% endif %}
+                {% endfor %}
+            {% endfor %}
+
+            <mbp:pagebreak />
+            {% for f in notes %}
+               {% if txt_mode == "text" %}
+                <p><a name="footnote-{{f.num}}" href="#footnote-{{f.num}}-ref">{{f.num}}</a>:{{f.safe_content}}</p>
+                {% else %}
+                <p><a name="footnote-{{f.num}}" href="#footnote-{{f.num}}-ref">{{f.num}}</a>:{{f.kindle_content}}</p>
+                <br><br>
+                <p><a href="#footnote-{{f.num}}-ref">Return to text.</a></p>
+                {% endif %}
+                <mbp:pagebreak />
+            {% endfor %}
+
+            {% endif %}
+        {% endwith%}
+
+        <mbp:pagebreak />
+        {% if article.paywall %}
+        <h2 id = "onlineaccess" >Online Access</h2>
+        <p>To access the online version of the ebook, check the prompt at <a href="{{article.live_url}}access">{{article.live_url}}/access</a> against the list below to find today's code.</p>
+        
+        <ul>
+        {% for s in article.ordered_secrets %}
+        <li>{{s.challenge}} : {{s.answer}}</li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+</body>
+</html>

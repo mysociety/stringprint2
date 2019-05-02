@@ -1,0 +1,70 @@
+{% extends 'frontend/base.html' %}
+    {% block title %}
+    <title>{{SITE_NAME}} - All Documents</title>
+    {% endblock %}
+
+{% block content %}
+<!-- Page Heading -->
+<div class="row">
+    <div class="col-lg-12">
+        <h2 class="page-header">
+            All Documents
+        </h2>
+        <ol class="breadcrumb">
+            <li class="active">
+                <i class="fa fa-dashboard"></i> Dashboard
+            </li>
+            <li class="active">
+                All Documents
+            </li>
+        </ol>
+    </div>
+</div>
+<!-- /.row -->
+
+
+
+<div class="row">
+    {% if documents %}
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title"><i class="fa fa-list fa-fw"></i>All Documents</h3>
+            </div>
+            <div class="panel-body">
+                {% include 'frontend/doc_list_widget.html' %}
+            </div>
+        </div>
+
+<nav>
+  <ul class="pagination">
+    {% if documents.has_previous %}
+    <li>
+      <a href="{% url 'document.list' documents.previous_page_number %}" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+	{% endif %}
+	{% for p in documents.reasonable_range %}
+		{% if pages.number == p %}
+			<li class="active"><a href="{% url 'list_view' 'status' p %}">{{p}}</a></li>
+		{% else %}
+			<li><a href="{% url 'document.list' p %}">{{p}}</a></li>
+		{% endif %}
+	{% endfor %}
+    {% if documents.has_next %}
+    <li>
+      <a href="{% url 'document.list' documents.next_page_number %}" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+	{% endif %}
+  </ul>
+</nav>
+    </div>
+
+    {% endif %}
+</div>
+
+<!-- /.row -->
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'frontend/base.html' %}
+{% load bootstrap %}
+{% load extra_tags %}
+    {% block title %}
+    <title>{{SITE_NAME}} - Publish</title>
+    {% endblock %}
+
+{% block extracss %}
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css">
+
+{% endblock %}
+    
+    
+{% block content %}
+<!-- Page Heading -->
+
+
+<div class="row">
+    <div class="col-lg-12">
+        <h2 class="page-header">
+            Publish Document
+        </h2>
+
+        <ol class="breadcrumb">
+            <li>
+                <i class="fa fa-dashboard"></i> {{article.title}}
+            </li>
+            <li class="active">
+                Publish
+            </li>
+        </ol>
+    </div>
+</div>
+                    
+<!-- /.row -->
+        {% if message %}
+            {% alert message %}
+        {% else %}
+            {% alert "info|Generate a zip file with the rendered version of your document." %}
+            <form method="post" action="">
+            {% csrf_token %}
+            <div class = "row">
+                <div class = "col-md-6">
+                    {{form|bootstrap}}
+                </div>
+            </div>
+            <input type="submit" class="btn btn-success btn-lg" value="{{submit_text}}">
+            {% if last_download %}
+            <a href="{% url 'download_zip' last_download.id %}" class="btn btn-info btn-lg" role="button">Download</a>
+            {% endif %}
+            </form>
+            <br>
+            {% if article.publish_tokens == -999 %}
+            {% elif article.publish_tokens %}
+                <p>You have {{article.publish_tokens}} re-publishes left.</p>
+            {% else %}
+                <p>You will need to use a token to publish this document (You have {{settings.tokens}}). You'll then have free 10 re-publishes.</p>
+            {% endif %}
+        {% endif %}
+{% if downloads %}
+<h2 class="page-header">
+    Previous Renders
+</h2>
+<div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Download</th>
+                <th>Requested</th>
+                <th>Completed</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for d in downloads %}
+            <tr>
+                <td><a href="{% url 'download_zip' d.id %}">{{d.file_name}}</a></td>
+                <td>{{d.time_requested}}</td>
+                <td>{{d.time_completed|blankfix}}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block code %}
+<script   src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js"   integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E="   crossorigin="anonymous"></script>
+ <script>
+  $(function() {
+    $( ".datepicker" ).datepicker({
+      dateFormat: 'yy-mm-dd' ,
+      changeMonth: true,
+      changeYear: true,
+      // You can put more options here.
+
+    });
+  });
+  </script>
+{% endblock %}

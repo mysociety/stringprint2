@@ -1,0 +1,38 @@
+{% extends 'frontend/base.html' %}
+{% load bootstrap %}
+{% load extra_tags %}
+    {% block title %}
+    <title>{{SITE_NAME}} - modify settings</title>
+    {% endblock %}
+
+{% block content %}
+<!-- Page Heading -->
+<div class="row">
+    <div class="col-lg-12">
+        <h2 class="page-header">
+            Modify Document Settings
+        </h2>
+        <ol class="breadcrumb">
+            <li>
+                <i class="fa fa-dashboard"></i> {{article.title}}
+            </li>
+            <li class="active">
+                Settings
+            </li>
+        </ol>
+    </div>
+</div>
+<!-- /.row -->
+        {% if message %}
+        {% alert message %}
+        {% endif %}
+        <form method="post" action="">
+        {% csrf_token %}
+        <div class = "row">
+            <div class = "col-md-6">
+                {{form|bootstrap}}
+            </div>
+        </div>
+        <input type="submit" class="btn btn-success btn-lg" value="{{submit_text}}">
+        </form>
+{% endblock %}

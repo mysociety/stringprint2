@@ -1,0 +1,19 @@
+{% load extra_tags %}
+{% if image.size > 0 %}
+    <div class = "row">
+    <div class = "col-md-{{image.size}}" style="float: none; margin: 0 auto;text-align:center">
+    
+    
+{% endif %}
+        <picture>
+            <!--[if IE 9]><video style="display: none;"><![endif]-->
+            {% for source, size in image.header_image_res %}
+            <source srcset="{{source}}" media="(max-width: {{size}}px)">
+            {% endfor %}
+            <!--[if IE 9]></video><![endif]-->
+            <img srcset="{{image.url}}" class="img-responsive" title="{{alt_text}}" alt="{{image.image_alt}}" style="margin:0 auto;">
+        </picture>
+{% if image.size >= 0 %}
+    </div>
+    </div> 
+{% endif %}

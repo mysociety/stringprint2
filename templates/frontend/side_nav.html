@@ -1,0 +1,35 @@
+{% load extra_tags %}
+
+<div class="collapse navbar-collapse navbar-ex1-collapse">
+    <ul class="nav navbar-nav side-nav" {% if article %}style="height:720px"{% else %}style="height:350px"{%endif%}>
+    
+        
+        <li {% active url_name 'home' %}>
+            <a href="{% url 'home' %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+        </li>
+                
+        <li {% active url_name 'org.settings' %}>
+            <a href="{% url 'org.settings' %}"><i class="fa fa-fw fa-check-square"></i> Organisation Settings</a>
+        </li>
+        <li {% active url_name 'document.list' %}>
+            <a href="{% url 'document.list' %}"><i class="fa fa-fw fa-list"></i> All Documents</a>
+        </li>
+        {% if article %}
+        <li>
+            <a href="javascript:;" data-toggle="collapse" data-target="#docmenu"><i class="fa fa-fw fa-arrows-v"></i> Current Document <i class="fa fa-fw fa-caret-down"></i></a>
+            <ul id="docmenu" class="">
+                <li {% active url_name 'article.settings' %}>
+                    <a href="{% url 'article.settings' article.id %}">Change Settings</a>
+                </li>
+                <li>
+                    <a target ="_blank" href="{% url 'article_view' article.slug %}">Preview</a>
+                </li>
+            </ul>
+        </li>
+
+        {% endif %}
+
+
+    </ul>
+</div>
+<!-- /.navbar-collapse -->

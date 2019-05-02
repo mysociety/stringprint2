@@ -1,0 +1,106 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+{% load extra_tags %}
+    {% block title %}
+    <title>{{SITE_NAME}} - Edit Document</title>
+    {% endblock %}
+
+{% block extracss %}
+        <link rel="stylesheet" href="{% static 'trumbowyg/ui/trumbowyg.css' %}">
+        
+        <style>
+        
+        blockquote {
+        font-size: 14px;
+        }
+        
+        </style>
+{% endblock %}
+    
+{% block content %}
+<!-- Page Heading -->
+<div class="row">
+    <div class="col-lg-12">
+        <h2 class="page-header">
+            Edit Document
+        </h2>
+        <ol class="breadcrumb">
+            <li>
+                <i class="fa fa-dashboard"></i> Dashboard
+            </li>
+            <li class="active">
+                Edit Document
+            </li>
+        </ol>
+    </div>
+</div>
+<!-- /.row -->
+<div class="alert alert-info" role="alert">
+You can also <A href="{% url 'document.reupload' article.id %}">upload a new Word document</a>. This will override any tweaks made below.
+</div>
+
+<div id="editor" style="height:500px;display:none">
+{{raw}}
+</div>
+<form id="text_edit" method="post" action="">
+{% csrf_token %}
+<input type="submit" class="btn btn-success btn-lg" value="Submit Changes">
+</form>
+
+<!-- /.row -->
+{% endblock %}
+
+{% block code %}
+
+
+
+<script type="text/javascript" src="{% static 'trumbowyg/trumbowyg.js' %}"></script>
+
+<script>
+
+    var defaultOptions = {
+        assetList: [
+        {% for a in article.assets.all %}
+        '{{a.slug}}',
+        {% endfor %}
+        ]
+    };
+
+</script>
+
+<script type="text/javascript" src="{% static 'trumbowyg/plugins/stringprint/trumbowyg.stringprint.js' %}"></script>
+<script>
+
+jQuery.fn.addHidden = function (name, value) {
+    return this.each(function () {
+        var input = $("<input>").attr("type", "hidden").attr("name", name).val(value);
+        $(this).append($(input));
+    });
+};
+
+    /** Default editor configuration **/
+    $('#editor').trumbowyg({
+    removeformatPasted: true,
+    semantic: false,
+    btns: [
+        [ 'h1', 'h2', 'h3','blockquote','p',],
+        ['strong', 'em'],
+        ['createLink', 'unlink'],
+        'btnGrp-lists',
+        ['removeformat'],
+        ['assets'],
+        ['fullscreen'],
+    ],
+
+    });
+    
+    $('#editor').show()
+    
+$( "#text_edit" ).submit(function( event ) {
+  html = $('#editor').trumbowyg('html');
+  $("#text_edit").addHidden('new_text', html)
+});   
+ 
+    
+</script>
+{% endblock %}

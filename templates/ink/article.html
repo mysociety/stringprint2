@@ -1,0 +1,182 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>{{article.title}}</title>
+
+{% block facebook %}
+    {% with social_settings as ss %}
+        <meta property="og:site_name" content="{{ss.share_site_name}}"/>
+        <meta property="og:title" content="{{ss.share_title}}"/>
+        <meta property="og:description" content="{{ss.share_description}}" />
+        <meta property="og:url" content="{{ss.url}}" />
+        <meta property="og:image" content="{{ss.share_image}}" />
+
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:site" content="@{{article.org.twitter}}">
+        <meta name="twitter:title" content="{{ss.share_title}}">
+        <meta name="twitter:description" content="{{ss.share_description}}">
+        <meta name="twitter:image" content="{{ss.share_image}}">
+        {% if ss.share_image_alt %}
+            <meta name="twitter:image:alt" content="{{ss.share_image_alt}}">
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% if article.org.include_favicon %}
+<link rel="apple-touch-icon" sizes="57x57" href="{% static 'favicon/apple-icon-57x57.png' %}">
+<link rel="apple-touch-icon" sizes="60x60" href="{% static 'favicon/apple-icon-60x60.png' %}">
+<link rel="apple-touch-icon" sizes="72x72" href="{% static 'favicon/apple-icon-72x72.png' %}">
+<link rel="apple-touch-icon" sizes="76x76" href="{% static 'favicon/apple-icon-76x76.png' %}">
+<link rel="apple-touch-icon" sizes="114x114" href="{% static 'favicon/apple-icon-114x114.png' %}">
+<link rel="apple-touch-icon" sizes="120x120" href="{% static 'favicon/apple-icon-120x120.png' %}">
+<link rel="apple-touch-icon" sizes="144x144" href="{% static 'favicon/apple-icon-144x144.png' %}">
+<link rel="apple-touch-icon" sizes="152x152" href="{% static 'favicon/apple-icon-152x152.png' %}">
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon/apple-icon-180x180.png' %}">
+<link rel="icon" type="image/png" sizes="192x192"  href="{% static 'favicon/android-icon-192x192.png' %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon/favicon-32x32.png' %}">
+<link rel="icon" type="image/png" sizes="96x96" href="{% static 'favicon/favicon-96x96.png' %}">
+<link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon/favicon-16x16.png' %}">
+<link rel="manifest" href="{% static 'favicon/manifest.json' %}">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="{% static 'favicon/ms-icon-144x144.png' %}">
+{% endif %}
+
+<meta name="theme-color" content="#ffffff">
+
+{% if article.org.fonts %}
+    {% for f in article.org.display_fonts %}
+        <link href='{{f}}' rel='stylesheet' type='text/css'>
+    {% endfor %}
+{% else %}
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,600,300' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Raleway:400,300' rel='stylesheet' type='text/css'>
+{% endif %}
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+{% if debug %}
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
+    <link href="{% static 'css/fa_reduced.css' %}" rel="stylesheet"  type='text/css'>
+    <link href="{% static 'css/sweetalert.css' %}" rel="stylesheet"  type='text/css'>
+    <link href="{% static 'css/stringprint-core.css' %}" rel="stylesheet"  type='text/css'>
+    <link href="{% static 'css/stringprint-default.css' %}" rel="stylesheet"  type='text/css'>
+	{% if article.org.stylesheet %}
+    <link href="{% static article.org.stylesheet %}" rel="stylesheet"  type='text/css'>
+	{% endif %}
+{% else %}
+    <link href="{% static 'css/fa_reduced.css' %}" rel="stylesheet"  type='text/css'>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css" >
+    <link href="{% static 'css/stringprint-core.min.css' %}" rel="stylesheet"  type='text/css'>
+    <link href="{% static 'css/stringprint-default.min.css' %}" rel="stylesheet"  type='text/css'>
+	{% if article.org.stylesheet %}
+    <link href="{% static article.org.stylesheet_min %}" rel="stylesheet"  type='text/css'>
+	{% endif %}
+{% endif %}
+
+{% if article.org.custom_css %}
+    <style>
+        {{article.org.safe_css}}
+    </style>
+{% endif %}
+
+{% if article.display_notes %}
+<style>
+.extended-row, .extended{
+display:inline-block;
+}
+.expand-link{
+display:none;
+}
+</style>
+{% endif %}
+
+<noscript>
+<style>
+.index{
+display:block;
+}
+li#search-link, li#menu-prev, li#menu-next, li.top-menu-item {
+display:none;
+}
+</style>
+</noscript>
+</
+
+  <script>
+    // Picture element HTML5 shiv
+    document.createElement( "picture" );
+  </script>
+{% if debug %}
+    <script src="{% static 'js/picturefill.min.js' %}" async></script>
+{% else %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/picturefill/3.0.2/picturefill.min.js" async></script>  
+{% endif %}
+
+{% block extra_head %}
+{% endblock %}
+
+</head>
+
+<body short_title="{{article.short_title}}" org="{{article.org.name}}" full-title="{{article.title}}" year="{{ article.year}}" cite-author="{{article.cite_as}}" slug="{{article.slug}}" hide_state={% if article.display_notes%}false{%else%}true{%endif%}>
+
+{% include "ink/article_nav.html" %}
+<br><br>
+
+{% block body %}
+
+{% endblock %}
+
+</body>
+
+{% if debug == False and article.org.get_ga_code %}
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', '{{article.org.get_ga_code}}', 'auto');
+  ga('send', 'pageview');
+
+</script>
+{% endif %}
+
+{% if debug %}
+    <script type="text/javascript"  src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/sweetalert.min.js' %}"></script>
+    <script type="text/javascript"  src="{% static 'js/jquery.waypoints.min.js' %}" ></script>
+    <script type="text/javascript" src="{% static 'js/clipboard.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/agietan.js' %}"></script>
+{% else %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.0/jquery.waypoints.min.js"></script>
+    <script type="text/javascript" src="{% static 'js/clipboard.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/agietan.min.js' %}"></script>
+{% endif %}
+
+{% for a in content.article.code_assets %}
+{{a}}
+{% endfor %}
+
+{% block code %}
+
+{% endblock %}
+
+
+{{chart_collection.render_chart_code}}
+
+{% if article.paywall %}
+    {% include 'ink/cookie.html' %} 
+{% endif %}
+
+
+
+</html>

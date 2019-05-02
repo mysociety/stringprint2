@@ -1,0 +1,9 @@
+var {{chart.ident}} = new google.visualization.DataTable();
+{% for c in chart.columns %}
+    {{chart.ident}}.addColumn('{{c.type}}', '{{c.name}}');
+{% endfor %}
+{{chart.ident}}.addRows({{chart.render_data}});
+
+var {{chart.ident}}_chart = new google.visualization.Table(document.getElementById('{{chart.ident}}'));
+
+{{chart.ident}}_chart.draw({{chart.ident}}, {'sort':'disable'});
