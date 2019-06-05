@@ -166,7 +166,7 @@ class GoogleChart(SerialObject):
         return mark_safe(json.dumps(self.compile_options()))
 
     def render_div(self, caption):
-        if len(self.columns) > 4:
+        if len(self.columns) > 5:
             multiple = 40
         else:
             multiple = 28
