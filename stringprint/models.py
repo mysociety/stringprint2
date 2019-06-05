@@ -515,6 +515,13 @@ class Article(models.Model):
         """
         if internal_name == "":
             internal_name = os.path.split(file_location)[1]
+        #delete alternative title if image has changed
+        if kwargs.get("title_image", False) is True:
+            q = HeaderImage.objects.filter(article=self, title_image=True)
+            q = q.exclude(source_loc=file_location)
+            if q.exists():
+                print ("found-deleting")
+                q.delete()
 
         ni, created = HeaderImage.objects.get_or_create(article=self,
                                                         source_loc=file_location,
