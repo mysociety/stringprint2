@@ -220,7 +220,7 @@ class SPPrompt(Cmd):
         doc.process()
         print ("Finished Processing: {0}".format(doc.title))
 
-    def do_quit(self,inp):
+    def do_quit(self, inp):
         quit()
 
     def do_render(self, inp):
@@ -231,17 +231,18 @@ class SPPrompt(Cmd):
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         doc.render(path, refresh_all=refresh_all)
-        
-    def do_renderzip(self,inp):
+
+    def do_renderzip(self, inp):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc
         origin_folder = self.current_org.storage_dir
         path = os.path.join(origin_folder, slug)
         zip_destination = os.path.join(path,
-                                       "download.zip")
+                                       slug)
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
-        zip_location = doc.render_to_zip(zip_destination, refresh_all=refresh_all)
+        zip_location = doc.render_to_zip(
+            zip_destination, refresh_all=refresh_all)
         print ("Zip created")
 
     def do_mergepdf(self, inp):
