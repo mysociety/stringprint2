@@ -27,4 +27,5 @@ target/
 local.properties
 .classpath
 .settings/
+static/CACHE
 config.yaml
