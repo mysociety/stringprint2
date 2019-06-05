@@ -269,7 +269,7 @@ def extract_assets(q):
         s = s.replace("\n - ", "")
         return s.encode("utf-8")
     with open(yaml_file, "wb") as f:
-        yaml.dump(yaml_output, f, transform=transform)
+        yaml.dump(yaml_output, f)
 
 
 def convert_word(source, dest, demote=False):
