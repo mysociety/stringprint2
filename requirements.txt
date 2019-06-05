@@ -35,3 +35,4 @@ ruamel.yaml
 PyPDF2==1.26.0
 PyMuPDF==1.14.13
 mammoth==1.4.9
+django_compressor==2.2

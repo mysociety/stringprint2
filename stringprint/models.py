@@ -438,7 +438,6 @@ class Article(models.Model):
                                       file_name=file_path)
             print ("saving {0}".format(f.slug))
             f.save()
-            
 
     def prepare_assets(self):
         """
@@ -612,6 +611,9 @@ class Article(models.Model):
         dirs = [destination,
                 os.path.join(destination, "static"),
                 os.path.join(destination, "static", "css"),
+                os.path.join(destination, "static", "CACHE"),
+                os.path.join(destination, "static", "CACHE", "css"),
+                os.path.join(destination, "static", "CACHE", "js"),
                 os.path.join(destination, "static", "js"),
                 os.path.join(destination, "static", "images"),
                 os.path.join(destination, "media"),
@@ -627,7 +629,9 @@ class Article(models.Model):
         settings.MEDIA_URL = "media/"
         settings.SITE_ROOT = url
         settings.STATIC_URL = "static/"
+        settings.COMPRESS_URL = "static/"
         settings.DEBUG = False
+        settings.COMPRESS_ENABLED = True
 
         """
         generate paragraph images
@@ -639,12 +643,17 @@ class Article(models.Model):
         subclass so we can amend article override settings - force paywall off
         """
 
+        current_article = self
+
         class BakeArticleView(ArticleView):
             share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
             twitter_share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
             article_settings_override = {"paywall": False,
                                          "baking": True,
                                          "search": False}
+            
+            def get_article(self, request, article_slug):
+                return current_article
 
         class BakeTipueContentView(TipueContentView):
             article_settings_override = {"paywall": False,
@@ -711,6 +720,13 @@ class Article(models.Model):
             BakePlainView.write_file(path=os.path.join(
                 destination, "plain.html"), args=args)
 
+        print("moving compressed files")
+
+        self.compressed_files = [x[len(settings.COMPRESS_URL):] for x in self.compressed_files]
+
+        for c in self.compressed_files:
+            print (c)
+
         """
         move required static files
         """
@@ -728,6 +744,8 @@ class Article(models.Model):
             "css//text_mode.css",
             "css//fa_reduced.css",
         ]
+        
+        files.extend(self.compressed_files)
 
         folders = [
             "favicon",
@@ -754,7 +772,7 @@ class Article(models.Model):
         pull in org based static directories
         """
         org_static_dirs = [x for x in settings.STATICFILES_DIRS if x != static]
-        
+
         for o in org_static_dirs:
             d = os.path.join(destination, "static")
             sync(o, d, "sync")

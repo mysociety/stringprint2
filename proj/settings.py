@@ -61,6 +61,7 @@ TEMPLATES = [
 
 
 STATIC_DIR = PROJECT_PATH + '/static/'
+COMPRESS_ROOT = STATIC_DIR
 
 STATICFILES_DIRS = []
 
@@ -70,7 +71,7 @@ for k, v in config["ORGS"].items():
         STATICFILES_DIRS.append(static_path)
 
 STATICFILES_DIRS.append(STATIC_DIR)
-
+COMPRESS_ENABLED = True
 # Application definition
 
 INSTALLED_APPS = (
@@ -80,6 +81,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'compressor',
     'stringprint',
     'bootstrapform',
     'import_export',
@@ -161,6 +163,18 @@ MEDIA_URL = "/media/"
 
 SESSION_COOKIE_AGE = 604800
 DEBUG = True
+
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+
+]
+
+COMPRESS_CSS_FILTERS = ['compressor.filters.css_default.CssAbsoluteFilter',
+                        'compressor.filters.cssmin.rCSSMinFilter']
+
 
 #not really required - used to configure what is now the back end
 SHARE_IMAGE = ""

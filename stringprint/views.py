@@ -9,27 +9,24 @@ from useful_inkleby.useful_django.views.functional import postlogic
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.template import Template, Context
-
+from django.dispatch import receiver
+from compressor.signals import post_compress
 import re
 
 from .models import Article
 from useful_inkleby.useful_django.views import ComboView
 
 
-class Message(object):
-
-    def __init__(self, message, box="good"):
-        self.message = message
-        self.box = box
-
-    def show_message(self):
-        return mark_safe(self.message)
-
-    def alert_type(self):
-        if self.box == "good":
-            return "alert-success"
-        elif self.box == "bad":
-            return "alert-danger"
+@receiver(post_compress)
+def compression_callback(sender, type, mode, context, **kwargs):
+    """
+    Logs files compressed back into the article object
+    this lets the rendering process capture and move them
+    """
+    article = context["article"]
+    if hasattr(article, "compressed_files") is False:
+        article.compressed_files = []
+    article.compressed_files.append(context["compressed"]["url"])
 
 
 class AssetView(ComboView):
