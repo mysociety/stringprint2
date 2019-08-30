@@ -516,7 +516,7 @@ class Article(models.Model):
         """
         if internal_name == "":
             internal_name = os.path.split(file_location)[1]
-        #delete alternative title if image has changed
+        # delete alternative title if image has changed
         if kwargs.get("title_image", False) is True:
             q = HeaderImage.objects.filter(article=self, title_image=True)
             q = q.exclude(source_loc=file_location)
@@ -659,7 +659,7 @@ class Article(models.Model):
             article_settings_override = {"paywall": False,
                                          "baking": True,
                                          "search": False}
-            
+
             def get_article(self, request, article_slug):
                 return current_article
 
@@ -730,7 +730,8 @@ class Article(models.Model):
 
         print("moving compressed files")
 
-        self.compressed_files = [x[len(settings.COMPRESS_URL):] for x in self.compressed_files]
+        self.compressed_files = [x[len(settings.COMPRESS_URL):]
+                                 for x in self.compressed_files]
 
         for c in self.compressed_files:
             print (c)
@@ -752,7 +753,7 @@ class Article(models.Model):
             "css//text_mode.css",
             "css//fa_reduced.css",
         ]
-        
+
         files.extend(self.compressed_files)
 
         folders = [
