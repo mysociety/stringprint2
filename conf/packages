@@ -12,3 +12,5 @@ libxi6
 libgconf-2-4
 python3-dev
 gcc
+zip
+unzip
