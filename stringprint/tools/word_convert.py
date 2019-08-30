@@ -15,19 +15,22 @@ from useful_inkleby.files import QuickText, QuickGrid
 import base64
 
 regex = re.compile(
-        r'^(?:http|ftp)s?://' # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-        r'localhost|' #localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-        r'(?::\d+)?' # optional port
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    # domain...
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
 
 def fix_url(url):
     if regex.match(url):
         return "Link: [{0}]({0})".format(url)
     return url
 
-def mammoth_adjust(qt,demote=True):
+
+def mammoth_adjust(qt, demote=True):
     """
     given the results of a mammoth conversion:
     fixes up footnotes
@@ -35,15 +38,22 @@ def mammoth_adjust(qt,demote=True):
     """
     text = qt.text
 
-    def note_text(
-        x): return '<sup>[[{0}]](#footnote-{0})</sup>'.format(x)
+    def note_text(x):
+        return '<sup>[[{0}]](#footnote-{0})</sup>'.format(x)
 
+    def note_text_new(x):
+        return '<sup>[[{0}]](#footnote-{1})</sup>'.format(x, x - 1)
     count = 1
 
     special_characters = "[]'.,!-" + '"'
 
-    while note_text(count) in text:
+    text = text.replace("<sup><sup>", "<sup>")
+    text = text.replace("</sup></sup>", "</sup>")
+
+    while note_text(count) in text or note_text_new(count) in text:
         text = text.replace(note_text(count),
+                            "[^{0}]".format(count))
+        text = text.replace(note_text_new(count),
                             "[^{0}]".format(count))
         text = text.replace("<sup>[^{0}]</sup>".format(count),
                             "[^{0}]".format(count))
@@ -59,21 +69,23 @@ def mammoth_adjust(qt,demote=True):
     for r in re.findall('<a id="_[\d\w]*"></a>', text):
         text = text.replace(r, "")
 
-    #get correct markdown out of action
+    # get correct markdown out of action
     for r in re.findall('\*\*(.*?)\*\*', text):
         if r and r[0] != " " and r[-1] != " ":
-            text = text.replace("**{0}**".format(r),"!!DOUBLE!!{0}!!DOUBLE!!".format(r))
+            text = text.replace("**{0}**".format(r),
+                                "!!DOUBLE!!{0}!!DOUBLE!!".format(r))
     for r in re.findall('\*(.*?)\*', text):
         if r and r[0] != " " and r[-1] != " ":
-            text = text.replace("*{0}*".format(r),"!!SINGLE!!{0}!!SINGLE!!".format(r))
+            text = text.replace("*{0}*".format(r),
+                                "!!SINGLE!!{0}!!SINGLE!!".format(r))
 
-    #remove bad markdown conversion - removes spaces at end of formatting
+    # remove bad markdown conversion - removes spaces at end of formatting
     #text = text.replace("****","**")
     patterns = [("(\*\*(.*?) \*\*)", "**{0}** "),
                 ("(\*\* (.*?)\*\*)", " **{0}**"),
                 ("(\*(.*?) \*)", "*{0}* "),
                 ("(\* (.*?)\*)", " *{0}*")]
-    
+
     count = 0
     for p, replace in patterns:
         for r in re.findall(p, text):
@@ -83,7 +95,6 @@ def mammoth_adjust(qt,demote=True):
             replacement = replace.format(contents)
             text = text.replace(full, replacement)
 
-    
     text = text.replace("!!DOUBLE!!", "**")
     text = text.replace("!!SINGLE!!", "*")
 
@@ -98,17 +109,15 @@ def mammoth_adjust(qt,demote=True):
                 print (full)
                 print (replace)
                 text = text.replace(full, replace)
-            
-    
+
     for s in special_characters:
         text = text.replace("\\" + s, s)
-
 
     text = text.replace("\n\r", "\n")
 
     qt.text = text
 
-    image_find = re.compile(r"\(data:image/(.*);base64,(.*)\)(.*)")
+    image_find = re.compile(r"\(data:image/(.*?);base64,(.*)\)(.*)")
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
 
     asset_count = 0
@@ -129,6 +138,8 @@ def mammoth_adjust(qt,demote=True):
                   "content": content,
                   "caption": caption,
                   "slug": slug}
+            print ("asset found")
+            print (di)
             qt.assets.append(di)
             line.update("[asset:{0}]".format(slug))
         toc = toc_find.search(line)
@@ -204,6 +215,7 @@ def get_asset_captions(qt):
             else:
                 last_asset = None
 
+
 def convert_docx(file_path, demote=False):
     """
     given a word file as a file object, converts to markdown
@@ -221,7 +233,7 @@ def convert_docx(file_path, demote=False):
     mammoth_adjust(q, demote)
     q.assets.extend(assets)
     get_asset_captions(q)
-    
+
     for m in m_conversion.messages:
         print(m)
 
@@ -263,11 +275,6 @@ def extract_assets(q):
     yaml = YAML()
     yaml.default_flow_style = False
 
-    def transform(s):
-        s = s.replace("!!omap", "")
-        s = s.replace("\n- ", "")
-        s = s.replace("\n - ", "")
-        return s.encode("utf-8")
     with open(yaml_file, "wb") as f:
         yaml.dump(yaml_output, f)
 
@@ -281,4 +288,3 @@ def convert_word(source, dest, demote=False):
 
 if __name__ == "__main__":
     pass
-
