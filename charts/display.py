@@ -166,21 +166,24 @@ class GoogleChart(SerialObject):
         return mark_safe(json.dumps(self.compile_options()))
 
     def render_div(self, caption):
+        extra_rows = 2
         if len(self.columns) > 5:
-            multiple = 40
+            multiple = 24.5
         else:
-            multiple = 28
-        self.row_height = multiple * (len(self.rows) + 1)
+            multiple = 24.5
+        self.row_height = (multiple * (len(self.rows)+extra_rows)) + 5
         self.caption = caption
         rendered = render_to_string('charts//google_charts_div.html', {"chart": self})
         return mark_safe(rendered)
 
     def load_from_file(self, path):
         qg = QuickGrid().open(path)
+        if len(qg) == 0:
+            p
         for x, h in enumerate(qg.header):
             col_name = h
             setting = None
-            if "||" in col_name:
+            if col_name and "||" in col_name:
                 col_name, setting = col_name.split("||")
 
             if col_name is None:
