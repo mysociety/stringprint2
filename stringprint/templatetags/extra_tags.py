@@ -6,6 +6,14 @@ register = template.Library()
 
 
 @register.filter
+def empty_if_none(v):
+    if v:
+        return v
+    else:
+        return ""
+
+
+@register.filter
 def blankfix(v):
     if v == None:
         return "-"

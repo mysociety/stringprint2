@@ -96,7 +96,7 @@
                                 <div class = "hidden-xs hidden-sm col-md-offset-1 col-md-1  side-bar" id = "{{g.order}}">
                                     {% if  g.has_content %}
 
-                                        <a class="cite-link-normal cite-link cite-copy" id = "{{g.order}}" href = "{{article|cite_link:g}}" para_tag = "{{g.para_tag}}" title="Get paragraph link" >
+                                        <a class="cite-link-normal cite-link cite-copy" id = "{{g.order}}" href = "{{article|cite_link:g}}" para_tag = "{{g.para_tag|empty_if_none}}" title="Get paragraph link" >
                                             {% if g.para_tag %}
                                             {{g.para_tag}}
                                             {% else %}
