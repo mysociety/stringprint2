@@ -227,6 +227,9 @@ class SPPrompt(Cmd):
     def do_quit(self, inp):
         quit()
 
+    def do_exit(self, inp):
+        quit()
+
     def do_render(self, inp):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc
