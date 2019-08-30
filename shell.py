@@ -127,6 +127,7 @@ class SPPrompt(Cmd):
     def __init__(self):
         self.current_org = None
         self.current_doc = None
+        self.dir_lookup = {}
         super().__init__()
 
     def do_setorg(self, slug):
@@ -134,6 +135,7 @@ class SPPrompt(Cmd):
         prompt.print_status()
 
     def do_setdoc(self, slug):
+        slug = self.dir_lookup.get(slug, slug)
         doc_folder = os.path.join(self.current_org.storage_dir, slug)
         config_file = os.path.join(doc_folder, "settings.yaml")
         if os.path.exists(config_file) is False:
@@ -145,16 +147,18 @@ class SPPrompt(Cmd):
     def do_listdocs(self, inp):
         dir = self.current_org.storage_dir
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
-
+        x = 0
         for f in os.listdir(dir):
             doc_folder = os.path.join(dir, f)
             config_file = os.path.join(doc_folder, "settings.yaml")
             if os.path.exists(config_file):
+                x += 1
                 slugged = f in slugs
                 if slugged:
-                    print (f)
+                    print (x, f)
                 else:
-                    print (f + "(unloaded)")
+                    print (x, f + "(unloaded)")
+                self.dir_lookup[str(x)] = f
 
     def do_load(self, inp):
         if inp is None and self.current_doc:
