@@ -771,18 +771,32 @@ def move_extended_close(content):
     return "\n".join(final)
 
 
+def hide_footnote_refs(content):
+    # hide footnotes from markdown processor
+    content = content.replace("[^", "!!footnotestandin!!")
+    return content
+
+
+def return_footnote_refs(content):
+    content = content.replace("!!footnotestandin!!", "[^")
+    return content
+
+
 def process_ink(version, content):
 
     Footnote.note_count = 0
 
-    processors = [quote_fix, move_extended_close, markdown.markdown]
+    processors = [quote_fix,
+                  move_extended_close,
+                  hide_footnote_refs,
+                  markdown.markdown,
+                  return_footnote_refs]
 
     """
     #these are set back to active later if used
     """
 
     version.article.assets.all().update(active=False)
-
     processed = content
     for p in processors:
         processed = p(processed)
