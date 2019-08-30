@@ -273,12 +273,20 @@ class SPPrompt(Cmd):
         hero_location = yaml_data["header"]["location"]
         hero_path = os.path.join(self.doc_folder, hero_location)
         destination = os.path.join(self.doc_folder, "hero.png")
-        create_hero(hero_path, destination)    
+        create_hero(hero_path, destination)
+
 
 if __name__ == "__main__":
     default_org = load_org_details()
     prompt = SPPrompt()
     prompt.do_setorg(default_org)
-    
-    
-    prompt.cmdloop()
+    prompt.do_listdocs("")
+    continue_in_shell = False
+    for a in sys.argv[1:]:
+        a = a.replace(":", " ")
+        if a == "continue":
+            continue_in_shell = True
+        else:
+            prompt.onecmd(a)
+    if not sys.argv[1:] or continue_in_shell:
+        prompt.cmdloop()
