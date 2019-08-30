@@ -406,6 +406,8 @@ class Article(models.Model):
         given the assets folder - loads all assets inside
         """
         yaml_file = os.path.join(asset_folder, "assets.yaml")
+        if not os.path.isfile(yaml_file):
+            return None
         data = get_yaml(yaml_file)
         slugs = []
         assets = []
