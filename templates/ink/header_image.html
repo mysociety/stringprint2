@@ -11,7 +11,7 @@
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
             {% endfor %}
             <!--[if IE 9]></video><![endif]-->
-            <img srcset="{{image.url}}" class="img-responsive" title="{{alt_text}}" alt="{{image.image_alt}}" style="margin:0 auto;">
+            <img srcset="{{image.url}}" class="img-responsive" title="{{alt_text}}" alt="{{image.image_alt|empty_if_none}}" style="margin:0 auto;">
         </picture>
 {% if image.size >= 0 %}
     </div>
