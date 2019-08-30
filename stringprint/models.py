@@ -270,7 +270,8 @@ class Article(models.Model):
                                          file_name)
             self.get_book_cover(file_name)
 
-        self.production_url = self.org.publish_root + self.slug + "/"
+        if "production_url" not in data:
+            self.production_url = self.org.publish_root + self.slug + "/"
 
         if os.path.exists(self.file_source) is False:
             self.file_source = os.path.join(storage_dir, self.file_source)
