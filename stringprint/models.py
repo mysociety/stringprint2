@@ -931,10 +931,23 @@ class Article(models.Model):
         self.save()
 
     def content(self):
-        if self.current_version == 0:
-            v = Version(article=self, number=0)
+        """
+        retrieve current version
+        """
+        q = Version.objects.filter(article=self,
+                                   number=self.current_version)
+        # error handling
+        if q.count() > 1:
+            print ("deleting previous")
+            q.delete()
+
+        if not q.exists():
+            print ("creating new content")
+            v = Version.objects.get_or_create(article=self,
+                                              number=self.current_version)[0]
         else:
-            v = self.versions.get(number=self.current_version)
+
+            v = q[0]
         return v
 
     def display_content(self, slugs=[]):
@@ -1125,6 +1138,13 @@ class Version(models.Model):
     raw = models.TextField(blank=True, null=True)
     sections = JsonBlockField(blank=True, null=True)
     has_notes = models.BooleanField(default=False)
+
+    def load_from_file(self):
+        with codecs.open(self.article.file_source, encoding='utf-8') as f:
+            raw = f.read()
+        if raw:
+            self.raw = raw
+            self.save()
 
     def tag_lookup(self):
         """
@@ -1344,6 +1364,8 @@ class Version(models.Model):
         creates the section and graf structure from raw markup
         """
         self.article.assets.all().update(active=False)
+        if not self.raw:
+            self.load_from_file()
         process_ink(self, self.raw)
 
         first_section = "start"
