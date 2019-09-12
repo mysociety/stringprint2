@@ -178,8 +178,6 @@ class GoogleChart(SerialObject):
 
     def load_from_file(self, path):
         qg = QuickGrid().open(path)
-        if len(qg) == 0:
-            p
         for x, h in enumerate(qg.header):
             col_name = h
             setting = None
