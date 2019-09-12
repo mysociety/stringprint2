@@ -16,11 +16,11 @@ Configure `conf/config.yaml` from config-example.yaml
 
 ## Loading existing document
 
-- ‘vagrant up’ in the stringprint2 directory. 
+- `vagrant up` in the stringprint2 directory. 
 - If that all goes fine ‘script/shell’ to get to basic interface.
-- ‘listdocs’ will show all the docs currently in the source repo
-- ‘loadall’ to populate. 
-- Navigate to 192.168.0.1:8000 in a browser on host machine to see a preview of these documents (script/server will start a server - debug using ‘python3 manage.py runserver 0.0.0.0:8000’). 
+- `listdocs` will show all the docs currently in the source repo
+- `loadall` to populate. 
+- Navigate to 192.168.0.1:8000 in a browser on host machine to see a preview of these documents (script/server will start a server - debug using `python3 manage.py runserver 0.0.0.0:8000`). 
 
 ## Creating new document
 
