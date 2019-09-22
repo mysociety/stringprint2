@@ -191,12 +191,18 @@ class Chrome(object):
         cls.driver = webdriver.Chrome(executable_path=chrome_driver_path,
                                       options=options)
         return cls.driver
+    
+    @classmethod
+    def quit(cls):
+        if cls.driver:
+            cls.driver.quit()
+        cls.driver = None 
+        
 
     def __del__(self):
         if self.driver:
             self.driver.quit()
         super(Chrome, self).__del__()
-
 
 class Article(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
@@ -390,7 +396,7 @@ class Article(models.Model):
             elements = (int(left), int(top), int(right), int(bottom))
             im = img.crop(elements)
             im.save(g.destination_location)
-        driver.quit()
+        Chrome.quit()
 
     def reprocessing(self):
         return self.needs_processing or self.reprocess_source
