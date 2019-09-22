@@ -1,4 +1,5 @@
-hide_state = true;
+var hide_state = true;
+var current_section = "";
 $(".noscript-anchor").remove()
 
 
@@ -37,10 +38,11 @@ function changeSelected(id,title,nohash){
     if (title) {
         $("#mobile-title").text(title);
     } else {
-        short_name = $("body").attr("title")
-        $("#mobile-title").text(short_name);
-        }
-        
+        title = $("body").attr("title")
+        $("#mobile-title").text(title);
+    }
+    current_section = title;
+	
         font_size = 14
 		$("#mobile-title").css("font-size", font_size + "pt");
         while (($("#mobile-navbar-header").height() > ($("#mobile-title").height() * 3)) ){
@@ -88,6 +90,125 @@ $("a.top-nav-item").mouseup(function(){
 	
 })
 
+var visible_ids = [];
+
+$.fn.isInViewport = function() {
+  var elementTop = $(this).offset().top;
+  var elementBottom = elementTop + $(this).outerHeight();
+
+  var viewportTop = $(window).scrollTop();
+  var viewportBottom = viewportTop + $(window).height();
+
+  return elementBottom > viewportTop && elementTop < viewportBottom;
+};
+
+
+$.fn.percentViewport = function() {
+  window_height = $(window).height()
+  var elementTop = $(this).offset().top;
+  var elementBottom = elementTop + $(this).outerHeight();
+
+  var viewportTop = $(window).scrollTop() + 60;
+  var viewportBottom = viewportTop + window_height;
+
+  in_scope = elementBottom > viewportTop && elementTop < viewportBottom;
+  
+  if (in_scope == false) {
+  return false;
+  }
+  
+  
+  if (elementTop > viewportTop){
+	  comparison_top = elementTop;
+  } else {
+	 comparison_top = viewportTop;
+  }
+  
+  if (elementBottom > viewportBottom){
+	 comparison_bottom = viewportBottom;
+  } else {
+	 comparison_bottom = elementBottom;
+  }
+  gap = comparison_bottom - comparison_top
+
+  return gap/window_height;
+  
+  
+};
+
+
+handle_waypoint = function(ele){
+	if ($(ele).is(':visible') == false){
+    return 0;
+    }
+	id = $(ele).attr('id');
+	// console.log("detected:" + id);
+	int_id = parseInt(id);
+	lower = int_id  - 5;
+	higher = int_id + 5;
+	current_visible = [];
+	//get current visible paragraphs
+	for (var i = lower; i <= higher; i++) {
+		item = $("#" + i + ".content-row")
+		if (item.is(':visible') && item.isInViewport() ){
+			height = item.percentViewport()
+			current_visible.push([i,height]);
+		}
+	}
+	// console.log("currently_visible " + current_visible);
+
+	current_visible.sort(function (a,b) {
+		a_height = a[1]
+		b_height = b[1]
+		
+		return b_height - a_height
+	}
+	)
+	
+	if (current_visible.length == 0){
+		return ;
+	}
+	
+	selected = current_visible[0][0]
+	// console.log("selected: " + selected)
+
+	item = $("#" + selected + ".cite-link");
+	link_ref = item.attr("href");
+	para_tag = item.attr("para_tag");
+	$("#mobile-header-link").attr("href", link_ref);
+	$("#mobile-header-link").attr("para_tag", para_tag);
+	
+	// will currently select the largest paragraph visible
+	// would be good to have a switch for if a header was visible
+	
+}
+
+graph_waypoints_down = $('.content-row').waypoint(function(direction) {
+   handle_waypoint(this.element)
+}, {
+  offset: function() {
+    if ($(this.element).is(':visible') == true){
+        return 60;
+    } else {
+    return 0
+    }
+  },
+  continuous:false}
+  );
+
+graph_waypoints_up = $('.content-row').waypoint(function(direction) {
+   handle_waypoint(this.element)
+}, {
+  offset: function() {
+    if ($(this.element).is(':visible') == true){
+        return  0 - $(this.element).height();
+    } else {
+    return 0
+    }
+  },
+  
+  continuous:false}
+  );
 
 var waypoints = $('.section-anchor').waypoint(function(direction) {
     //at change in section changes top menu and hash changes
@@ -232,7 +353,7 @@ function adjustMenus(id,future, past) {
             local = 1
             future = future + 1
         }
-		console.log(local)
+		// console.log(local)
             if ((local <= bottombar) || (local > topbar)) {
                 $(this).addClass("hide-item")
             }
@@ -550,19 +671,26 @@ function citeBox(dialog_title,link, para_tag){
     cite_author = $("body").attr("cite-author")
     year = $("body").attr("year")
 	org =  $("body").attr("org")
-    
-    if (para_tag != "None") {
+	current_section_name = current_section
+	if (current_section_name == title) {
+		current_section_name = "";
+	}
+	if (current_section_name) {
+		current_section_name = ": " + current_section_name;
+		current_section_name = current_section_name.trim();
+	}
+	
+    if (para_tag != "") {
         ele_name = "Paragraph"
         ele_id = para_tag
     } else {
-        ele_name = "Element"
+        ele_name = "Paragraph"
         ele_id = $(this).attr("id")    
     }    
 
-    
     swal({
     title: dialog_title,    
-    text: 'Link: <a href="' + link+ '">' + title + ': ' + ele_name + ' '+ ele_id + '</a>' + 
+    text: 'Link: <a href="' + link+ '">' + title + current_section_name + ', ' + ele_name + ' '+ ele_id + '</a>' + 
     '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>'+ full_title + '</i>. [online] , ' + org + '. '+ ele_name + ': ' + ele_id + ', Available at: '+ link + ' [Accessed ' + getNow() + ']</span>',
     html: true,
     confirmButtonText: "OK" });

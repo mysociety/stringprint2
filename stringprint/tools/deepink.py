@@ -305,6 +305,8 @@ class Section(SerialObject):
             elif p.type == Graf.EXTENDED_MIDDLE:
                 expanded_block.extra_grafs.append(p)
             elif p.type == Graf.EXTENDED_END:
+                if not expanded_block:
+                    raise ValueError("paragraph end without start: {0}".format(p.plain_txt))
                 expanded_block.extra_grafs.append(p)
                 expanded_block.end_tag = p.end_tag
                 self.stored_grafs.append(expanded_block)
@@ -369,6 +371,7 @@ class Graf(SerialObject):
         self.page_tag = None
         self.visible = True
         self.extra_grafs = []
+        self.stored_grafs = []
         self.position_key = 0
         self.__dict__.update(kwargs)
 
@@ -753,6 +756,8 @@ class Graf(SerialObject):
 
 
 def quote_fix(content):
+    if not content:
+        return content
     return content.replace("“", '"').replace("”", '"').replace("’", "'").replace("’", "'").replace("’", "'")
 
 
@@ -811,6 +816,7 @@ def process_ink(version, content):
                                                                    'ul': True,
                                                                    'ol': True,
                                                                    'table': True})
+
     order = 1
     s_order = 1
     version.sections = []
