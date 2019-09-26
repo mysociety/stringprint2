@@ -8,14 +8,20 @@
 {% block title %}
 {% endblock %}
 
-{% block content %}
+{% block extra_head %}
+<style>
+.index {
+    display:block;
+}
+</style>
+{% endblock %}
+
+{% block search %}
 <div class="block" style="padding-top: 39px;">
 <div class = "container">
-    <div class = "row">
-    <div class = "col-md-offset-2 col-md-8">
+    <div class = "content">
     <form >
-    <h2>Search:</h2>
-    
+    <h1>Search document</h1>
     <div class="input-group">
       <input name="q" id="tipue_search_input"  autocomplete="off"  type="text" class="form-control" placeholder="Search for..." required>
       <span class="input-group-btn">
@@ -26,9 +32,10 @@
     <div id="tipue_search_content"></div>
     <div><p>Search powered by <a href="http://www.tipue.com">Tipue</a>.</p></div>
     </div>
-    </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% endblock %}
 
 {% block code %}
