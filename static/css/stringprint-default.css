@@ -73,3 +73,54 @@ word-wrap: break-word;
 .highlighted-content {
 background-color:yellow;
 }
+
+
+.byline {
+text-align:center;
+}
+
+.other-formats-text {
+text-align: center;
+font-style: italic;
+}
+
+
+#related-research::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid #585858;
+}
+        
+
+h1::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid #585858;
+}
+
+
+.header-text {
+margin-bottom: 30px;
+}
+
+.index::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid #585858;
+  margin-bottom:20px;
+}

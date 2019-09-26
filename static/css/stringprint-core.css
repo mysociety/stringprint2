@@ -45,14 +45,42 @@ transition:background-color 1s ease;
 background-color:white;
 }
 
+.content{
+position: relative;
+min-height: 1px;
+padding-right: 15px;
+padding-left: 15px;
+float: left;
+margin-left: 20px;
+margin-right: 20px;
+}
+
+
+@media (min-width: 767px) {
+.content{
+width: 66.66666667%;
+margin-left: 16.66666667%;
+}
+}
+
 .cite-link, .catchup-link {
+left: -30px;
+position:absolute;
+float:left;
 display:none;
 }
 
+/* marker added to link to paragraph
+as a result of arriving from the outside */
+.manual_paragraph {
+display:none;
+}
+
+@media (min-width: 767px) {
 .manual_paragraph {
 display:inline;
 }
-
+}
 li.hide-item{
 display:none
 }

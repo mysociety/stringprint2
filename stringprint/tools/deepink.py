@@ -226,7 +226,8 @@ class Section(SerialObject):
             if g.title:
                 last_title = g.title
             g.current_title = last_title
-            yield g
+            if g.visible:
+                yield g
 
     def get_grafs_with_titles(self):
         return self.get_grafs(just_titles=True)
@@ -310,11 +311,13 @@ class Section(SerialObject):
                 expanded_block.extra_grafs.append(p)
                 expanded_block.end_tag = p.end_tag
                 self.stored_grafs.append(expanded_block)
-                yield expanded_block
+                if expanded_block.visible:
+                    yield expanded_block
                 expanded_block = None
             else:
                 self.stored_grafs.append(p)
-                yield p
+                if p.visible:
+                    yield p
 
     def anchor(self):
         """
@@ -357,7 +360,6 @@ class Graf(SerialObject):
         self.order = 0
         self.real_order = 0
         self.asset = None
-        self.parent_id = 0
         self.type = ""
         self.blockquote = False
         self.key = ""
@@ -378,7 +380,7 @@ class Graf(SerialObject):
     def escape_text(self):
         txt = self.plain_txt.encode('ascii', 'xmlcharrefreplace')
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
-        return txt
+        return txt.decode('utf-8')
 
     def caret_title(self):
         """
@@ -473,6 +475,14 @@ class Graf(SerialObject):
     def social_cite_link(self):
         return self._article.social_cite_link(self)
 
+    def start_tag_class_type(self):
+        if self.start_tag == "StartBlockQuote":
+            return "blockquote"
+        elif self.start_tag == "StartNotes":
+            return "extended"
+        return ""
+            
+        
     def extended(self):
         """
         Boolean - is this an extended paragraph>
@@ -481,7 +491,7 @@ class Graf(SerialObject):
 
     def has_content(self):
         """
-        return this and any child paragraphs (in extended sections)
+        is there any content in this graf?
         """
         for x in [self] + self.extra_grafs:
             if x.html:

@@ -7,15 +7,16 @@
 <nav class="navbar navbar-default navbar-fixed-top " role="navigation">
 
   <div id="large-menu" class="container-fluid large-menu">
-          <a id="brand" class="navbar-brand short-title" href="{{article.url}}#start">{{article.short_title}}</a>
+      <a id="brand" class="navbar-brand short-title" href="{{article.url}}#start">{{article.short_title}}</a>
 
           
       <ul class="nav navbar-nav nav-text">
-
-		<li id = "search-link" class="action-buttons search_link"><a class="search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a></li>
+		<li id = "search-link" class="action-buttons search_link">
+		    <a class="search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a>
+		</li>
  		<li id ="menu-index" class="action-buttons"><a href="#index"  title="View Table of Contents"><i class="icon-th-list"></i></a></li>
-                <li id ="menu-prev" ><a id ="menu-prev" href="#"><i class="icon-angle-double-left"></i></a>
-                </li>
+            <li id ="menu-prev" ><a id ="menu-prev" href="#"><i class="icon-angle-double-left"></i></a>
+        </li>
         {% for s in content.sections %}
             {% if s.name%}
                 <li class="top-menu-item {% if s.order not in article.nav_default_range %}hide-item{% endif %}"

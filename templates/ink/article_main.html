@@ -13,44 +13,26 @@
 </div>
 {% endblock %}
 
+
 {% block title %}
 <a class="anchor" id="1" name="start"></a> 
       <div class="container header-text  text-center">
-        <h1>{{article.title}}</h1>
-      <hr>
-      {% if article.byline or article.baking %}
+        <h1 id="article_title">{{article.title}}</h1>
       {% if article.byline %}
-          <p style="text-align:center;">{{article.byline}}</p>
+          <p class = "byline">{{article.byline}}</p>
       {% endif %}
-              <p style="text-align:center;font-style: italic;">
-			  Other Formats: <a href="{{SITE_ROOT}}/plain.html" class="alt_link" type="plain" >Plain Text</a>,
+              <p class="other-formats-text">
+			  Other Formats: <a href="{{SITE_ROOT}}plain.html" class="alt_link" type="plain" >Plain Text</a>,
 			  {% if article.pdf_location %} <a href="{{article.pdf_location}}" class="alt_link" type="pdf" >PDF</a>,{% endif %}
-			  <a href="{{SITE_ROOT}}/{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>. </p>
-          <hr>
-      {% endif %} 
-      <br>
+			  <a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>. </p>
       </div>
 {% endblock %}
 
-    {% if message %}
-    <div id="message" class="container">
-        <div class="col-md-8 col-md-offset-2">
-            <div class="alert alert-success text-center">
-              <p>{{message}}</p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
         <a class="anchor" id="index"  name="index"></a> 
-        <div id="index" class="container index">
-            <div class="header-text">
+        <div id="index" class="container index content">
                 <H1>Table of Contents</h1>
-                <hr>
-            </div>
-            <div class = "row">
-            <div class = "col-md-offset-2 col-md-8">
                 <ul>
-                {% for s in content.sections%}
+                {% for s in content.sections %}
                     {%if s.name %}
                         <li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
                         <ul>
@@ -62,15 +44,14 @@
                     {% endif %}
                 {% endfor %}
                 </ul>
-            </div>
-            </div>
-            <hr>
         </div> 
     {% block content %}
+    <div class="container content">
     {% for s in content.display_sections %}
-        {%if s.name %}
+		{# iterate through sections #}
+        {% if s.name %}
             <a class="anchor linkable" id="{{s.order}}" name="{{s.anchor}}"></a> 
-            <div id = "{{s.order}}" prev = "{{s.prev_if_single_page}}" class="section-anchor container header-text">
+            <div id = "{{s.order}}" prev = "{{s.prev_if_single_page}}" class="section-anchor header-text">
             {% with article.image_lookup|get_item:s.name as image %}
                 {% if image %}
                     <div class="section-heading-image">
@@ -78,108 +59,71 @@
                     </div>
                 {% else %}
                     <H1>{{s.name}}</h1>
-                    <hr>
                 {% endif %}
             {% endwith %}
             </div>
         {% endif %}
-        <div class="container">
-                    {% for g in s.get_grafs %}
-                        {% if g.visible %}
-                            {%if g.title %}
-                                <a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
-                                <H2>{{g.title|safe}}</h2>
-                            {% endif %}
-							<a class="noscript-anchor" name = "{{g.combo_key}}">
-                            {{g.anchor_code}}
-                            <div class = "row content-row {{g.classes}}" id = "{{g.order}}">
-                                <div class = "hidden-xs hidden-sm col-md-offset-1 col-md-1  side-bar" id = "{{g.order}}">
-                                    {% if  g.has_content %}
-
-                                        <a class="cite-link-normal cite-link cite-copy" id = "{{g.order}}" href = "{{article|cite_link:g}}" para_tag = "{{g.para_tag|empty_if_none}}" title="Get paragraph link" >
-                                            {% if g.para_tag %}
-                                            {{g.para_tag}}
-                                            {% else %}
-											<i class="icon-link"></i>
-                                            {% endif %}
-                                            
-                                        </a>
-                                        {% if g.page_tag %}
-                                            <br>p. {{g.page_tag}}
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-8 {%if 'opacity' in g.visible %}{{g.visible}}{% endif %}" >                   
-                                            {% if g.start_tag == "StartBlockQuote"%}
-                                                <div id="{{g.order}}" class="blockquote">
-                                            {% elif g.start_tag == "StartNotes" %}
-                                                <div id="{{g.order}}" class="extended">
-                                            {% endif %}
-                                            {% for p in g.self_and_extras %}
-                                                <p>
-                                                    <span id = "{{p.order}}" class="content">
-                                                        {% if p.asset %}
-														{{article|display_asset:p.asset}}
-														{% else %}
-														{{p.display}}
-														{% endif %}
-                                                    </span>
-                                                    {% if p.expand_link.0 == "expand" %}
-                                                        <a href="#" class = "expand-link" id="{{p.expand_link.1}}">(Notes)</a>
-                                                    {% endif %}
-                                                    {% if forloop.last and g.extended %}
-                                                        <a href="#" class = "hide-link" id="{{g.order}}">(Hide)</a>
-                                                    {% endif %}
-                                                </p>
-                                                {% if p.footnotes %}
-                                                <div id = "{{p.order}}" class = "footnotes">
-                                                <p>Notes (<a href="" class="hide-footnotes">hide</a>):</p>
-                                                    {% for f in p.footnotes %}
-                                                        <p id="ref{{f.num}}">{{f.num}}: {{f.safe_content}} </p>
-                                                    {% endfor %}
-                                                </div>
-                                                {% endif %}
-                                            {% endfor %}
-                                            {% if g.end_tag %}
-                                                </div>
-                                            {% endif %}
-                                </div>
-                                </div>
-                            {% if g.place_message and message %}
-                                <div id="message">
-                                    <div class="col-md-8 col-md-offset-2">
-                                        <div class="alert alert-success text-center">
-                                          {{message}}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                                
-                        {% endif %}
-                    {% endfor %}
-                    
-            {% if article.sections_over_pages and s.active_section %}
-                {% with s.next_section as next %}
-                    {% if next %}
-                        <div class = "col-md-8 col-md-offset-2">
-                        <hr>
-                        <h3>Next Section: <a href="{{next.nav_url}}">{{next.name}}</a></h3>
-                        <h3><a href="#index">Table of Contents</a></h3>
-                        <hr>
-                        </div>
-                    {% endif %}
-                {% endwith %}
-            {% endif %}         
-            </div>
-            
-
+		{% for g in s.get_grafs %}
+			{%if g.title %}
+				<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
+				<H2>{{g.title|safe}}</h2>
+			{% endif %}
+			<a class="noscript-anchor" name = "{{g.combo_key}}">
+			{{g.anchor_code}}
+			<div class = "row content-row {{g.classes}}" id = "{{g.order}}">
+					{% if g.start_tag %}
+					<div id="{{g.order}}" class="{{g.start_tag_class_type}}">
+					{% endif %}
+					{# blockquotes and notes sections count additional sections of text in the same 'graf' #}
+					{% for p in g.self_and_extras %}
+					<a class="cite-link cite-copy" id="{{g.order}}" href="{{article|cite_link:g}}" para_tag="{{g.para_tag|empty_if_none}}" title="Get paragraph link" >
+					<i class="icon-link"></i>
+					</a>
+					<p id = "{{p.order}}">
+								{% if p.asset %}
+									{{article|display_asset:p.asset}}
+								{% else %}
+									{{p.display}}
+								{% endif %}
+							{% if p.expand_link.0 == "expand" %}
+								<a href="#" class = "expand-link" id="{{p.expand_link.1}}">(Notes)</a>
+							{% endif %}
+							{% if forloop.last and g.extended %}
+								<a href="#" class = "hide-link" id="{{g.order}}">(Hide)</a>
+							{% endif %}
+						</p>
+						{% if p.footnotes %}
+						<div id = "{{p.order}}" class = "footnotes">
+						<p>Notes (<a href="" class="hide-footnotes">hide</a>):</p>
+							{% for f in p.footnotes %}
+								<p id="ref{{f.num}}">{{f.num}}: {{f.safe_content}} </p>
+							{% endfor %}
+						</div>
+						{% endif %}
+					{% endfor %}
+					{% if g.end_tag %}
+						</div>
+					{% endif %}
+				</div>
+			{% endfor %}
+		
+		{% if article.sections_over_pages and s.active_section %}
+			{% with s.next_section as next %}
+				{% if next %}
+					<h3>Next Section: <a href="{{next.nav_url}}">{{next.name}}</a></h3>
+					<h3><a href="#index">Table of Contents</a></h3>
+				{% endif %}
+			{% endwith %}
+		{% endif %}         
+		
     {% endfor %} 
+	</div>
+
 	
 	{% if article.bottom_iframe %}
 	<div class = "container">
 	<h1 id="related-research">Related Research</h1>
-	<div class = "col-md-offset-1 col-md-10">
-	<hr>
+	<div class = "content">
 	<iframestub />
 	<noscript>
 	<iframe src="{{article.bottom_iframe}}" id="iframe_related" height=400 scrolling="no" ></iframe>
@@ -188,24 +132,16 @@
 	</div>
 	</div>
 	{% endif %}
-			
-        
              {% with content.footnotes as notes %}
                 {% if notes and article.display_footnotes_at_foot %}       
                     <div class="container">
-                        <div class = "row dont-break-out">
-                            <div class = "col-md-offset-2 col-md-8">
-                                    {% if article.sections_over_pages == False %}
-                                    <hr>
-                                    {% endif %}
-                                    <p><b>Notes:</b></p>
+                        <div class = "row dont-break-out content">
+                                    <h1 id="endnotes">Footnotes</h3>
                                     <div class="footnote_list">
                                     {% for f in notes %}
                                         <p><a href="#ref{{f.num}}">{{f.num}}</a>: {{f.safe_content}} </p>       
                                     {% endfor %}
                                     </div>
-                            </div>
-                        
                         </div>
                     </div>
                 {% endif %}
@@ -213,8 +149,7 @@
 			
 		
     </div>
-
-			
+	
     <script>
     sections = {
                 {% for s in content.sections %}

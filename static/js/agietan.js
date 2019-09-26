@@ -306,15 +306,7 @@ $('.expand-link').on('click touchend',function(event){
   function() {
     id = $(this).attr('id')
     $(".cite-link" ).not(".manual_paragraph").hide();
-    $('#' + id + ".cite-link-normal" ).show();
-  })
-
-//show citation link on mobile when clicked
- $( ".content-row" ).on('click',
-  function() {
-    id = $(this).attr('id')
-    $(".cite-link" ).not(".manual_paragraph").hide();
-    $('#' + id + ".cite-link-mobile" ).show();
+    $('#' + id + ".cite-link" ).show();
   })
 
 var last_id = 1
