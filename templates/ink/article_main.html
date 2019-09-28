@@ -33,18 +33,25 @@
         <div id="index" class="container index content">
                 <H1>Table of Contents</h1>
                 <ul>
-                {% for s in content.sections %}
-                    {%if s.name %}
-                        <li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
-                        <ul>
-                        {% for g in s.nav_as_grafs %}
-                            <li><a href="{{g.nav_url}}">{{g.title|safe}}</a></li>
-                        {% endfor %}
-                        </ul>
-                        </li>
-                    {% endif %}
+				{% with content.toc as toc %}
+                {% for s in content.toc %}
+					{% with s.future_level_difference as fl %}
+						<li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
+						{% if fl > 0 %}
+							<ul>
+						{% elif fl == 0 %}
+							</li>
+						{% else %}
+						{% for i in fl|range %}
+						</ul></li>
+						{% endfor %}
+						{% endif %}
+					{% endwith %}
                 {% endfor %}
+				{% for i in toc.final_level_range %}
                 </ul>
+				{% endfor %}
+				{% endwith %}
         </div> 
     {% block content %}
     <div class="container content">
@@ -67,7 +74,7 @@
 		{% for g in s.get_grafs %}
 			{%if g.title %}
 				<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
-				<H2>{{g.title|safe}}</h2>
+				<h{{g.header_level}}>{{g.title|safe}}</h{{g.header_level}}>
 			{% endif %}
 			<a class="noscript-anchor" name = "{{g.combo_key}}">
 			{{g.anchor_code}}

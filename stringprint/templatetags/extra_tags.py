@@ -4,6 +4,12 @@ from django.utils.safestring import mark_safe
 from stringprint.models import Asset
 register = template.Library()
 
+@register.filter("range")
+def range_f(v):
+    if v < 0:
+        return range(v,0)
+    else:
+        return range(0,v)
 
 @register.filter
 def empty_if_none(v):

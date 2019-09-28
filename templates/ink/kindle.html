@@ -21,21 +21,27 @@
             {% if content.sections.0.name == "" %}
             <li><a href="#intro">Introduction</a>
             {% endif %}
-            {% for s in content.sections %}
-                {%if s.name %}
-                    
-                    <li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
-                    <ul>
-                    {% for g in s.grafs_with_titles %}
-                        <li><a href="#{{g.anchor}}">{{g.title|safe}}</a></li>
-                    {% endfor %}
-                    </ul>
-                    </li>
-                {% endif %}
-
-            
-            
-            {% endfor %}
+			
+			{% with content.toc as toc %}
+			{% for s in content.toc %}
+				{% with s.future_level_difference as fl %}
+					<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
+					{% if fl > 0 %}
+						<ul>
+					{% elif fl == 0 %}
+						</li>
+					{% else %}
+					{% for i in fl|range %}
+					</ul></li>
+					{% endfor %}
+					{% endif %}
+				{% endwith %}
+			{% endfor %}
+			{% for i in toc.final_level_range %}
+			</ul>
+			{% endfor %}
+			{% endwith %}
+			
             {% if content.footnotes %}
             <li><a href="#refs">Notes</a></li>
             {% endif %}

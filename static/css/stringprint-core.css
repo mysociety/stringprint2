@@ -11,6 +11,11 @@ display: block;
 text-align:center;
 }
 
+.dropdown-toggle{
+	padding-left:5px !important;
+	padding-right:5px !important;
+}
+
 .asset-caption {
 display: block;
 text-align:center;
@@ -18,7 +23,9 @@ font-style: italic;
 margin-bottom:30px;
 }
 
-
+.nav-has-child{
+	padding-right:0px !important;
+}
 
 .footnotes {
   display:None;

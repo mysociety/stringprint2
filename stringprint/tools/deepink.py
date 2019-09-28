@@ -129,7 +129,6 @@ class Section(SerialObject):
         execute at the end of loading before being stashed in database
         """
         self.tagged = {x.tag: self.order for x in self.grafs if x.tag}
-        self.nav_from_grafs()
 
     def used_assets(self):
         """
@@ -179,22 +178,6 @@ class Section(SerialObject):
                     return "index#" + self.anchor()
                 else:
                     return "#" + self.anchor()
-
-    def nav_as_grafs(self):
-        """
-        return as basic objects to expose functionality
-        """
-        for n in self.nav:
-            g = Graf()
-            g.title = n
-            g._section = self
-            yield g
-
-    def nav_from_grafs(self):
-        self.nav = []
-        for g in self.grafs:
-            if g.title:
-                self.nav.append(g.title)
 
     def prev_id(self):
         return self.order - 1
@@ -321,7 +304,8 @@ class Section(SerialObject):
 
     def anchor(self):
         """
-        returns an indentifable marker for this paragraph
+        returns an identifiable marker for this paragraph
+        from name
         """
         if self.name == "":
             return "start"
@@ -357,6 +341,7 @@ class Graf(SerialObject):
         self.title = ""
         self.html = ""
         self.plain_txt = ""
+        self.header_level = 0
         self.order = 0
         self.real_order = 0
         self.asset = None
@@ -381,31 +366,6 @@ class Graf(SerialObject):
         txt = self.plain_txt.encode('ascii', 'xmlcharrefreplace')
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
         return txt.decode('utf-8')
-
-    def caret_title(self):
-        """
-        splits title into layers based on words
-        to stop very long horizontal titles in submenus
-        """
-        def character_group(v):
-            limit = 35
-            words = v.split(" ")
-            groups = []
-            current = []
-            count = 0
-            for w in words:
-                count += len(w)
-                current.append(w)
-                if count > limit:
-                    groups.append(" ".join(current))
-                    current = []
-                    count = 0
-            if current:  # final set
-                groups.append(" ".join(current))
-
-            return "<br>".join(groups)
-
-        return mark_safe(character_group(self.title))
 
     def paragraph_image_url(self):
         return "/media/paragraphs/{0}.png".format(self.combo_key())
@@ -822,6 +782,7 @@ def process_ink(version, content):
                                                                    'h2': True,
                                                                    'h3': True,
                                                                    'h4': True,
+                                                                   'h5': True,
                                                                    'blockquote': True,
                                                                    'ul': True,
                                                                    'ol': True,
@@ -845,13 +806,15 @@ def process_ink(version, content):
                 return s.__unicode__().replace("<{0}>".format(e), "").replace("</{0}>".format(e), "")
 
         return s.__unicode__()
-
+    header_level = 0
     for p in lines:
+        
         # doesn't give us double entries for <p> contained within these
         if p.text != "" and p.parent.name not in ["blockquote", "li"]:
-            if p.name == "h3":
+            if p.name in ["h2", "h3", "h4"]:
                 section_title = p.text  # assigns title to next graf we find
-            elif p.name == "h2":
+                header_level = int(p.name[1])
+            elif p.name == "h1":
                 # stash previous section, start new one
                 if s.name or s.grafs:
                     s.save_process()
@@ -875,7 +838,7 @@ def process_ink(version, content):
 
             else:
                 if p.text.strip() == "[[":
-                    # lone plain paragarph start
+                    # lone plain paragraph start
                     inject_notes_start = True
                 else:
                     if inject_notes_start:
@@ -890,6 +853,7 @@ def process_ink(version, content):
                               html=html,
                               h_name=p.name,
                               order=order,
+                              header_level = header_level,
                               parent_id=s.order,
                               catch_up=catchup)
 
@@ -903,6 +867,7 @@ def process_ink(version, content):
                         ng.position_key = rand.get()
                         s.grafs.append(ng)
                     section_title = ""
+                    header_level = 0
 
     s.save_process()
     version.sections.append(s)  # stash final section

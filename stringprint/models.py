@@ -1212,7 +1212,134 @@ class Version(models.Model):
             if s.has_grafs():
                 yield s
 
+    def toc(self,levels=None):
+        """
+        return a set of links for the different parts
+        """
+        class Link(object):
+            
+            def __init__(self,**kwargs):
+                self.id = 0
+                self.order = 0
+                self.anchor = ""
+                self.nav_url = ""
+                self.name = ""
+                self.level = 1
+                self.__dict__.update(kwargs)
+                self._toc = None
+                
+            @property
+            def collection(self):
+                return self._toc.items
+                
+                
+            def future(self):
+                if self.order + 1 < len(self.collection):
+                    return self.collection[self.order + 1]
+                return None
+            
+            def future_level_difference(self):
+                f = self.future()
+                if not f:
+                    return 0
+                return f.level - self.level
+
+                
+            def has_children(self):
+                f = self.future()
+                if not f:
+                    return False
+                else:
+                    return f.level > self.level
+            
+            def caret_title(self):
+                """
+                splits title into layers based on words
+                to stop very long horizontal titles in submenus
+                """
+                def character_group(v):
+                    limit = 35
+                    words = v.split(" ")
+                    groups = []
+                    current = []
+                    count = 0
+                    for w in words:
+                        count += len(w)
+                        current.append(w)
+                        if count > limit:
+                            groups.append(" ".join(current))
+                            current = []
+                            count = 0
+                    if current:  # final set
+                        groups.append(" ".join(current))
+        
+                    return "<br>".join(groups)
+        
+                return mark_safe(character_group(self.name))
+                    
+                    
+            def children(self):
+                future = self._toc.items[self.order+1:]
+                children = []
+                for i in future:
+                    if i.level == self.level:
+                        break
+                    if i.level == self.level + 1:
+                        children.append(i)
+                return children
+        
+        class Toc(object):
+            
+            def __init__(self):
+                self.items = []
+            
+            def final_level(self):
+                return self.items[-1].level
+            
+            def final_level_range(self):
+                return range(0,self.final_level())
+            
+            def add(self,**kwargs):
+                item = Link(**kwargs)
+                item.order = len(self.items)
+                item._toc = self
+                self.items.append(item)
+                
+            def __iter__(self):
+                for i in self.items:
+                    yield i
+
+            def level_1(self):
+                """
+                get just top level (sections)
+                """
+                for s in self:
+                    if s.level == 1:
+                        yield s
+                        
+        toc = Toc()
+        for s in self.sections:
+            if s.name:
+                l = toc.add(name=s.name,
+                            anchor=s.anchor(),
+                            nav_url=s.nav_url(),
+                            id=s.order,
+                            level = 1
+                            )
+            for g in s.get_grafs():
+                if g.title:
+                    l = toc.add(name=g.title,
+                                anchor=g.anchor(),
+                                nav_url=g.nav_url(),
+                                id=g.order,
+                                level = g.header_level
+                                )
+        return toc               
+
     def anchors(self):
+        """
+        for kindle
+        """
 
         def y(title, anchor, count):
             return {"title": title, "anchor": anchor, 'count': count}
@@ -1222,12 +1349,13 @@ class Version(models.Model):
         if self.sections[0].name == "":
             yield y("Introduction", "intro", count)
             count += 1
-        for s in self.sections:
+        for s in self.toc():
+            indent = s.level-1
+            i = "".join(["-" for x in range(0,indent)])
+            if i:
+                i = i + " "
             if s.name:
-                yield y(s.name, s.anchor(), count)
-                count += 1
-            for g in s.grafs_with_titles():
-                yield y("- " + g.title, g.anchor(), count)
+                yield y(i + s.name, s.anchor, count)
                 count += 1
 
         if self.footnotes():
