@@ -169,6 +169,11 @@ class TipueSearchView(HomeView):
         if self.__class__.article_settings_override:
             a.__dict__.update(self.__class__.article_settings_override)
         c = a.display_content()
+        
+        for s in c.sections:
+            if s.grafs:
+                a.nav_default_range = list(range(s.order, s.order + 3))
+                break
 
         return {"article": a,
                 'content': c,
@@ -197,7 +202,7 @@ class TextView(KindleView):
 
 class KindleOPF(KindleView):
     """
-    view to create the kindle versio nof an article
+    view to create the kindle version of an article
     """
     template = "ink//kindle.opf"
     url_patterns = [r'^(.*)/kindle/opf']
@@ -206,11 +211,11 @@ class KindleOPF(KindleView):
 
 class KindleNCX(KindleView):
     """
-    view to create the kindle versio nof an article
+    view to create the kindle version of an article
     """
     template = "ink//toc.ncx"
-    url_patterns = [r'^(.*)kindle/ncx']
-    url_name = "kindle_opf"
+    url_patterns = [r'^(.*)/kindle/ncx']
+    url_name = "kindle_ncx"
 
 
 class ArticleView(HomeView):
@@ -318,14 +323,7 @@ class ArticleView(HomeView):
         para = "full"
         c = a.display_content(slugs)
         message = ""
-        """
-        no message if not on the first page of a multi-page one
-        """
-
-        if a.sections_over_pages:
-            if section_slug != a.first_section_name:
-                message = ""
-
+        
         for s in c.sections:
             if s.grafs:
                 a.nav_default_range = list(range(s.order, s.order + 3))

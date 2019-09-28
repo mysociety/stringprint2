@@ -45,6 +45,14 @@
 <script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}"></script>
 <script>
 $(document).ready(function() {
+
+	$('form input').keydown(function (e) {
+		if (e.keyCode == 13) {
+			e.preventDefault();
+			return false;
+		}
+	});
+
      $('#tipue_search_input').tipuesearch({'showURL':false,
                                            'showTitleCount':false}
      );
