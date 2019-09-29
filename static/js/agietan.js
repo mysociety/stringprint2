@@ -470,19 +470,6 @@ function gotoHash(hash,addText){
 
 }
 
-//force open of external links in other tabs
-$('a').each(function() {
-   var a = new RegExp('/' + window.location.host + '/');
-   if( (!a.test(this.href)) && (!$(this).hasClass("nav-link"))) {
-       $(this).click(function(event) {
-           event.preventDefault();
-           event.stopPropagation();
-           window.open(this.href, '_blank');
-       });
-   }
-});
-
-
 //grab local # links
  $(function() {
   $('a[href*=#]:not([href=#])').on('click touchend',function() {
