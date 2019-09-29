@@ -660,16 +660,6 @@ $(window).on("load", function () {
         $(".expand-link").hide();
     };
 
-
-      if (window.location.search) {
-      
-        hash_loc  = getParameterByName("para")
-        if (hash_loc) {
-        new_url = window.location.href.split("?")[0] + "#" + hash_loc
-        window.history.replaceState( {} , document.short_title, new_url );
-        }
-    
-      }
       //Executed on page load with URL containing an anchor tag.
       if(window.location.hash) {
           var hash = window.location.hash;
