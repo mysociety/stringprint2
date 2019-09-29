@@ -466,15 +466,16 @@ function gotoHash(hash,addText){
             break;
           }
       }
-      
-
+     
 }
 
 //grab local # links
- $(function() {
-  $('a[href*=#]:not([href=#])').on('click touchend',function() {
-    if (dragging == false && location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') 
-&& location.hostname == this.hostname && location.pathname == this.pathname && $(this).hasClass('cite-copy') == false) {
+  $('a[href*="#"]:not([href="#"])').on('click touchend',function() {
+    if (dragging == false
+	    && location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') 
+		&& location.hostname == this.hostname
+	    && location.pathname == this.pathname
+		&& $(this).hasClass('cite-copy') == false) {
         var splits = this.hash.split(".")
 
         if (splits[0].startsWith("#ref")) {
