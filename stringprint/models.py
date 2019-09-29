@@ -100,6 +100,11 @@ class Organisation(models.Model):
         data = get_yaml(os.path.join(self.storage_dir, "settings.yaml"))
         ignore = ["orglinks"]
         change = False
+        
+        if "fonts" in data:
+            current = self.fonts
+            data["fonts"] = "\n".join(data["fonts"])
+    
         for k, v in data.items():
             if k not in ignore:
                 current = getattr(self, k)
