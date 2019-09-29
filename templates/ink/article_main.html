@@ -58,7 +58,7 @@
     {% for s in content.display_sections %}
 		{# iterate through sections #}
         {% if s.name %}
-            <a class="anchor linkable" id="{{s.order}}" name="{{s.anchor}}"></a> 
+            <a class="anchor linkable" id="{{s.order}}" name="{{s.anchor}}" first_graf="{{s.first_graf_id}}"></a> 
             <div id = "{{s.order}}" prev = "{{s.prev_if_single_page}}" class="section-anchor header-text">
             {% with article.image_lookup|get_item:s.name as image %}
                 {% if image %}
