@@ -56,8 +56,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="{% static 'css/fa_reduced.css' %}" rel="stylesheet"  type='text/css'>
 
+
+  <link rel="preload" href="{% static 'fonts/fa_reduced.woff2' %}" as="font" type="font/woff2" crossorigin="anonymous">
+
+<link href="{% static 'css/fa_reduced.css' %}" rel="stylesheet"  type='text/css'>
+
+	
 {% compress css file base_css_file %}
 	<link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
 	<link href="{% static 'css/sweetalert.css' %}" rel="stylesheet"  type='text/css'>
