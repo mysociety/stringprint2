@@ -48,7 +48,9 @@ There is a basic command line tool to manage document commands.
 
 This can either be run in the vagrant as `Python3 shell.py` or `script/shell`
 
-Commands can also be passed as arguments e.g. `Python3 shell.py setdoc:document-slug process renderzip continue`will process and render the document and keep the shell up for future commands.
+Commands can also be passed as arguments e.g. `Python3 shell.py setdoc:document-slug process renderzip continue` will process and render the document and keep the shell up for future commands.
+
+All comments that can be applied to a single document can be called without arguments and will be applied to currently selected doc. Multiple slugs can be given as arguments to do several docs, or 'all' will iterate through all unloaded docs. So `render all` will render all documents in the current organisation.
 
 Shell commands:
 

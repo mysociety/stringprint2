@@ -112,7 +112,33 @@ def create_hero(source, destination, base_width=1024):
     source.to_file(tiny_destination)
 
 
+def select_doc(func):
+    
+        def inner(self, inp):
+            
+            protected_terms = ["--refresh"]
+            inp = inp.strip().lower()
+            inp = inp.split(" ")
+            pass_down = " ".join([x for x in inp if x in protected_terms])
+            inp = [x for x in inp if x not in protected_terms]
+            # use current doc
+            if not inp: #
+                func(self,pass_down)
+            # apply to all
+            elif "all" in inp:
+                for slug in self.loaded_docs():
+                    self.do_setdoc(slug)
+                    func(self,pass_down)
+            else:
+                # apply to space seperated names
+                for i in inp:
+                    self.do_setdoc(i)
+                    func(self,pass_down)
+        return inner
+
+
 class SPPrompt(Cmd):
+
 
     def print_status(self):
         if self.current_org:
@@ -143,6 +169,19 @@ class SPPrompt(Cmd):
             return
         self.current_doc = slug
         prompt.print_status()
+
+    def loaded_docs(self):
+        dir = self.current_org.storage_dir
+        slugs = self.current_org.articles.all().values_list("slug", flat=True)
+        x = 0
+        for f in os.listdir(dir):
+            doc_folder = os.path.join(dir, f)
+            config_file = os.path.join(doc_folder, "settings.yaml")
+            if os.path.exists(config_file):
+                x += 1
+                slugged = f in slugs
+                if slugged:
+                    yield f
 
     def do_listdocs(self, inp):
         dir = self.current_org.storage_dir
@@ -194,6 +233,7 @@ class SPPrompt(Cmd):
         for o in Organisation.objects.all():
             print (o.slug)
 
+    @select_doc
     def do_convertword(self, demote=None):
 
         if demote:
@@ -211,8 +251,9 @@ class SPPrompt(Cmd):
             dest = os.path.join(f, "document.md")
             convert_word(docx, dest, demote)
 
+    @select_doc
     def do_process(self, inp):
-        if "refresh" in inp:
+        if "--refresh" in inp:
             refresh_header = True
         else:
             refresh_header = False
@@ -224,12 +265,17 @@ class SPPrompt(Cmd):
         doc.process()
         print ("Finished Processing: {0}".format(doc.title))
 
+    @select_doc
+    def do_test(self, inp):
+        print (self.current_doc)
+
     def do_quit(self, inp):
         quit()
 
     def do_exit(self, inp):
         quit()
 
+    @select_doc
     def do_render(self, inp):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc
@@ -239,6 +285,7 @@ class SPPrompt(Cmd):
                                                      slug=self.current_doc)
         doc.render(path, refresh_all=refresh_all)
 
+    @select_doc
     def do_renderzip(self, inp):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc
@@ -252,6 +299,7 @@ class SPPrompt(Cmd):
             zip_destination, refresh_all=refresh_all)
         print ("Zip created")
 
+    @select_doc
     def do_mergepdf(self, inp):
 
         df = self.doc_folder
@@ -260,6 +308,7 @@ class SPPrompt(Cmd):
         output = os.path.join(df, "{0}.pdf".format(self.current_doc))
         merge_pdfs(front_page, contents, output)
 
+    @select_doc
     def do_pdfpng(self, inp):
         df = self.doc_folder
         front_page = os.path.join(df, "cover.pdf")
@@ -268,14 +317,14 @@ class SPPrompt(Cmd):
         pdf_page_to_png(front_page, output)
         create_thumbnail(output, thumb)
 
+    @select_doc
     def do_hero(self, inp):
         yaml_data = get_yaml(os.path.join(self.doc_folder, "settings.yaml"))
         hero_location = yaml_data["header"]["location"]
         hero_path = os.path.join(self.doc_folder, hero_location)
         destination = os.path.join(self.doc_folder, "hero.png")
         create_hero(hero_path, destination)
-
-
+            
 if __name__ == "__main__":
     default_org = load_org_details()
     prompt = SPPrompt()
