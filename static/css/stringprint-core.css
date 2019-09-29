@@ -71,23 +71,28 @@ margin-left: 16.66666667%;
 }
 
 .cite-link, .catchup-link {
-left: -30px;
+left: -20px;
 position:absolute;
 float:left;
 display:none;
-}
-
-/* marker added to link to paragraph
-as a result of arriving from the outside */
-.manual_paragraph {
-display:none;
+font-size:14px;
 }
 
 @media (min-width: 767px) {
+.cite-link{
+left: -30px;
+font-size: inherit;
+}
+}
+
+
+/* marker added to link to paragraph
+as a result of arriving from the outside */
+
 .manual_paragraph {
 display:inline;
 }
-}
+
 li.hide-item{
 display:none
 }
