@@ -150,13 +150,13 @@ display:none;
 {% endif %}
 
 {% compress js file base_js %}
-    <script type="text/javascript"  src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
+    <script type="text/javascript"  src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/sweetalert.min.js' %}"></script>
     <script type="text/javascript"  src="{% static 'js/jquery.waypoints.min.js' %}" ></script>
     <script type="text/javascript" src="{% static 'js/clipboard.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/agietan.js' %}"></script>
-{% endcompress %}
+ {% endcompress %}
 
 <script type="text/javascript">
 	$(window).on("load",function(){
