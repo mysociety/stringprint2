@@ -65,23 +65,23 @@ function changeSelected(id,title,nohash){
 }
 
 
-$("a.nav-link").click(function(){
+$("a.nav-link").on("click", function(){
     // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
 	send_ga("Mobile Menu Click",$(this).attr('href'));
 	
 })
 
-$("a.search_link").click(function(){
+$("a.search_link").on("click", function(){
 	send_ga("Search");
 })
 
 
-$("a.alt_link").click(function(){
+$("a.alt_link").on("click", function(){
 	send_ga("Alt Format - " + $(this).attr('type'));
 })
 
 
-$("a.top-nav-item").mouseup(function(){
+$("a.top-nav-item").on("mouseup", function(){
     // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
 	send_ga("Top Nav Click",$(this).attr('href'));
     id = $(this).attr('section');
@@ -760,11 +760,8 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
 
-
-
-
-$(window).load(function() {
-    hide_state = $("body").attr("hide_state")
+$(window).on("load", function () {
+    hide_state = $("meta[name=hide_state]").attr("content")
     if (hide_state == "true"){
         hide_state = true
     } else if (hide_state == "false") {
