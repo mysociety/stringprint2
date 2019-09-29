@@ -665,7 +665,6 @@ $(window).on("load", function () {
         hide_state = false
     }
        
-
     if (hide_state == true) {
         $(".extended").hide();
         $(".extended-row").hide();
@@ -694,23 +693,16 @@ $(window).on("load", function () {
           return gotoHash(hash,true);
           }
           }
-
-          
 	page_loaded = true;
     });
-
-
-    function followHash() {
-        //allows hash moves within a document
-        var splits = location.hash.split(".")
-        if (splits.length > 1) {
-            gotoHash(location.hash);
-            }
-    }
-
-    window.onhashchange = followHash;
-    window_resize()
-});
+	
+function followHash() {
+	//allows hash moves within a document
+	var splits = location.hash.split(".")
+	if (splits.length > 1) {
+		gotoHash(location.hash);
+		}
+}
 
 function window_resize() {
     //fix waypoints on window resize
@@ -718,5 +710,11 @@ function window_resize() {
     Waypoint.refreshAll()
 }
 
-
 window.onresize = window_resize;
+window.onhashchange = followHash;
+window_resize()
+set_mobile_link(1)
+
+
+
+
