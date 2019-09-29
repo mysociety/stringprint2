@@ -124,6 +124,10 @@ class Section(SerialObject):
         self.__dict__.update(kwargs)
         self._version = None  # set during display
 
+    def first_graf_id(self):
+        if self.grafs:
+            return self.grafs[0].order
+
     def save_process(self):
         """
         execute at the end of loading before being stashed in database
