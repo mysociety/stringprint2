@@ -579,26 +579,15 @@ $(".cite-copy").on('click touchend',function(e) {
 
 	link =  $(this).attr("href")
     
-
-
-    port = window.location.port;
-    if (port != ""){
-        port = ":" + port
-    }
-    
-    
-    //if (link.indexOf("#") !== -1) {
-    //    link = window.location.protocol + "//" + window.location.hostname + port + window.location.pathname + link
-    //} else {
-    //    link = window.location.protocol + "//" + window.location.hostname + port + link
-    //}
-
+	para_id =  $(this).attr("id")
+	
     para_tag = $(this).attr("para_tag")
-    
+	
+	
     
     clipboard.copy(link).then(
-      function(){citeBox("Link added to Clipboard!",link,para_tag);},
-      function(err){citeBox("Copy Link From Below!",link,para_tag);})
+      function(){citeBox("Link added to Clipboard!",link,para_id,para_tag);},
+      function(err){citeBox("Copy Link From Below!",link,para_id,para_tag);})
   
 
     e.stopPropagation();
