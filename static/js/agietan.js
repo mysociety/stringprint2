@@ -1,7 +1,7 @@
 var hide_state = true;
+var page_loaded = false;
 var current_section = "";
 $(".noscript-anchor").remove()
-
 
 if (!String.prototype.startsWith) {
   String.prototype.startsWith = function(searchString, position) {
@@ -61,6 +61,8 @@ function changeSelected(id,title,nohash){
         harmlessHashChange($("#" + id + ".anchor").attr('name'));
     }
     adjustMenus(id);
+	paragraph_id = $("#" + id + ".linkable").attr("first_graf");
+	set_mobile_link(paragraph_id);
 
 }
 
@@ -103,8 +105,9 @@ var waypoints = $('.section-anchor').waypoint(function(direction) {
         id = $(this.element).attr('prev');
         title = $("#"+id+".section-anchor").text()
     };
-    
+	if (page_loaded){
     changeSelected(id,title);
+	}
 
 }, {
   // offset very slightly the location of the section anchor
@@ -119,6 +122,7 @@ var waypoints = $('.section-anchor').waypoint(function(direction) {
   continuous:false}
   
 );
+
 
 function scrollToView(element){
     var offset = element.offset().top + 20;
@@ -138,6 +142,7 @@ function scrollToView(element){
     }
     return true;
 }
+
 //shows an individual footnote
 $('.expand-footnotes').on('click touchend',function(event){
     event.preventDefault();
@@ -187,10 +192,23 @@ $('.expand-link').on('click touchend',function(event){
     id = $(this).attr('id')
     $(".cite-link" ).not(".manual_paragraph").hide();
     $('#' + id + ".cite-link" ).show();
+	set_mobile_link(id);
   })
 
 var last_id = 1
 var default_past = 1
+
+function set_mobile_link(id){
+	//adjust where the top mobile link points
+	item = $("#" + id + ".cite-link");
+	link_ref = item.attr("href");
+	para_tag = item.attr("para_tag");
+	mobile_link = $(".mobile-header-link");
+	mobile_link.attr("href", link_ref);
+	mobile_link.attr("para_tag", para_tag);
+	mobile_link.prop("id",id);
+	
+}
 
 
 function adjustMenus(id,future, past) {
@@ -287,8 +305,7 @@ function harmlessHashChange(newhash){
 //changes the hash in the address bar without moving the page
     
     var isiPad = navigator.userAgent.match(/iPad/i) != null;
-    
-    
+
     if (currently_moving == false && isiPad == false) {
 
         $("a[name=temp]").each(function() {
@@ -389,12 +406,16 @@ function gotoTarget(target,addText,internalMove){
                 $("#catchup.extended").show()
             }
             $('html,body').scrollTop(target.offset().top - 60) //offsets for fixed header
-
             parent = $("#" + target.attr('parent') + ".anchor")
-            //harmlessHashChange(parent.attr('name'));
             $("#" + para_id + ".content-row").removeClass('content-row').addClass("highlighted-content content-row")
             window.setTimeout(function() {$("#" + para_id + ".content-row").removeClass("highlighted-content")},highlightTime)
             currently_moving = false;
+			set_mobile_link(para_id);
+			if (page_loaded == false){
+				id = target.attr('parent')
+				title = $("#"+id +".section-anchor").text()
+				changeSelected(id,title,true);
+			}
 }
 
 function gotoHash(hash,addText){
@@ -549,12 +570,12 @@ function citeBox(dialog_title,link, para_id, para_tag){
 	}
 	
     if (para_tag != "") {
-        ele_name = "Paragraph"
-        ele_id = para_tag
+        ele_name = "Paragraph";
+        ele_id = para_tag;
     } else {
-        ele_name = "Paragraph"
-        ele_id = $(this).attr("id")    
-    }    
+        ele_name = "Paragraph";
+        ele_id = para_id    ;
+    };
 
     swal({
     title: dialog_title,    
@@ -669,11 +690,13 @@ $(window).on("load", function () {
           var hash = window.location.hash;
           splits = hash.split(".");
           if (splits.length > 1) {
+		  page_loaded = true;
           return gotoHash(hash,true);
           }
           }
 
           
+	page_loaded = true;
     });
 
 
