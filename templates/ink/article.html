@@ -110,9 +110,16 @@ display:none;
 {% block extra_head %}
 {% endblock %}
 
+<meta name="short_title" content="{{article.short_title}}">
+<meta name="full_title" content="{{article.title}}">
+<meta name="org" content="{{article.org.name}}">
+<meta name="year" content="{{ article.year}}">
+<meta name="cite_author" content="{{article.cite_as}}">
+<meta name="slug" content="{{article.slug}}">
+<meta name="hide_state" content="{% if article.display_notes%}false{%else%}true{%endif%}">
 </head>
 
-<body short_title="{{article.short_title}}" org="{{article.org.name}}" full-title="{{article.title}}" year="{{ article.year}}" cite-author="{{article.cite_as}}" slug="{{article.slug}}" hide_state={% if article.display_notes%}false{%else%}true{%endif%}>
+<body>
 
 {% include "ink/article_nav.html" %}
 <br><br>

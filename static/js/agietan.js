@@ -11,7 +11,7 @@ if (!String.prototype.startsWith) {
 }
 
 function send_ga(action,value){
-	label = $("body").attr("slug")
+	label = $("meta[name=slug]").attr("content")
 	value = typeof value !== 'undefined' ? value : null;
 	if (typeof ga === 'function') {
 		ga('send', 'event', 'StringPrint', action, label, value)
@@ -35,10 +35,10 @@ $('#master_expand').on('click touchend',function(event){
 
 function changeSelected(id,title,nohash){
     //rename mobile title with section
-    if (title) {
+    if (title.length > 0) {
         $("#mobile-title").text(title);
     } else {
-        title = $("body").attr("title")
+        title = $("meta[name=short_title]").attr("content");
         $("#mobile-title").text(title);
     }
     current_section = title;
@@ -651,18 +651,14 @@ function getNow(){
 	var year = currentDate.getFullYear()
 	return day + " " + month[mon-1] + ". " + year
 }
-
-
- 
-
   
-function citeBox(dialog_title,link, para_tag){
+function citeBox(dialog_title,link, para_id, para_tag){
     //generates pretty citation box
-    title = $("body").attr("short_title")
-    full_title = $("body").attr("full-title")
-    cite_author = $("body").attr("cite-author")
-    year = $("body").attr("year")
-	org =  $("body").attr("org")
+    title = $("meta[name=short_title]").attr("content")
+    full_title = $("meta[name=full_title]").attr("content")
+    cite_author = $("meta[name=cite_author]").attr("content")
+    year = $("meta[name=year]").attr("content")
+	org =  $("meta[name=org]").attr("content")
 	current_section_name = current_section
 	if (current_section_name == title) {
 		current_section_name = "";
