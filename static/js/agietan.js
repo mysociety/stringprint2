@@ -397,7 +397,6 @@ function gotoTarget(target,addText,internalMove){
             $('#' + para_id + ".extended-row" ).show();
             $('#' + para_id + ".extended" ).show();
             $('#' + para_id + ".catchup-link" ).show();
-            $('#' + para_id + ".cite-link" ).html("Entered Here");
             $('#' + para_id + ".cite-link" ).addClass("manual_paragraph");
             }
             if (internalMove == false) {
