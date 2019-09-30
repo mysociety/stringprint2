@@ -323,7 +323,9 @@ class SPPrompt(Cmd):
                                        slug) + ".zip"
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
-        upload_zip(upload_url, slug, zip_destination, token)
+        repo_slug = doc.repo_entry.split("/")[-1]
+        print ("using {0} as slug".format(repo_slug))
+        upload_zip(upload_url, repo_slug, zip_destination, token)
 
     @select_doc
     def do_mergepdf(self, inp):
