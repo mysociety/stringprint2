@@ -106,7 +106,7 @@ class KindleView(HomeView):
 
 class TOCView(HomeView):
     """
-    view to create the kindle version of an article
+    view to create json toc
     """
     url_patterns = [r'^([A-Za-z0-9_-]+)/tocjson']
     url_name = "json_toc_view"
@@ -134,18 +134,16 @@ class TOCView(HomeView):
             else:
                 return v
 
-        for s in c.sections:
-            if s.name:
-                item = {"name": fix_trailing_numbers(s.name),
-                        "link": a.social_url() + s.nav_url()}
+        social_url = a.social_url()
 
-                children = []
-                for g in s.get_grafs():
-                    if g.title:
-                        children.append({"name": fix_trailing_numbers(g.title),
-                                         "link": a.social_url() + g.nav_url()})
-                item["children"] = children
-                response.append(item)
+        def get_item_and_children(i):
+            item = {"name": fix_trailing_numbers(i.name),
+                    "link": social_url + i.nav_url}
+            item["children"] = [get_item_and_children(x) for x in i.children()]
+            return item
+
+        toc = c.toc()
+        response = [get_item_and_children(x) for x in toc.level_1()]
 
         return JsonResponse(response, safe=False)
 
