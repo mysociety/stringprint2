@@ -6,6 +6,7 @@ import django
 import shutil
 from cmd import Cmd
 import io
+import requests
 
 import fitz
 import tinify
@@ -30,6 +31,17 @@ from stringprint.models import Article, Organisation, Asset
 from frontend.views import HomeView, ArticleSettingsView
 from charts import ChartCollection, GoogleChart
 
+
+def upload_zip(url, slug, filepath, token):
+
+    filename = os.path.split(filepath)[1]
+    url = url + slug
+    headers = {'Content-Disposition': 'attachment; filename={0}'.format(filename),
+               'Content-type': 'application/zip',
+               'Authorization': 'Token {0}'.format(token)}
+    with open(filepath, 'rb') as filedata:
+        r = requests.put(url, data=filedata, headers=headers)
+    print (r.content)
 
 def fix_yaml(ya):
     if type(ya) == list:
@@ -120,8 +132,9 @@ def select_doc(func):
             inp = inp.strip().lower()
             inp = inp.split(" ")
             pass_down = " ".join([x for x in inp if x in protected_terms])
-            inp = [x for x in inp if x not in protected_terms]
+            inp = [x for x in inp if x not in protected_terms + [""]]
             # use current doc
+            print (inp)
             if not inp: #
                 func(self,pass_down)
             # apply to all
@@ -298,6 +311,19 @@ class SPPrompt(Cmd):
         zip_location = doc.render_to_zip(
             zip_destination, refresh_all=refresh_all)
         print ("Zip created")
+
+    @select_doc
+    def do_uploadzip(self, inp):
+        token = self.current_org.token
+        upload_url = self.current_org.upload_url
+        slug = self.current_doc
+        origin_folder = self.current_org.storage_dir
+        path = os.path.join(origin_folder, slug)
+        zip_destination = os.path.join(path,
+                                       slug) + ".zip"
+        doc, created = Article.objects.get_or_create(org=self.current_org,
+                                                     slug=self.current_doc)
+        upload_zip(upload_url, slug, zip_destination, token)
 
     @select_doc
     def do_mergepdf(self, inp):

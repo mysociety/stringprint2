@@ -93,6 +93,10 @@ class Organisation(models.Model):
         return settings.ORGS[self.slug]["storage_dir"]
 
     @property
+    def upload_url(self):
+        return settings.ORGS[self.slug]["upload_url"]
+
+    @property
     def token(self):
         token = settings.ORGS[self.slug]["token"]
         if "%%" in token:
