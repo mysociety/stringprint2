@@ -27,6 +27,7 @@ from collections import OrderedDict
 from ruamel.yaml import YAML
 from selenium import webdriver, common
 
+from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
 from useful_inkleby.useful_django.models import FlexiBulkModel
 
@@ -466,6 +467,12 @@ class Article(models.Model):
             if a["content_type"] == "table":
                 f.chart = GoogleChart(chart_type="table_chart",
                                       file_name=file_path)
+            if a["content_type"] == "html":
+                f.content_type = "html"
+                f.type = Asset.RAW_HTML
+                file_name = ".".join([a["slug"], a["type"]])
+                file_path = os.path.join(asset_folder, file_name)
+                f.content = QuickText().open(file_path).text
             print ("saving {0}".format(f.slug))
             f.save()
 
