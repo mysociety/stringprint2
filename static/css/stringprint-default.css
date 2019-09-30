@@ -85,6 +85,8 @@ font-style: italic;
 }
 
 
+
+
 #related-research::after {
   content: '';
   display: block;
@@ -123,4 +125,15 @@ margin-bottom: 30px;
   text-indent: -9999px;
   border-top: 1px solid #585858;
   margin-bottom:20px;
+}
+
+.chart_holder{
+	width:300px;
+}
+
+@media (min-width: 767px) {
+	.chart_holder{
+	width:100%;
+	text-align:center;
+}
 }
