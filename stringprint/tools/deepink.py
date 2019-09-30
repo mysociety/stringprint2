@@ -119,6 +119,7 @@ class Section(SerialObject):
         self.order = 0
         self.catch_up = ""
         self.grafs = []
+        self.anchor_offset = ""
         self.visible = True
         self.nav = []
         self.__dict__.update(kwargs)
@@ -318,6 +319,8 @@ class Section(SerialObject):
             return re.sub(r'[^\w\s]', '', s)
 
         new = depuntuate(self.name).replace(" ", "-").strip().lower()
+        if self.anchor_offset:
+            new += "_" + self.anchor_offset
         return new
 
     class Meta:
@@ -350,6 +353,7 @@ class Graf(SerialObject):
         self.real_order = 0
         self.asset = None
         self.type = ""
+        self.anchor_offset = ""
         self.blockquote = False
         self.key = ""
         self.start_key = ""
@@ -726,6 +730,8 @@ class Graf(SerialObject):
             return re.sub(r'[^\w\s]', '', s)
 
         new = depuntuate(self.title).replace(" ", "-").strip().lower()
+        if self.anchor_offset:
+            new += "_" + self.anchor_offset
         return new
 
 
@@ -803,6 +809,22 @@ def process_ink(version, content):
     inject_notes_start = False
     rand = RandomAssignment(version.article.seed)
 
+    existing_anchors = []
+    previous_anchors = {}
+    
+    def get_anchor_offset(v):
+        if not v:
+            return ""
+        if v in existing_anchors:
+            current = previous_anchors.get(v, 0)
+            current += 1
+            print (v + " already used")
+            previous_anchors[v] = current
+            return str(current)
+        else:
+            existing_anchors.append(v)
+            return ""
+
     def extract_p_if_first(s):
         extract_ok = ["p", "blockquote"]
         for e in extract_ok:
@@ -812,7 +834,6 @@ def process_ink(version, content):
         return s.__unicode__()
     header_level = 0
     for p in lines:
-        
         # doesn't give us double entries for <p> contained within these
         if p.text != "" and p.parent.name not in ["blockquote", "li"]:
             if p.name in ["h2", "h3", "h4"]:
@@ -825,7 +846,8 @@ def process_ink(version, content):
                     version.sections.append(s)
                     s_order += 1
                 s = Section(order=s_order,
-                            name=p.text)
+                            name=p.text,
+                            anchor_offset=get_anchor_offset(p.text))
                 last_title = None
             elif "[catchup:" in p.text.lower():
                 # extract catch up information and append it to last uploaded
@@ -857,9 +879,10 @@ def process_ink(version, content):
                               html=html,
                               h_name=p.name,
                               order=order,
-                              header_level = header_level,
+                              header_level=header_level,
                               parent_id=s.order,
-                              catch_up=catchup)
+                              catch_up=catchup,
+                              anchor_offset=get_anchor_offset(section_title))
 
                     catchup = ""
                     if section_title:
