@@ -2,7 +2,6 @@
     <script type="text/javascript">
       
       google.charts.load('current', {'packages':{{collection.render_packages}} });
-      google.charts.setOnLoadCallback(drawCharts);
 
       function drawCharts() {
         {% for chart in collection.charts %}

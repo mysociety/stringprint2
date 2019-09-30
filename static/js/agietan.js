@@ -649,6 +649,10 @@ $(window).on("load", function () {
         $('#master_expand_link').text("Hide All Notes");
         $(".expand-link").hide();
     };
+	
+	if (typeof drawCharts === 'function') {
+	drawCharts()
+	}
 
       //Executed on page load with URL containing an anchor tag.
       if(window.location.hash) {
