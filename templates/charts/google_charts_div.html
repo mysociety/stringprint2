@@ -1,5 +1,7 @@
+
+<div class="chart_holder">
 {% if chart.chart_type == "table_chart" %}
-	<div id="{{chart.ident}}" align="center"></div>
+	<div id="{{chart.ident}}"></div>
 {% else %}
 	<div id="{{chart.ident}}" style="height:400px"></div>
 {% endif %}
@@ -7,3 +9,4 @@
 {% if chart.caption %}
 	<p class="asset-caption">{{chart.caption}}</p>
 {% endif %}
+</div>

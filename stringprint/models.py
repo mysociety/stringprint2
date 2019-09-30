@@ -93,18 +93,27 @@ class Organisation(models.Model):
         return settings.ORGS[self.slug]["storage_dir"]
 
     @property
+    def token(self):
+        token = settings.ORGS[self.slug]["token"]
+        if "%%" in token:
+            token = token[2:-2]
+            token = os.environ[token]
+        return token
+
+    @property
     def publish_dir(self):
         return settings.ORGS[self.slug]["publish_dir"]
 
     def load_from_yaml(self):
+        print(self.storage_dir)
         data = get_yaml(os.path.join(self.storage_dir, "settings.yaml"))
         ignore = ["orglinks"]
         change = False
-        
+
         if "fonts" in data:
             current = self.fonts
             data["fonts"] = "\n".join(data["fonts"])
-    
+
         for k, v in data.items():
             if k not in ignore:
                 current = getattr(self, k)
@@ -196,18 +205,18 @@ class Chrome(object):
         cls.driver = webdriver.Chrome(executable_path=chrome_driver_path,
                                       options=options)
         return cls.driver
-    
+
     @classmethod
     def quit(cls):
         if cls.driver:
             cls.driver.quit()
-        cls.driver = None 
-        
+        cls.driver = None
 
     def __del__(self):
         if self.driver:
             self.driver.quit()
         super(Chrome, self).__del__()
+
 
 class Article(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
@@ -1217,13 +1226,14 @@ class Version(models.Model):
             if s.has_grafs():
                 yield s
 
-    def toc(self,levels=None):
+
+    def toc(self, levels=None):
         """
         return a set of links for the different parts
         """
         class Link(object):
-            
-            def __init__(self,**kwargs):
+
+            def __init__(self, **kwargs):
                 self.id = 0
                 self.order = 0
                 self.anchor = ""
@@ -1232,31 +1242,29 @@ class Version(models.Model):
                 self.level = 1
                 self.__dict__.update(kwargs)
                 self._toc = None
-                
+
             @property
             def collection(self):
                 return self._toc.items
-                
-                
+
             def future(self):
                 if self.order + 1 < len(self.collection):
                     return self.collection[self.order + 1]
                 return None
-            
+
             def future_level_difference(self):
                 f = self.future()
                 if not f:
                     return 0
                 return f.level - self.level
 
-                
             def has_children(self):
                 f = self.future()
                 if not f:
                     return False
                 else:
                     return f.level > self.level
-            
+
             def caret_title(self):
                 """
                 splits title into layers based on words
@@ -1277,14 +1285,13 @@ class Version(models.Model):
                             count = 0
                     if current:  # final set
                         groups.append(" ".join(current))
-        
+
                     return "<br>".join(groups)
-        
+
                 return mark_safe(character_group(self.name))
-                    
-                    
+
             def children(self):
-                future = self._toc.items[self.order+1:]
+                future = self._toc.items[self.order + 1:]
                 children = []
                 for i in future:
                     if i.level == self.level:
@@ -1292,24 +1299,24 @@ class Version(models.Model):
                     if i.level == self.level + 1:
                         children.append(i)
                 return children
-        
+
         class Toc(object):
-            
+
             def __init__(self):
                 self.items = []
-            
+
             def final_level(self):
                 return self.items[-1].level
-            
+
             def final_level_range(self):
-                return range(0,self.final_level())
-            
-            def add(self,**kwargs):
+                return range(0, self.final_level())
+
+            def add(self, **kwargs):
                 item = Link(**kwargs)
                 item.order = len(self.items)
                 item._toc = self
                 self.items.append(item)
-                
+
             def __iter__(self):
                 for i in self.items:
                     yield i
@@ -1321,7 +1328,7 @@ class Version(models.Model):
                 for s in self:
                     if s.level == 1:
                         yield s
-                        
+
         toc = Toc()
         for s in self.sections:
             if s.name:
@@ -1329,7 +1336,7 @@ class Version(models.Model):
                             anchor=s.anchor(),
                             nav_url=s.nav_url(),
                             id=s.order,
-                            level = 1
+                            level=1
                             )
             for g in s.get_grafs():
                 if g.title:
@@ -1337,9 +1344,9 @@ class Version(models.Model):
                                 anchor=g.anchor(),
                                 nav_url=g.nav_url(),
                                 id=g.order,
-                                level = g.header_level
+                                level=g.header_level
                                 )
-        return toc               
+        return toc
 
     def anchors(self):
         """
@@ -1355,8 +1362,8 @@ class Version(models.Model):
             yield y("Introduction", "intro", count)
             count += 1
         for s in self.toc():
-            indent = s.level-1
-            i = "".join(["-" for x in range(0,indent)])
+            indent = s.level - 1
+            i = "".join(["-" for x in range(0, indent)])
             if i:
                 i = i + " "
             if s.name:
