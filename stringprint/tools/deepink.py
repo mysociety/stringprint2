@@ -833,10 +833,19 @@ def process_ink(version, content):
 
         return s.__unicode__()
     header_level = 0
-    for p in lines:
+    for x, p in enumerate(lines):
         # doesn't give us double entries for <p> contained within these
         if p.text != "" and p.parent.name not in ["blockquote", "li"]:
             if p.name in ["h2", "h3", "h4"]:
+                if section_title:
+                    #if multiple headers straight after each other
+                    ng = Graf(title=section_title,
+                              order=order,
+                              header_level=header_level,
+                              parent_id=s.order,
+                              anchor_offset=get_anchor_offset(section_title))
+                    order += 1
+                    s.grafs.append(ng)
                 section_title = p.text  # assigns title to next graf we find
                 header_level = int(p.name[1])
             elif p.name == "h1":
