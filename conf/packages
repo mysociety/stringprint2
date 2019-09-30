@@ -7,8 +7,8 @@ libffi-dev
 libfreetype6
 libfreetype6-dev
 zlib1g-dev
-zip
 unzip
+zip
 libxi6
 libgconf-2-4
 python3-dev
