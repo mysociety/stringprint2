@@ -386,8 +386,9 @@ class Article(models.Model):
             print(g.order, g.combo_key())
             try:
                 element = driver.find_element_by_xpath(
-                    "//span[@id='{0}']".format(g.order))
+                    "//div[@id='{0}']".format(g.order))
             except common.exceptions.NoSuchElementException:
+                print ("skipping - element {0} not found".format(g.order))
                 continue
             location = element.location
             size = element.size
