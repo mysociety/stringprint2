@@ -58,6 +58,7 @@
     <div class="content">
     {% for s in content.display_sections %}
 		{# iterate through sections #}
+		
         {% if s.name %}
             <a class="anchor linkable" id="{{s.order}}" name="{{s.anchor}}" first_graf="{{s.first_graf_id}}"></a> 
             <div id = "{{s.order}}" prev = "{{s.prev_if_single_page}}" class="section-anchor header-text">
@@ -72,6 +73,7 @@
             {% endwith %}
             </div>
         {% endif %}
+		<div class = "section">
 		{% for g in s.get_grafs %}
 			{%if g.title %}
 				<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
@@ -116,6 +118,7 @@
 				</div>
 			{% endfor %}
 		
+		</div>
 		{% if article.sections_over_pages and s.active_section %}
 			{% with s.next_section as next %}
 				{% if next %}
