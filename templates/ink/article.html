@@ -73,10 +73,9 @@
 	{% endif %}
 {% endcompress %}
 
-{% if article.org.custom_css %}
-    <style>
-        {{article.org.safe_css}}
-    </style>
+{% if article.making_screenshot and article.org.screenshot_stylesheet %}
+{# Extra stylesheet activated when making the paragraph screenshots#}
+		<link href="{% static article.org.screenshot_stylesheet %}" rel="stylesheet"  type='text/css'>
 {% endif %}
 
 {% if article.display_notes %}

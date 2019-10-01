@@ -82,10 +82,11 @@ class Organisation(models.Model):
     ga_code = models.CharField(
         max_length=255, blank=True, null=True)  # for google analytics
     publish_root = models.URLField(max_length=255, blank=True, null=True)
-    custom_css = models.TextField(default="", blank=True)
     fonts = models.TextField(default="", blank=True)
     include_favicon = models.BooleanField(default=True)
     stylesheet = models.CharField(
+        max_length=255, blank=True, null=True)
+    screenshot_stylesheet = models.CharField(
         max_length=255, blank=True, null=True)
     icon = models.CharField(max_length=255, blank=True, null=True)
 
@@ -114,6 +115,11 @@ class Organisation(models.Model):
         data = get_yaml(os.path.join(self.storage_dir, "settings.yaml"))
         ignore = ["orglinks"]
         change = False
+
+        if "stylesheets" in data:
+            data["stylesheet"] = data["stylesheets"]["web"]
+            data["screenshot_stylesheet"] = data["stylesheets"]["screenshot"]
+            del data["stylesheets"]
 
         if "fonts" in data:
             current = self.fonts
@@ -349,7 +355,7 @@ class Article(models.Model):
 
         url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
         url = url + \
-            "?id={0}&highlight_first=true".format(
+            "?id={0}&screenshot=true".format(
                 self.id)
         c = self.content()
         c.retrieve_sections_over_pages = True
@@ -373,15 +379,6 @@ class Article(models.Model):
         print(url)
         driver.set_window_size(500, 568)
         driver.get(url)
-
-        driver.execute_script('$("nav").hide()')
-        driver.execute_script('$(".extended-row").show();')
-        driver.execute_script('$(".extended").show();')
-        driver.execute_script('$(".hide-link").hide();')
-        driver.execute_script('$("body").css("overflow", "hidden");')
-        # Need to generalise this
-        # driver.execute_script('$(".container").css("background-color","#F1F3EB");')
-        # driver.execute_script('$(".content-row").css("background-color","#F1F3EB");')
 
         for g in grafs_to_do:
             print(g.order, g.combo_key())

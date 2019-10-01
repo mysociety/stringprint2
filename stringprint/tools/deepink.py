@@ -664,7 +664,7 @@ class Graf(SerialObject):
                     end_of_sentence = None
 
             if end_of_sentence:
-                text = '<span style="font-weight:bold;">' + \
+                text = '<span class="first-sentence">' + \
                     text[:end_of_sentence + 1] + "</span>" + \
                     text[end_of_sentence + 1:]
 

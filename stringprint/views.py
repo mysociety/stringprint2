@@ -302,7 +302,7 @@ class ArticleView(HomeView):
         """
         how much of the page do we have access to?
         """
-        if "highlight_first" in request.GET:
+        if "screenshot" in request.GET:
             a.making_screenshot = True
 
         if a.sections_over_pages:
