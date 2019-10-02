@@ -1745,13 +1745,16 @@ class Asset(FlexiBulkModel):
         if self.type == Asset.IMAGE:
             return self.render_image(basic=basic, chart_alt=False)
         if self.type == Asset.CHART:
-            if basic:
-                if self.chart.chart_type == "table_chart":
+            if self.chart.chart_type == "table_chart":
+                if basic:
                     return self.chart.render_html_table(self.caption)
                 else:
-                    return self.render_image(basic=basic, chart_alt=True)
+                    return self.chart.render_bootstrap_table(self.caption)
             else:
-                return self.chart.render_div(self.caption)
+                if basic:
+                    return self.render_image(basic=basic, chart_alt=True)
+                else:
+                    return self.chart.render_div(self.caption)
 
     def save(self, *args, **kwargs):
         if self.image:

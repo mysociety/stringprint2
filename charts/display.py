@@ -15,6 +15,8 @@ from charts.chart_config import ChartType
 from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
 
 
+RENDER_TABLES_AS_CHARTS = False
+
 def id_generator(size=6, chars=string.ascii_uppercase):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -25,9 +27,13 @@ class ChartCollection(object):
     """
 
     def __init__(self, charts):
+        
+        if RENDER_TABLES_AS_CHARTS is False:
+            charts = [x for x in charts if x.chart_type != "table_chart"]
         self.charts = charts
         self.make_static = False
         self.packages = set([x.package_name() for x in self.charts])
+
 
     def render_packages(self):
         return mark_safe(json.dumps(list(self.packages)))
@@ -235,6 +241,24 @@ class GoogleChart(SerialObject):
             table.append(row)
 
         return mark_safe(json.dumps(table))
+
+    def render_bootstrap_table(self, caption):
+        """
+        makes a plain, boring html table of the data
+        """
+        header = [x.name for x in self.columns]
+        rows = []
+
+        for r in self.rows:
+            row = [self.columns[i].boring_format(x) for i, x in enumerate(r)]
+            rows.append(row)
+
+        context = {"header": header,
+                   "rows": rows,
+                   "caption": caption}
+
+        rendered = render_to_string('charts//bootstrap_table.html', context)
+        return mark_safe(rendered)
 
     def render_html_table(self, caption):
         """

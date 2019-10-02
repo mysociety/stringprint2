@@ -29,6 +29,25 @@ h3 {
 	font-size: 14pt;
 }
 
+.table {
+   display: block !important;
+}
+
+table, th, td {
+   border: none;	
+}
+
+
+@media screen and (max-width: 767px) {
+.responsive-table {
+	max-width:85vw; 
+	overflow-x:auto;
+}
+
+}
+
+
+
 /* style for blockquotes */
 .blockquote {
   background-color: #D6E6FF;
