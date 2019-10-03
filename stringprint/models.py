@@ -88,6 +88,7 @@ class Organisation(models.Model):
     twitter = models.CharField(max_length=255, blank=True, null=True)
     ga_code = models.CharField(
         max_length=255, blank=True, null=True)  # for google analytics
+    ga_cookies = models.BooleanField(default=True)
     publish_root = models.URLField(max_length=255, blank=True, null=True)
     fonts = models.TextField(default="", blank=True)
     include_favicon = models.BooleanField(default=True)
