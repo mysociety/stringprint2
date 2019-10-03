@@ -66,6 +66,13 @@ def get_yaml(file_path):
     #data = fix_yaml(data)
     return data
 
+def write_yaml(file_path, content):
+    yaml = YAML()
+    yaml.default_flow_style = False
+
+    with open(file_path, "wb") as f:
+        yaml.dump(content, f)
+
 
 def get_file(fi):
     reopen = open(fi, "rb")
@@ -633,9 +640,9 @@ class Article(models.Model):
 
         files = []
         if self.org.stylesheet:
-            files.append(self.org.stylesheet)
+           files.append(self.org.stylesheet)
 
-        compress_static(files)
+        #compress_static(files)
         self.prepare_assets()
         self.tinify_headers()
 
@@ -719,11 +726,11 @@ class Article(models.Model):
         article = self
         article.baking = True
 
-        c = self.display_content()
+        c = self.content()
 
-        for g in c.all_grafs():
-
-            g._article = article
+        grafs = {x.combo_key():x for x in c.all_grafs()}
+        
+        for g in c.paragraph_links:
 
             class BakeRedirectLinkView(RedirectLink):
 
@@ -731,11 +738,16 @@ class Article(models.Model):
                     self.article = article
                     self.article.baking = True
                     self.content = c
-                    self.graf = g
+                    self.graf = grafs.get(g,None)
+                    if self.graf:
+                        self.graf._article = article
+                    else:
+                        "old tag: rendering {0}".format(g)
+                    self.paragraph_tag = g
 
             args = ("blah", "blah")
             BakeRedirectLinkView.write_file(path=os.path.join(destination,
-                                                              "l", g.combo_key() + ".html"),
+                                                              "l", g + ".html"),
                                             args=args)
 
         if self.sections_over_pages:
@@ -1170,6 +1182,7 @@ class Version(models.Model):
     label = models.CharField(max_length=255, blank=True, null=True)
     raw = models.TextField(blank=True, null=True)
     sections = JsonBlockField(blank=True, null=True)
+    paragraph_links = JsonBlockField(blank=True, null=True)
     has_notes = models.BooleanField(default=False)
 
     def load_from_file(self):
@@ -1517,7 +1530,32 @@ class Version(models.Model):
                         for f in s.footnotes:
                             notes.append(f)
         return notes
-
+    
+    def update_paragraph_links(self):
+        """
+        upgrade the list of paragraph links (past and present)
+        """
+        para_file = os.path.join(self.article.org.storage_dir,
+                                 self.article.slug,
+                                 "_paragraphs.yaml")
+        
+        if os.path.exists(para_file):
+            current_grafs = get_yaml(para_file)
+        else:
+            current_grafs = self.paragraph_links
+            
+        if not current_grafs:
+            current_grafs = []
+        new_grafs = []
+        for s in self.sections:
+            for g in s.grafs:
+                new_grafs.append(g.combo_key())
+        new_grafs = [x for x in new_grafs if x not in current_grafs]
+        print("{0} new paragraph links".format(len(new_grafs)))
+        current_grafs.extend(new_grafs)
+        write_yaml(para_file,current_grafs)
+        self.paragraph_links = current_grafs
+    
     def process(self):
         """
         creates the section and graf structure from raw markup
@@ -1526,7 +1564,7 @@ class Version(models.Model):
         if not self.raw:
             self.load_from_file()
         process_ink(self, self.raw)
-
+        self.update_paragraph_links()
         first_section = "start"
         if self.sections:
             if self.sections[0].name:

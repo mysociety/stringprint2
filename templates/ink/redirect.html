@@ -36,6 +36,6 @@
 
 {% endwith %}
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url={{graf.social_cite_link}}">
+<meta http-equiv="refresh" content="0; url={% if graf %}{{graf.social_cite_link}}{% else %}{{article.social_url}}#{{paragraph_tag}}{% endif %}">
 </head>
 </html>

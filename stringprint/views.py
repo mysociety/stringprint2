@@ -367,6 +367,7 @@ class RedirectLink(HomeView):
         graf, section = self.content.get_paragraph(paragraph_code)
         graf._section = section
         graf._article = self.article
+        self.paragraph_tag = None
         self.graf = graf
 
     def view(self, request, article_slug, paragraph_code):
@@ -375,4 +376,5 @@ class RedirectLink(HomeView):
 
         return {"article": self.article,
                 'content': self.content,
-                'graf': self.graf}
+                'graf': self.graf,
+                'paragraph_tag':self.paragraph_tag}
