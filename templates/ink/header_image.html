@@ -7,7 +7,8 @@
 {% endif %}
         <picture>
             <!--[if IE 9]><video style="display: none;"><![endif]-->
-            {% for source, size in image.header_image_res %}
+            {% for source, source_webp, size in image.header_image_res %}
+			<source srcset="{{source_webp}}" media="(max-width: {{size}}px)" type="image/webp">
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
             {% endfor %}
             <!--[if IE 9]></video><![endif]-->
@@ -17,3 +18,4 @@
     </div>
     </div> 
 {% endif %}
+

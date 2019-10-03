@@ -26,6 +26,7 @@ from dirsync import sync
 from collections import OrderedDict
 from ruamel.yaml import YAML
 from selenium import webdriver, common
+from webptools import webplib as webp
 
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
@@ -37,7 +38,6 @@ from charts import GoogleChart
 from .functions import compress_static
 
 chrome_driver_path = settings.CHROME_DRIVER
-
 
 class OverwriteStorage(FileSystemStorage):
 
@@ -1100,7 +1100,10 @@ class HeaderImage(FlexiBulkModel):
 
         """
         for width in [768, 992, 1200, 1440, 1920]:
-            yield settings.MEDIA_URL + self.get_image_name(width), width
+            image_name = settings.MEDIA_URL + self.get_image_name(width)
+            not_tiny_name = settings.MEDIA_URL + self.get_responsive_image_name(width)
+            webp_name = os.path.splitext(not_tiny_name)[0] + ".webp"
+            yield image_name, webp_name, width
 
     def largest_header(self):
         """
@@ -1170,7 +1173,10 @@ class HeaderImage(FlexiBulkModel):
                 thumbnail.thumbnail((width, new_height), Image.ANTIALIAS)
                 new_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
-                thumbnail.save(new_name)  # , quality=90, optimize=True
+                thumbnail.save(new_name)
+                webp_name = os.path.splitext(new_name)[0] + ".webp"
+                print(webp.cwebp(new_name,webp_name,"-q 80"))
+                
         self.queue_responsive = False
         HeaderImage.objects.filter(id=self.id).update(queue_responsive=False)
 
