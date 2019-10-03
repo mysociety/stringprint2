@@ -134,18 +134,16 @@
 	
 	{% if article.bottom_iframe %}
 	<h1 id="related-research">Related Research</h1>
-	<div class = "content">
-	<iframestub />
+	<iframestub></iframestub>
 	<noscript>
 	<iframe src="{{article.bottom_iframe}}" id="iframe_related" height=400 scrolling="no" ></iframe>
 	</noscript>
-	</div>
-	</div>
+
 
 	{% endif %}
              {% with content.footnotes as notes %}
                 {% if notes and article.display_footnotes_at_foot %}       
-                        <div class = "row dont-break-out content">
+                        <div class = "row dont-break-out">
                                     <h1 id="endnotes">Footnotes</h3>
                                     <div class="footnote_list">
                                     {% for f in notes %}
