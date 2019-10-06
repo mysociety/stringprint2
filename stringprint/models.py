@@ -370,7 +370,6 @@ class Article(models.Model):
             "?id={0}&screenshot=true".format(
                 self.id)
         c = self.content()
-        c.retrieve_sections_over_pages = True
         c.load_sections([])
         grafs_to_do = [
         ]
@@ -1008,14 +1007,11 @@ class Article(models.Model):
         return v
 
     def display_content(self, slugs=[]):
-        if self.current_version == 0:
-            return self.content()
 
-        v = Version.restricted(slugs=slugs,
-                               article=self,
-                               number=self.current_version)
-
-        return v
+        content = self.content()
+        content.load_sections(slugs)
+        
+        return content
 
     def load_from_file(self):
 
@@ -1188,7 +1184,7 @@ class HeaderImage(FlexiBulkModel):
                     self.get_responsive_image_name(width)
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
-                print(webp.cwebp(new_name, webp_name, "-q 80"))
+                webp.cwebp(new_name, webp_name, "-q 80")
 
         self.queue_responsive = False
         HeaderImage.objects.filter(id=self.id).update(queue_responsive=False)
@@ -1244,14 +1240,16 @@ class Version(models.Model):
 
     def load_sections(self, slugs):
         """
-        construct a self.sections that only contains graf objects for slugs we specify
+        construct a self.sections connected to the content
         """
-        if self.article.sections_over_pages or hasattr(self.article,
-                                                       "retrieve_sections_over_pages"):
-            self.sections = MultiSection.return_sections(self, slugs)
-
         for s in self.sections:
             s._version = self
+            
+        for s in self.sections:
+            if s.anchor() in slugs or slugs == []:
+                s.active_section = True
+            else:
+                s.active_section = False
 
     def used_assets(self):
         """
@@ -1264,7 +1262,7 @@ class Version(models.Model):
 
     def display_sections(self):
         for s in self.sections:
-            if s.has_grafs():
+            if s.has_grafs() and s.active_section:
                 yield s
 
     def toc(self, levels=None):
@@ -1542,11 +1540,12 @@ class Version(models.Model):
     def footnotes(self):
         notes = []
         for s in self.sections:
-            for g in s.get_grafs():
-                for s in g.self_and_extras():
-                    if s.footnotes and s.visible:
-                        for f in s.footnotes:
-                            notes.append(f)
+            if s.active_section:
+                for g in s.get_grafs():
+                    for s in g.self_and_extras():
+                        if s.footnotes and s.visible:
+                            for f in s.footnotes:
+                                notes.append(f)
         return notes
 
     def load_paragraph_links(self):
@@ -1722,13 +1721,7 @@ class Version(models.Model):
         self.last_updated = now()
         self.save()
 
-    def move_to_multi(self):
-        self.multi_section.all().delete()
-        for s in self.sections:
-            m = MultiSection()
-            m.stash(self, s)
-            m.save()
-        self.sections = []
+
 
     def save(self, *args, **kwargs):
         """
@@ -1736,10 +1729,7 @@ class Version(models.Model):
 
         if article is multi_sections - save as independent objects
         """
-
-        if self.article.sections_over_pages:
-            self.move_to_multi()
-
+        
         if self.id:
             old_v = Version.objects.get(id=self.id)
             should_save = old_v.raw != self.raw
@@ -1753,51 +1743,6 @@ class Version(models.Model):
                 current_version=self.number)
 
         super(Version, self).save(*args, **kwargs)
-
-
-class MultiSection(models.Model):
-    """
-    used for things being seperated out over multiple pages
-    """
-    version = models.ForeignKey(Version, related_name="multi_section",
-                                on_delete=models.CASCADE)
-    order = models.IntegerField(default=0)
-    anchor = models.CharField(max_length=255)
-    section = JsonBlockField(blank=True, null=True)
-    grafs = JsonBlockField(blank=True, null=True)
-
-    @classmethod
-    def return_sections(cls, version, slugs=[]):
-        """
-        returns basic sections (no grafs) unless slug in list
-        """
-        sections = []
-        d_sections = cls.objects.filter(version=version).order_by('order')
-        d_sections = d_sections.values('id', 'order', 'anchor', 'section')
-        for i in d_sections:
-            instance = cls(**i)
-            if instance.anchor in slugs or slugs == []:  # if nothing specified load all
-                instance.load_grafs()
-                instance.section.active_section = True
-            else:
-                instance.grafs = []
-                instance.section.active_section = False
-            sections.append(instance.section)
-        return sections
-
-    def stash(self, version, section):
-        self.version = version
-        self.order = section.order
-        self.anchor = section.anchor()
-        self.grafs = section.grafs
-        section.grafs = []
-        self.section = section
-
-    def load_grafs(self):
-
-        g = MultiSection.objects.filter(
-            id=self.id).values_list('grafs', flat=True)
-        self.section.grafs = g[0]
 
 
 class Asset(FlexiBulkModel):
