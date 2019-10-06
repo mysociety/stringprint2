@@ -358,6 +358,7 @@ class Graf(SerialObject):
         self.key = ""
         self.start_key = ""
         self.letter_key = ""
+        self.letter_seq = ""
         self.end_key = ""
         self.catch_up = ""
         self.footnotes = []
@@ -474,6 +475,19 @@ class Graf(SerialObject):
             if x.html:
                 yield x
 
+    def long_combo_key(self):
+        """
+        key for this paragrah - including letter starts
+        """
+        return ".".join([str(self.parent_id),
+                         str(self.position_key),
+                         self.key,
+                         self.start_key,
+                         self.end_key,
+                         self.letter_key,
+                         self.letter_seq
+                         ])
+
     def combo_key(self):
         """
         key for this paragrah
@@ -514,6 +528,7 @@ class Graf(SerialObject):
         self.key = make_hash(self.plain_txt)
         # based on first letters (allows typo fixes)
         self.letter_key = make_hash(start_letters)
+        self.letter_seq = start_letters
         self.start_key = make_hash(self.plain_txt[:10])
         self.end_key = make_hash(self.plain_txt[-10:])
 

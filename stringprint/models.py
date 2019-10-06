@@ -9,6 +9,8 @@ import io
 from PIL import Image
 from tempfile import mkdtemp
 import tinify
+import Levenshtein as lev
+
 
 from django.conf import settings
 from django.urls import reverse
@@ -39,6 +41,7 @@ from .functions import compress_static
 
 chrome_driver_path = settings.CHROME_DRIVER
 
+
 class OverwriteStorage(FileSystemStorage):
 
     def get_available_name(self, name, max_length=None):
@@ -65,6 +68,7 @@ def get_yaml(file_path):
         data = yaml.load(doc)
     #data = fix_yaml(data)
     return data
+
 
 def write_yaml(file_path, content):
     yaml = YAML()
@@ -641,9 +645,9 @@ class Article(models.Model):
 
         files = []
         if self.org.stylesheet:
-           files.append(self.org.stylesheet)
+            files.append(self.org.stylesheet)
 
-        #compress_static(files)
+        # compress_static(files)
         self.prepare_assets()
         self.tinify_headers()
 
@@ -729,9 +733,13 @@ class Article(models.Model):
 
         c = self.content()
 
-        grafs = {x.combo_key():x for x in c.all_grafs()}
+        grafs = {x.long_combo_key(): x for x in c.all_grafs()}
+        grafs.update({x.combo_key(): x for x in c.all_grafs()})
+        paragraph_lookup = c.paragraph_lookup()
         
-        for g in c.paragraph_links:
+        for k, v in paragraph_lookup.items():
+
+            shorter_link = ".".join(k.split(".")[:6])
 
             class BakeRedirectLinkView(RedirectLink):
 
@@ -739,16 +747,19 @@ class Article(models.Model):
                     self.article = article
                     self.article.baking = True
                     self.content = c
-                    self.graf = grafs.get(g,None)
+                    if v is True:
+                        self.graf = grafs.get(k, None)
+                    elif v is not None:
+                        self.graf = grafs.get(v, None)
                     if self.graf:
                         self.graf._article = article
                     else:
                         "old tag: rendering {0}".format(g)
-                    self.paragraph_tag = g
+                    self.paragraph_tag = shorter_link
 
             args = ("blah", "blah")
             BakeRedirectLinkView.write_file(path=os.path.join(destination,
-                                                              "l", g + ".html"),
+                                                              "l", shorter_link + ".html"),
                                             args=args)
 
         if self.sections_over_pages:
@@ -1102,7 +1113,8 @@ class HeaderImage(FlexiBulkModel):
         """
         for width in [768, 992, 1200, 1440, 1920]:
             image_name = settings.MEDIA_URL + self.get_image_name(width)
-            not_tiny_name = settings.MEDIA_URL + self.get_responsive_image_name(width)
+            not_tiny_name = settings.MEDIA_URL + \
+                self.get_responsive_image_name(width)
             webp_name = os.path.splitext(not_tiny_name)[0] + ".webp"
             yield image_name, webp_name, width
 
@@ -1176,8 +1188,8 @@ class HeaderImage(FlexiBulkModel):
                     self.get_responsive_image_name(width)
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
-                print(webp.cwebp(new_name,webp_name,"-q 80"))
-                
+                print(webp.cwebp(new_name, webp_name, "-q 80"))
+
         self.queue_responsive = False
         HeaderImage.objects.filter(id=self.id).update(queue_responsive=False)
 
@@ -1254,7 +1266,6 @@ class Version(models.Model):
         for s in self.sections:
             if s.has_grafs():
                 yield s
-
 
     def toc(self, levels=None):
         """
@@ -1537,32 +1548,162 @@ class Version(models.Model):
                         for f in s.footnotes:
                             notes.append(f)
         return notes
-    
+
+    def load_paragraph_links(self):
+        para_file = os.path.join(self.article.org.storage_dir,
+                                 self.article.slug,
+                                 "_paragraphs.yaml")
+        if os.path.exists(para_file):
+            self.paragraph_links = get_yaml(para_file)
+        else:
+            self.paragraph_links = []
+
+    def save_paragraph_links(self):
+        para_file = os.path.join(self.article.org.storage_dir,
+                                 self.article.slug,
+                                 "_paragraphs.yaml")                
+        write_yaml(para_file, self.paragraph_links)
+
+
+    def paragraph_lookup(self):
+        """
+        returns a dictionary of current 
+        graf status.
+        True = existing graf
+        'reference' = graf this now maps to
+        None = no good mappng
+        """
+        lookup = {}
+        for r in self.paragraph_links:
+                lookup.update(r)
+        return lookup
+
     def update_paragraph_links(self):
         """
         upgrade the list of paragraph links (past and present)
         """
-        para_file = os.path.join(self.article.org.storage_dir,
-                                 self.article.slug,
-                                 "_paragraphs.yaml")
-        
-        if os.path.exists(para_file):
-            current_grafs = get_yaml(para_file)
-        else:
-            current_grafs = self.paragraph_links
-            
-        if not current_grafs:
-            current_grafs = []
-        new_grafs = []
+
+        self.load_paragraph_links()
+        paragraph_lookup = self.paragraph_lookup()
+
+        existing_grafs = []
         for s in self.sections:
             for g in s.grafs:
-                new_grafs.append(g.combo_key())
-        new_grafs = [x for x in new_grafs if x not in current_grafs]
-        print("{0} new paragraph links".format(len(new_grafs)))
-        current_grafs.extend(new_grafs)
-        write_yaml(para_file,current_grafs)
-        self.paragraph_links = current_grafs
-    
+                key = g.long_combo_key()
+                existing_grafs.append(key)
+                if paragraph_lookup.get(key, True) == None:
+                    paragraph_lookup[key] = True
+
+        new_existing_grafs = [
+            x for x in existing_grafs if x not in paragraph_lookup]
+        
+        orphan_grafs = []
+        for k,v in paragraph_lookup.items():
+            if k not in existing_grafs:
+                if v not in existing_grafs:
+                    orphan_grafs.append(k)
+
+        print("{0} new paragraph links".format(len(new_existing_grafs)))
+
+        orphan_mappings = self.anchor_orphans(existing_grafs,orphan_grafs)
+        paragraph_lookup.update(orphan_mappings)
+
+        new_paragraph_links = []
+
+        for i in self.paragraph_links:
+            key = list(i.keys())[0]
+            new_paragraph_links.append({key: paragraph_lookup[key]})
+            
+        for i in new_existing_grafs:
+            new_paragraph_links.append({i:True})
+
+        self.paragraph_links = new_paragraph_links
+        self.save_paragraph_links()
+
+    def anchor_orphans(self,all_grafs, orphan_grafs):
+        """
+        given orphan paragraphs, match to better ones
+        """
+        class MiniGraf(object):
+            
+            order = ["para_key_position",
+                     "para_key",
+                     "letter_key",
+                     "start_and_end",
+                     "fuzzy_match",
+                     "start_and_pos",
+                     "end_and_pos",
+                     "start_key",
+                     "end_key",
+                     "pos_and_section"
+                     ]
+            
+            def __init__(self, key):
+                self.key = key
+                parts = key.split(".")
+                if len(parts) == 5:
+                    parts.extend([None,None])
+                if len(parts) == 6:
+                    parts.extend([None])
+                    
+                self.section = parts[0]
+                self.para_pos = parts[1]
+                self.para_key = parts[2]
+                self.start_key = parts[3]
+                self.end_key = parts[4]
+                self.letter_key = parts[5]
+                self.letter_seq = parts[6]
+                
+                self.para_key_position = self.para_pos + self.para_key
+                self.start_and_end = self.start_key + self.end_key
+                self.start_and_pos = self.start_key + self.para_pos
+                self.end_and_pos = self.end_key + self.para_pos
+                self.pos_and_section = self.section + self.para_pos
+                self.match = None
+                
+                self.fuzzy_distance = 7
+                
+            def check_match(self,other,key):
+                return getattr(self,key) == getattr(other,key)
+            
+            def fuzzy_match(self, candidates):
+                matches = []
+                for c in candidates:
+                    if self.letter_seq and c.letter_seq:
+                        c.distance = lev.distance(self.letter_seq,c.letter_seq)
+                        if c.distance <= self.fuzzy_distance:
+                            matches.append(c)
+                if matches:
+                    print ("{0} matched fuzzy".format(self.key))
+                    matches.sort(key=lambda x:x.distance)
+                    self.match = matches[0].key                        
+                
+            
+            def find_match(self,candidates):
+                for s in MiniGraf.order:
+                    if s == "fuzzy_match":
+                        self.fuzzy_match(candidates)
+                        if self.match == None:
+                            continue
+                        else:
+                            return
+                    matches = []
+                    for c in candidates:
+                       if self.check_match(c,s):
+                           matches.append(c.key)
+                    if len(matches) == 1:
+                        print ("matched {1} {0}".format(s, self.key))
+                        self.match = matches[0]
+                        return
+                          
+        candidates = [MiniGraf(x) for x in all_grafs]
+        orphans = [MiniGraf(x) for x in orphan_grafs]
+        
+        for o in orphans:
+            o.find_match(candidates)
+ 
+        return {x.key:x.match for x in orphans}
+
     def process(self):
         """
         creates the section and graf structure from raw markup
