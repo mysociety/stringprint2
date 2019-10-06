@@ -547,7 +547,10 @@ class Article(models.Model):
 
         v = "#" + paragraph.combo_key()
 
-        return self.social_url() + v
+        if self.sections_over_pages:
+            return paragraph._section.nav_url(include_anchor=False) + v
+        else:
+            return self.social_url() + v
 
     def prep_image_lookup(self):
         images = self.images.all()
