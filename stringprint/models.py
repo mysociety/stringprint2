@@ -1548,6 +1548,21 @@ class Version(models.Model):
                                 notes.append(f)
         return notes
 
+    def source_paragraph_links_from_render(self):
+        """
+        For converting older versions
+        Extract from previously rendered links
+        older paragraph keys
+        """
+        bake_folder = self.article.org.publish_dir
+        path = os.path.join(bake_folder, self.article.slug, "l")
+        if not os.path.exists(path):
+            return []
+        
+        files = os.listdir(path)
+        files = [os.path.splitext(x)[0] for x in files]
+        return files
+
     def load_paragraph_links(self):
         para_file = os.path.join(self.article.org.storage_dir,
                                  self.article.slug,
@@ -1582,6 +1597,10 @@ class Version(models.Model):
         upgrade the list of paragraph links (past and present)
         """
 
+        def six_from_seven(key):
+            parts = key.split(".")
+            return ".".join(parts[:6])
+
         self.load_paragraph_links()
         paragraph_lookup = self.paragraph_lookup()
 
@@ -1592,7 +1611,16 @@ class Version(models.Model):
                 existing_grafs.append(key)
                 if paragraph_lookup.get(key, True) == None:
                     paragraph_lookup[key] = True
-
+                  
+        short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]      
+                    
+        from_render = self.source_paragraph_links_from_render()
+        print ("{0} previously rendered".format(len(from_render)))
+        new_render = [x for x in from_render if x not in short_keys]
+        print ("{0} old links found".format(len(new_render)))
+        for n in new_render:
+            paragraph_lookup[n] = None
+                    
         new_existing_grafs = [
             x for x in existing_grafs if x not in paragraph_lookup]
         
@@ -1610,11 +1638,15 @@ class Version(models.Model):
         new_paragraph_links = []
 
         for i in self.paragraph_links:
-            key = list(i.keys())[0]
-            new_paragraph_links.append({key: paragraph_lookup[key]})
+            if i:
+                key = list(i.keys())[0]
+                new_paragraph_links.append({key: paragraph_lookup[key]})
             
         for i in new_existing_grafs:
             new_paragraph_links.append({i:True})
+
+        for i in new_render:
+            new_paragraph_links.append({i:paragraph_lookup[i]})
 
         self.paragraph_links = new_paragraph_links
         self.save_paragraph_links()
