@@ -369,8 +369,8 @@ class Article(models.Model):
         url = url + \
             "?id={0}&screenshot=true".format(
                 self.id)
-        c = self.content()
-        c.load_sections([])
+        self.sections_over_pages = True
+        c = self.display_content()
         grafs_to_do = [
         ]
         for g in c.all_grafs():
@@ -1009,6 +1009,7 @@ class Article(models.Model):
     def display_content(self, slugs=[]):
 
         content = self.content()
+        content.article = self
         content.load_sections(slugs)
         
         return content
@@ -1242,10 +1243,9 @@ class Version(models.Model):
         """
         construct a self.sections connected to the content
         """
+
         for s in self.sections:
             s._version = self
-            
-        for s in self.sections:
             if s.anchor() in slugs or slugs == []:
                 s.active_section = True
             else:
@@ -1589,6 +1589,7 @@ class Version(models.Model):
         """
         lookup = {}
         for r in self.paragraph_links:
+            if r:
                 lookup.update(r)
         return lookup
 
