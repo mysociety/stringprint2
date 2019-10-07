@@ -56,6 +56,7 @@
         </div> 
     {% block content %}
     <div class="content">
+      
     {% for s in content.display_sections %}
 		{# iterate through sections #}
 		
@@ -73,6 +74,15 @@
             {% endwith %}
             </div>
         {% endif %}
+	{% if article.sections_over_pages and s.active_section %}
+			{% with s.prev_section as prev %}
+				{% if prev %}
+					<div class = "previous_section">
+					Previous Section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a>
+					</div>
+				{% endif %}
+			{% endwith %}
+		{% endif %}   
 		<div class = "section">
 		{% for g in s.get_grafs %}
 			{%if g.title %}
@@ -122,8 +132,9 @@
 		{% if article.sections_over_pages and s.active_section %}
 			{% with s.next_section as next %}
 				{% if next %}
+					<div class = "next_section">
 					<h3>Next Section: <a href="{{next.nav_url}}">{{next.name}}</a></h3>
-					<h3><a href="#index">Table of Contents</a></h3>
+					</div>
 				{% endif %}
 			{% endwith %}
 		{% endif %}         

@@ -24,6 +24,9 @@ h3 {
 	font-size: 14pt;
 }
 
+.next_section {
+}
+
 /* style for menu links */
 .nav-text {
 	font-size: 14pt;
@@ -37,6 +40,13 @@ table, th, td {
    border: none;	
 }
 
+
+.previous_section{
+	text-align:center;
+	font-style: italic;
+	padding-top:0px;
+	padding-bottom: 10px;
+}
 
 @media screen and (max-width: 767px) {
 .responsive-table {
@@ -118,6 +128,17 @@ font-style: italic;
 }
         
 
+.next_section::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid #585858;
+}
+		
 h1::after {
   content: '';
   display: block;

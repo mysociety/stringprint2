@@ -150,6 +150,15 @@ class Section(SerialObject):
                 return x
         return None
 
+    def prev_section(self):
+        """
+        returns the previous section in the order
+        """
+        for x in self._version.sections:
+            if x.order == self.order - 1:
+                return x
+        return None
+
     def anchorless_nav_link(self):
         return self.nav_url(False)
 
