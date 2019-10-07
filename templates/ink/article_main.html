@@ -74,7 +74,7 @@
             {% endwith %}
             </div>
         {% endif %}
-	{% if article.sections_over_pages and s.active_section %}
+	{% if article.multipage and s.active_section %}
 			{% with s.prev_section as prev %}
 				{% if prev %}
 					<div class = "previous_section">
@@ -129,7 +129,7 @@
 			{% endfor %}
 		
 		</div>
-		{% if article.sections_over_pages and s.active_section %}
+		{% if article.multipage and s.active_section %}
 			{% with s.next_section as next %}
 				{% if next %}
 					<div class = "next_section">

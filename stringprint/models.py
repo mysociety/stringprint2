@@ -261,7 +261,7 @@ class Article(models.Model):
     book_cover = models.ImageField(
         upload_to=kindle_source_storage, null=True, blank=True)
     kindle_location = models.CharField(max_length=255, null=True, blank=True)
-    sections_over_pages = models.BooleanField(default=False)
+    multipage = models.BooleanField(default=False)
     first_section_name = models.CharField(
         max_length=255, default="start", blank=True)
     pdf_location = models.CharField(max_length=255, default="", blank=True)
@@ -276,6 +276,11 @@ class Article(models.Model):
     def load_from_yaml(self, storage_dir, refresh_header=False):
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
         ignore = ["repo_slug", "header", "book_cover"]
+
+        # adapation for older files
+        if "sections_over_pages" in data:
+            data["multipage"] = data["sections_over_pages"]
+            del data["sections_over_pages"]
 
         for k, v in data.items():
             if k not in ignore:
@@ -334,7 +339,7 @@ class Article(models.Model):
                           "cite_as",
                           "file_source",
                           "publish_date",
-                          "sections_over_pages",
+                          "multipage",
                           "pdf_location",
                           "production_url",
                           "display_notes",
@@ -369,7 +374,6 @@ class Article(models.Model):
         url = url + \
             "?id={0}&screenshot=true".format(
                 self.id)
-        self.sections_over_pages = True
         c = self.display_content()
         grafs_to_do = [
         ]
@@ -547,8 +551,8 @@ class Article(models.Model):
 
         v = "#" + paragraph.combo_key()
 
-        if self.sections_over_pages:
-            return paragraph._section.nav_url(include_anchor=False) + v
+        if self.multipage:
+            return self.social_url()  + paragraph._section.nav_url(include_anchor=False) + v
         else:
             return self.social_url() + v
 
@@ -764,7 +768,7 @@ class Article(models.Model):
                                                               "l", shorter_link + ".html"),
                                             args=args)
 
-        if self.sections_over_pages:
+        if self.multipage:
             c = self.display_content()
             for s in c.sections:
                 args = (self.slug, s.anchor())

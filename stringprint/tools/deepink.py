@@ -171,7 +171,7 @@ class Section(SerialObject):
             """
             disregard url structure when dealing with baking
             """
-            if article.sections_over_pages:
+            if article.multipage:
                 if include_anchor:
                     return self.anchor() + ".html" + "#" + self.anchor()
                 else:
@@ -182,7 +182,7 @@ class Section(SerialObject):
                 else:
                     return "#" + self.anchor()
         else:
-            if article.sections_over_pages:
+            if article.multipage:
                 if include_anchor:
                     return article.url(self.anchor()) + "#" + self.anchor()
                 else:
@@ -200,7 +200,7 @@ class Section(SerialObject):
         """
         returns own order in multi-page system
         """
-        if self._version.article.sections_over_pages:
+        if self._version.article.multipage:
             return self.order
         else:
             return self.prev_id()
@@ -396,7 +396,7 @@ class Graf(SerialObject):
         if anchor == "":
             anchor = self.combo_key()
 
-        if self._section._version.article.sections_over_pages:
+        if self._section._version.article.multipage:
             return self._section.nav_url(include_anchor=False) + "#" + anchor
         else:
             if self._section._version.article.search:
@@ -650,7 +650,7 @@ class Graf(SerialObject):
         swap out tag references so they can cross pages for multi-part articles
         """
         version = self._section._version
-        if version.article.sections_over_pages:
+        if version.article.multipage:
 
             tags = tag_re_statement.findall(text)
             if tags:

@@ -295,7 +295,7 @@ class ArticleView(HomeView):
         """
         move these along if we're not loading over multiple pages
         """
-        if a.sections_over_pages is False:
+        if a.multipage is False:
             paragraph_code = section_slug
             section_slug = ""
 
@@ -304,8 +304,9 @@ class ArticleView(HomeView):
         """
         if "screenshot" in request.GET:
             a.making_screenshot = True
+            a.multipage = False
 
-        if a.sections_over_pages:
+        if a.multipage:
             if section_slug == "":
                 section_slug = a.first_section_name
                 slugs = [section_slug]
