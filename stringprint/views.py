@@ -323,7 +323,7 @@ class ArticleView(HomeView):
         message = ""
         
         for s in c.sections:
-            if s.grafs:
+            if s.grafs and s.active_section:
                 a.nav_default_range = list(range(s.order, s.order + 3))
                 break
 
