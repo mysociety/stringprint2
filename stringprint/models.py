@@ -1356,12 +1356,26 @@ class Version(models.Model):
             def final_level_range(self):
                 return range(0, self.final_level())
 
+            def final_level_range_left_open(self):
+                item = 0
+                for i in self.items[::-1]:
+                    if i.level in [1, 2]:
+                        item = i.level
+                        break
+                
+                return range(0, item-1)
+s
             def add(self, **kwargs):
                 item = Link(**kwargs)
                 item.order = len(self.items)
                 item._toc = self
                 self.items.append(item)
-
+            
+            def top_two_levels(self):
+                for i in self.items:
+                    if i.level in [1,2]:
+                        yield i
+            
             def __iter__(self):
                 for i in self.items:
                     yield i

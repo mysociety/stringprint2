@@ -6,9 +6,6 @@
 	<meta charset="utf-8" />
 	<title>{{article.title}}</title>
 <link href="{% static 'css/kindle.css' %}" rel="stylesheet"  type='text/css'>
-{% if txt_mode == "text"%}
-<link href="{% static 'css/text_mode.css' %}" rel="stylesheet"  type='text/css'>
-{% endif %}
 </head>
 <body>
 
@@ -23,7 +20,7 @@
             {% endif %}
 			
 			{% with content.toc as toc %}
-			{% for s in content.toc %}
+			{% for s in toc.top_two_levels %}
 				{% with s.future_level_difference as fl %}
 					<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
 					{% if fl > 0 %}
@@ -37,16 +34,13 @@
 					{% endif %}
 				{% endwith %}
 			{% endfor %}
-			{% for i in toc.final_level_range %}
+			{% for i in toc.final_level_range_left_open %}
 			</ul>
 			{% endfor %}
 			{% endwith %}
 			
             {% if content.footnotes %}
             <li><a href="#refs">Notes</a></li>
-            {% endif %}
-            {% if article.paywall %}
-            <li><a href="#onlineaccess">Online Access</a></li>
             {% endif %}
             </ul>
 	</h3>
@@ -120,15 +114,5 @@
         {% endwith%}
 
         <mbp:pagebreak />
-        {% if article.paywall %}
-        <h2 id = "onlineaccess" >Online Access</h2>
-        <p>To access the online version of the ebook, check the prompt at <a href="{{article.live_url}}access">{{article.live_url}}/access</a> against the list below to find today's code.</p>
-        
-        <ul>
-        {% for s in article.ordered_secrets %}
-        <li>{{s.challenge}} : {{s.answer}}</li>
-        {% endfor %}
-        </ul>
-        {% endif %}
 </body>
 </html>

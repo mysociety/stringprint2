@@ -189,9 +189,9 @@ class TipueContentView(TipueSearchView):
 
 class TextView(KindleView):
     """
-    view to create the kindle versio nof an article
+    view to create the plain text version
     """
-    template = "ink//kindle.html"
+    template = "ink//plain.html"
     url_patterns = [r'^([A-Za-z0-9_-]+)/text/']
     url_name = "txt_view"
     require_staff = True
