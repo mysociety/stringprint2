@@ -737,7 +737,7 @@ class Article(models.Model):
         article = self
         article.baking = True
 
-        c = self.content()
+        c = self.display_content()
 
         grafs = {x.long_combo_key(): x for x in c.all_grafs()}
         grafs.update({x.combo_key(): x for x in c.all_grafs()})
@@ -1426,6 +1426,7 @@ class Version(models.Model):
 
         for s in self.sections:
             for g in s.grafs:
+                g._section = s
                 yield g
 
     def limit_all_but_first(self):
