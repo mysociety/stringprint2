@@ -19,7 +19,7 @@ if is_vagrant:
 for k, v in config.items():
     vars()[k] = v
 
-local = "http://127.0.0.1:8000"
+local = "http://127.0.0.1:8001"
 
 LOGIN_REDIRECT_URL = "/"
 
