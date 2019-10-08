@@ -15,7 +15,8 @@
 
 
 {% block title %}
-<div class="container">
+<main>
+<div class="container" >
 <a class="anchor" id="1" name="start"></a> 
       <div class="header-text text-center">
         <h1 id="article_title">{{article.title}}</h1>
@@ -30,6 +31,7 @@
 {% endblock %}
 	{% block search %}
 	{% endblock %}
+	
         <a class="anchor" id="index"  name="index"></a> 
         <div id="index" class="index content">
                 <H1>Table of Contents</h1>
@@ -167,7 +169,9 @@
 			
 		
     </div>
-	</div>	
+	
+	</div>
+	</main>
     <script>
     sections = {
                 {% for s in content.sections %}
