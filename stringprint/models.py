@@ -1097,11 +1097,13 @@ class HeaderImage(FlexiBulkModel):
 
         return settings.MEDIA_URL + file_name
 
-    def get_responsive_image_name(self, resolution):
+    def get_responsive_image_name(self, resolution, webp=False):
         """
         get the responsive image needed for each resolution
         """
         name, ext = os.path.splitext(self.image.name)
+        if webp:
+            ext = ".webp"
         return name + "_{0}".format(resolution) + ext
 
     def get_tiny_responsive_image_name(self, resolution):
@@ -1136,7 +1138,8 @@ class HeaderImage(FlexiBulkModel):
         """
         widths = [768, 992, 1200, 1440, 1920]
         for width in widths:
-            yield self.get_responsive_image_name(width)
+            yield self.get_responsive_image_name(width, webp=False)
+            yield self.get_responsive_image_name(width, webp=True)
             yield self.get_tiny_responsive_image_name(width)
 
         yield self.image.name
