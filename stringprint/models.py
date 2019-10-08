@@ -807,6 +807,7 @@ class Article(models.Model):
         files = [
             "js//clipboard.min.js",
             "js//stringprint.js",
+            "js//picturefill.min.js",
             "js//tipuesearch.min.js",
             "js//tipuesearch_set.js",
             "css//stringprint-core.min.css",
