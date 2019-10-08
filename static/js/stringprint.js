@@ -200,6 +200,12 @@ var default_past = 1
 
 function set_mobile_link(id){
 	//adjust where the top mobile link points
+	//break 
+var ua = window.navigator.userAgent;
+var isIE = /MSIE|Trident/.test(ua);
+if ( !isIE ) {
+
+	console.log(id);
 	item = $("#" + id + ".cite-link");
 	link_ref = item.attr("href");
 	para_tag = item.attr("para_tag");
@@ -207,7 +213,7 @@ function set_mobile_link(id){
 	mobile_link.attr("href", link_ref);
 	mobile_link.attr("para_tag", para_tag);
 	mobile_link.prop("id",id);
-	
+	}
 }
 
 
