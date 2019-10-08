@@ -272,6 +272,7 @@ class Article(models.Model):
     display_footnotes_at_foot = models.BooleanField(default=True)
     repo_entry = models.URLField(blank=True, default="")
     bottom_iframe = models.URLField(blank=True, default="")
+    include_citation = models.BooleanField(default=False)
 
     def load_from_yaml(self, storage_dir, refresh_header=False):
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))

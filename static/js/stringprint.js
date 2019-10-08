@@ -553,6 +553,7 @@ function citeBox(dialog_title,link, para_id, para_tag){
     cite_author = $("meta[name=cite_author]").attr("content")
     year = $("meta[name=year]").attr("content")
 	org =  $("meta[name=org]").attr("content")
+	include_citation =  $("meta[name=include_citation]").attr("content")
 	current_section_name = current_section
 	if (current_section_name == title) {
 		current_section_name = "";
@@ -569,11 +570,14 @@ function citeBox(dialog_title,link, para_id, para_tag){
         ele_name = "Paragraph";
         ele_id = para_id    ;
     };
-
+	
+	box_content = 'Link: <a href="' + link+ '">' + title + current_section_name + ', ' + ele_name + ' '+ ele_id + '</a>'
+	if (include_citation == "true"){
+    box_content = box_content + '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>'+ full_title + '</i>. [online] , ' + org + '. '+ ele_name + ': ' + ele_id + ', Available at: '+ link + ' [Accessed ' + getNow() + ']</span>'
+	}
     swal({
     title: dialog_title,    
-    text: 'Link: <a href="' + link+ '">' + title + current_section_name + ', ' + ele_name + ' '+ ele_id + '</a>' + 
-    '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>'+ full_title + '</i>. [online] , ' + org + '. '+ ele_name + ': ' + ele_id + ', Available at: '+ link + ' [Accessed ' + getNow() + ']</span>',
+    text: box_content,
     html: true,
     confirmButtonText: "OK" });
 	
