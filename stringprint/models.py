@@ -553,7 +553,7 @@ class Article(models.Model):
         v = "#" + paragraph.combo_key()
 
         if self.multipage:
-            return self.social_url()  + paragraph._section.nav_url(include_anchor=False) + v
+            return self.social_url() + paragraph._section.nav_url(include_anchor=False) + v
         else:
             return self.social_url() + v
 
@@ -743,7 +743,7 @@ class Article(models.Model):
         grafs = {x.long_combo_key(): x for x in c.all_grafs()}
         grafs.update({x.combo_key(): x for x in c.all_grafs()})
         paragraph_lookup = c.paragraph_lookup()
-        
+
         for k, v in paragraph_lookup.items():
 
             shorter_link = ".".join(k.split(".")[:6])
@@ -1020,7 +1020,7 @@ class Article(models.Model):
         content = self.content()
         content.article = self
         content.load_sections(slugs)
-        
+
         return content
 
     def load_from_file(self):
@@ -1367,20 +1367,20 @@ class Version(models.Model):
                     if i.level in [1, 2]:
                         item = i.level
                         break
-                
-                return range(0, item-1)
-s
+
+                return range(0, item - 1)
+
             def add(self, **kwargs):
                 item = Link(**kwargs)
                 item.order = len(self.items)
                 item._toc = self
                 self.items.append(item)
-            
+
             def top_two_levels(self):
                 for i in self.items:
-                    if i.level in [1,2]:
+                    if i.level in [1, 2]:
                         yield i
-            
+
             def __iter__(self):
                 for i in self.items:
                     yield i
@@ -1585,7 +1585,7 @@ s
         path = os.path.join(bake_folder, self.article.slug, "l")
         if not os.path.exists(path):
             return []
-        
+
         files = os.listdir(path)
         files = [os.path.splitext(x)[0] for x in files]
         return files
@@ -1602,9 +1602,8 @@ s
     def save_paragraph_links(self):
         para_file = os.path.join(self.article.org.storage_dir,
                                  self.article.slug,
-                                 "_paragraphs.yaml")                
+                                 "_paragraphs.yaml")
         write_yaml(para_file, self.paragraph_links)
-
 
     def paragraph_lookup(self):
         """
@@ -1639,28 +1638,28 @@ s
                 existing_grafs.append(key)
                 if paragraph_lookup.get(key, True) == None:
                     paragraph_lookup[key] = True
-                  
-        short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]      
-                    
+
+        short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]
+
         from_render = self.source_paragraph_links_from_render()
         print ("{0} previously rendered".format(len(from_render)))
         new_render = [x for x in from_render if x not in short_keys]
         print ("{0} old links found".format(len(new_render)))
         for n in new_render:
             paragraph_lookup[n] = None
-                    
+
         new_existing_grafs = [
             x for x in existing_grafs if x not in paragraph_lookup]
-        
+
         orphan_grafs = []
-        for k,v in paragraph_lookup.items():
+        for k, v in paragraph_lookup.items():
             if k not in existing_grafs:
                 if v not in existing_grafs:
                     orphan_grafs.append(k)
 
         print("{0} new paragraph links".format(len(new_existing_grafs)))
 
-        orphan_mappings = self.anchor_orphans(existing_grafs,orphan_grafs)
+        orphan_mappings = self.anchor_orphans(existing_grafs, orphan_grafs)
         paragraph_lookup.update(orphan_mappings)
 
         new_paragraph_links = []
@@ -1669,22 +1668,22 @@ s
             if i:
                 key = list(i.keys())[0]
                 new_paragraph_links.append({key: paragraph_lookup[key]})
-            
+
         for i in new_existing_grafs:
-            new_paragraph_links.append({i:True})
+            new_paragraph_links.append({i: True})
 
         for i in new_render:
-            new_paragraph_links.append({i:paragraph_lookup[i]})
+            new_paragraph_links.append({i: paragraph_lookup[i]})
 
         self.paragraph_links = new_paragraph_links
         self.save_paragraph_links()
 
-    def anchor_orphans(self,all_grafs, orphan_grafs):
+    def anchor_orphans(self, all_grafs, orphan_grafs):
         """
         given orphan paragraphs, match to better ones
         """
         class MiniGraf(object):
-            
+
             order = ["para_key_position",
                      "para_key",
                      "letter_key",
@@ -1696,15 +1695,15 @@ s
                      "end_key",
                      "pos_and_section"
                      ]
-            
+
             def __init__(self, key):
                 self.key = key
                 parts = key.split(".")
                 if len(parts) == 5:
-                    parts.extend([None,None])
+                    parts.extend([None, None])
                 if len(parts) == 6:
                     parts.extend([None])
-                    
+
                 self.section = parts[0]
                 self.para_pos = parts[1]
                 self.para_key = parts[2]
@@ -1712,33 +1711,33 @@ s
                 self.end_key = parts[4]
                 self.letter_key = parts[5]
                 self.letter_seq = parts[6]
-                
+
                 self.para_key_position = self.para_pos + self.para_key
                 self.start_and_end = self.start_key + self.end_key
                 self.start_and_pos = self.start_key + self.para_pos
                 self.end_and_pos = self.end_key + self.para_pos
                 self.pos_and_section = self.section + self.para_pos
                 self.match = None
-                
+
                 self.fuzzy_distance = 7
-                
-            def check_match(self,other,key):
-                return getattr(self,key) == getattr(other,key)
-            
+
+            def check_match(self, other, key):
+                return getattr(self, key) == getattr(other, key)
+
             def fuzzy_match(self, candidates):
                 matches = []
                 for c in candidates:
                     if self.letter_seq and c.letter_seq:
-                        c.distance = lev.distance(self.letter_seq,c.letter_seq)
+                        c.distance = lev.distance(
+                            self.letter_seq, c.letter_seq)
                         if c.distance <= self.fuzzy_distance:
                             matches.append(c)
                 if matches:
                     print ("{0} matched fuzzy".format(self.key))
-                    matches.sort(key=lambda x:x.distance)
-                    self.match = matches[0].key                        
-                
-            
-            def find_match(self,candidates):
+                    matches.sort(key=lambda x: x.distance)
+                    self.match = matches[0].key
+
+            def find_match(self, candidates):
                 for s in MiniGraf.order:
                     if s == "fuzzy_match":
                         self.fuzzy_match(candidates)
@@ -1748,20 +1747,20 @@ s
                             return
                     matches = []
                     for c in candidates:
-                       if self.check_match(c,s):
-                           matches.append(c.key)
+                        if self.check_match(c, s):
+                            matches.append(c.key)
                     if len(matches) == 1:
                         print ("matched {1} {0}".format(s, self.key))
                         self.match = matches[0]
                         return
-                          
+
         candidates = [MiniGraf(x) for x in all_grafs]
         orphans = [MiniGraf(x) for x in orphan_grafs]
-        
+
         for o in orphans:
             o.find_match(candidates)
- 
-        return {x.key:x.match for x in orphans}
+
+        return {x.key: x.match for x in orphans}
 
     def process(self):
         """
@@ -1781,15 +1780,13 @@ s
         self.last_updated = now()
         self.save()
 
-
-
     def save(self, *args, **kwargs):
         """
         increment versioning if copy has changed
 
         if article is multi_sections - save as independent objects
         """
-        
+
         if self.id:
             old_v = Version.objects.get(id=self.id)
             should_save = old_v.raw != self.raw
