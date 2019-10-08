@@ -470,7 +470,7 @@ class Article(models.Model):
             if a["content_type"] == "image":
                 reopen = open(file_path, "rb")
                 django_file = File(reopen)
-                suf = SimpleUploadedFile('{2}.{0}.{1}'.format(a["slug"],
+                suf = SimpleUploadedFile('{2}_{0}.{1}'.format(a["slug"],
                                                               a["type"],
                                                               self.id),
                                          django_file.read(),
