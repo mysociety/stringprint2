@@ -4,7 +4,8 @@ import mammoth
 import re
 import os
 import io
-import tomd
+import html2markdown
+
 
 from collections import OrderedDict
 from ruamel.yaml import YAML
@@ -30,6 +31,26 @@ def fix_url(url):
     return url
 
 
+def fix_footnotes(block):
+    """
+    texttomarkdown doesn't do this right, fix manually
+    """
+    block = block.replace("<ol>", "")
+    block = block.replace("</ol>", "")
+    count = 0
+    final = []
+    for l in block.split("</li>"):
+        nl = l.replace('<li id="footnote-{0}"><p>'.format(count), "")
+        nl = nl.replace(
+            '<a href="#footnote-ref-{0}">↑</a></p>'.format(count), "")
+        nl = nl.strip()
+        nl = html2markdown.convert(nl).replace("\n", "")
+        if l:
+            final.append("[{0}]: {1}".format(count + 1, nl))
+        count += 1
+    return "\n".join(final)
+
+
 def mammoth_adjust(qt, demote=True):
     """
     given the results of a mammoth conversion:
@@ -39,16 +60,21 @@ def mammoth_adjust(qt, demote=True):
     text = qt.text
 
     def note_text(x):
-        return '<sup>[[{0}]](#footnote-{0})</sup>'.format(x)
+        return '<sup><a href="#footnote-{0}" id="footnote-ref-{0}">\[{0}\]</a></sup>'.format(x)
 
     def note_text_new(x):
-        return '<sup>[[{0}]](#footnote-{1})</sup>'.format(x, x - 1)
+        return '<sup><a href="#footnote-{1}" id="footnote-ref-{1}">\[{0}\]</a></sup>'.format(x, x - 1)
     count = 1
 
     special_characters = "[]'.,!-" + '"'
 
     text = text.replace("<sup><sup>", "<sup>")
     text = text.replace("</sup></sup>", "</sup>")
+
+    last_line = text.split("\n")[-1]
+    if "<ol>" in last_line:
+        new_footnotes = fix_footnotes(last_line)
+        text = text.replace(last_line, new_footnotes)
 
     while note_text(count) in text or note_text_new(count) in text:
         text = text.replace(note_text(count),
@@ -80,12 +106,15 @@ def mammoth_adjust(qt, demote=True):
                                 "!!SINGLE!!{0}!!SINGLE!!".format(r))
 
     # remove bad markdown conversion - removes spaces at end of formatting
-    #text = text.replace("****","**")
+
     patterns = [("(\*\*(.*?) \*\*)", "**{0}** "),
                 ("(\*\* (.*?)\*\*)", " **{0}**"),
                 ("(\*(.*?) \*)", "*{0}* "),
-                ("(\* (.*?)\*)", " *{0}*")]
-
+                ("(\* (.*?)\*)", " *{0}*"),
+                ("(\_\_(._?) \_\_)", "__{0}__ "),
+                ("(\_\_ (._?)\_\_)", " __{0}__"),
+                ("(\_(._?) \_)", "_{0}_ "),
+                ("(\_ (._?)\_)", " _{0}_")]
     count = 0
     for p, replace in patterns:
         for r in re.findall(p, text):
@@ -98,7 +127,6 @@ def mammoth_adjust(qt, demote=True):
     text = text.replace("!!DOUBLE!!", "**")
     text = text.replace("!!SINGLE!!", "*")
 
-    print ("hold aways")
     # move any bold away from neighbouring text
     patterns = [("(\*\*(.+?)\*\*)\w", "**{0}** "),
                 ("\w(\*\*(.+?)\*\*)", " **{0}**")]
@@ -126,6 +154,8 @@ def mammoth_adjust(qt, demote=True):
     prev = None
     for line in qt:
         l_line = line.lower().strip()
+        if line and line.strip() == "":
+            line.update(None)
         if list(set(l_line)) == ["#"]:
             line.update(None)
         if "(data:" in line:
@@ -226,10 +256,11 @@ def convert_docx(file_path, demote=False):
     html = m_conversion.value
     html, assets = get_tables(html)
 
-    markdown = tomd.convert(html)
+    markdown = html2markdown.convert(html)
     q = QuickText()
     q.filename = file_path
     q.text = markdown
+    q.assets = []
     mammoth_adjust(q, demote)
     q.assets.extend(assets)
     get_asset_captions(q)
@@ -284,6 +315,7 @@ def convert_word(source, dest, demote=False):
     extract_assets(q)
     q.save(dest)
     print ("done")
+
 
 
 if __name__ == "__main__":

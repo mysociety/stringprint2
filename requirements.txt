@@ -29,12 +29,12 @@ unicodecsv
 anyjson
 django-htmlmin
 markdownify
-git+https://github.com/gaojiuli/tomd@94590f8e5259a919a55ba9e58bb0a8b71d07b5b3#egg=tomd
 django-bootstrap-form
 ruamel.yaml
 PyPDF2==1.26.0
 PyMuPDF==1.14.20
 mammoth==1.4.9
+html2markdown==0.1.7
 django_compressor==2.2
 watchdog==0.9
 webptools==0.0.2
