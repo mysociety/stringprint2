@@ -1,0 +1,113 @@
+﻿{% load static %}
+{% load extra_tags %}
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>{{article.title}}</title>
+<link href="{% static 'css/text_mode.css' %}" rel="stylesheet"  type='text/css'>
+</head>
+<body>
+
+<h2>{{article.title}}</h2>
+<h3>{{article.authors}}</h3>
+
+<div id="toc">
+	<h3>
+            <ul>
+            {% if content.sections.0.name == "" %}
+            <li><a href="#intro">Introduction</a>
+            {% endif %}
+			
+			{% with content.toc as toc %}
+			{% for s in toc %}
+				{% with s.future_level_difference as fl %}
+					<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
+					{% if fl > 0 %}
+						<ul>
+					{% elif fl == 0 %}
+						</li>
+					{% else %}
+					{% for i in fl|range %}
+					</ul></li>
+					{% endfor %}
+					{% endif %}
+				{% endwith %}
+			{% endfor %}
+			{% for i in toc.final_level_range %}
+			</ul>
+			{% endfor %}
+			{% endwith %}
+			
+            {% if content.footnotes %}
+            <li><a href="#refs">Notes</a></li>
+            {% endif %}
+            {% if article.paywall %}
+            <li><a href="#onlineaccess">Online Access</a></li>
+            {% endif %}
+            </ul>
+	</h3>
+
+</div>
+{% for s in content.sections %}
+    {%if s.name %}
+        <H2 id="{{s.anchor}}">{{s.name|safe}}</h2>
+    {% else %}
+        {% if forloop.counter == 1 %}
+            <h2 id="intro">{{article.short_title|safe}}</a></h2>
+        {% endif %}
+    {% endif %}
+    {% for g in s.get_kindle_grafs %}
+        {%if g.title %}
+            <H3 id="{{g.anchor}}">{{g.title|safe}}</h3>
+        {% endif %}
+        {% if g.tag %}
+            <a name="tag.{{g.tag}}"></a> 
+        {% endif %}
+        {% if g.is_extended_start %}<hr>{% endif %}
+        {% if g.blockquote %}<blockquote>{% endif %}
+        <p>
+        {% if g.asset %}{{article|display_asset_kindle:g.asset}}{% else %}{% if txt_mode == "kindle" %}{{g.display_kindle}}{% else %}{{g.display_text}}{% endif %}{% endif %}
+        {% if g.expand_link.0 == "expand" and article.display_notes == False %}
+         <a name="notes-{{g.expand_link.1}}-link" href="#notes-{{g.expand_link.1}}">(Notes)</a>
+        {% endif %}
+        </p>
+        
+        {% if g.blockquote %}</blockquote>{% endif %}
+        {% if g.is_extended_end %}<hr>{% endif %}
+    
+    {% endfor %}
+{% endfor %}
+         {% with content.footnotes as notes %}
+            {% if notes %}
+            <h2 id="refs">Notes</h2>
+                        {% if txt_mode == "text" %}
+                        <hr>
+                        {% endif %}
+            {% for s in content.sections %}
+                {% for g in s.get_kindle_extras %} 
+                        <a name="notes-{{g.order}}"></a>
+                        {% for p in g.self_and_extras %}
+                            <p>{{p.display_kindle}}</p>
+                        {% endfor %}
+                        <a href="#notes-{{g.order}}-link">Return</a>
+                        {% if txt_mode == "text" %}
+                        <hr>
+                        {% endif %}
+                {% endfor %}
+            {% endfor %}
+
+            {% for f in notes %}
+               {% if txt_mode == "text" %}
+                <p><a name="footnote-{{f.num}}" href="#footnote-{{f.num}}-ref">{{f.num}}</a>:{{f.safe_content}}</p>
+                {% else %}
+                <p><a name="footnote-{{f.num}}" href="#footnote-{{f.num}}-ref">{{f.num}}</a>:{{f.kindle_content}}</p>
+                <br><br>
+                <p><a href="#footnote-{{f.num}}-ref">Return to text.</a></p>
+                {% endif %}
+            {% endfor %}
+
+            {% endif %}
+        {% endwith %}
+</body>
+</html>

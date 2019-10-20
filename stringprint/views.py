@@ -89,12 +89,18 @@ class KindleView(HomeView):
         if self.__class__.article_settings_override:
             a.__dict__.update(self.__class__.article_settings_override)
         return a
+    
+    def restrict(self,sections,code):
+        if code:
+            return [x for x in sections if x.anchor()==code]
+        else:
+            return sections
 
     def view(self, request, article_slug, paragraph_code=""):
 
         a = self.get_article(request, article_slug)
         c = a.display_content()
-
+        c.sections = self.restrict(c.sections, paragraph_code)
         for s in c.sections:
             s._article = a
         a.cached_assets = [x for x in a.assets.all()]
@@ -103,6 +109,13 @@ class KindleView(HomeView):
                 'txt_mode': self.__class__.txt_mode,
                 'debug': settings.DEBUG}
 
+class EbookChapterView(KindleView):
+    """
+    Render ebook chapter
+    """
+    template = "ink//epub_chapter.html"
+    url_patterns = [r'^([A-Za-z0-9_-]+)/epub/([A-Za-z0-9_-]+)/']
+    url_name = "epub_view"
 
 class TOCView(HomeView):
     """

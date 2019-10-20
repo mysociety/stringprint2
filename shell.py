@@ -299,6 +299,16 @@ class SPPrompt(Cmd):
         doc.render(path, refresh_all=refresh_all)
 
     @select_doc
+    def do_renderebook(self, inp):
+        refresh_all = "refresh" in inp.lower()
+        slug = self.current_doc
+        bake_folder = self.current_org.publish_dir
+        path = os.path.join(bake_folder, slug)
+        doc, created = Article.objects.get_or_create(org=self.current_org,
+                                                     slug=self.current_doc)
+        doc.create_ebook(path)
+
+    @select_doc
     def do_renderzip(self, inp):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc

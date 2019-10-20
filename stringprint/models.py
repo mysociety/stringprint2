@@ -10,7 +10,8 @@ from PIL import Image
 from tempfile import mkdtemp
 import tinify
 import Levenshtein as lev
-
+import mkepub
+from django.test.client import RequestFactory
 
 from django.conf import settings
 from django.urls import reverse
@@ -876,6 +877,36 @@ class Article(models.Model):
 
         if kindle:
             self.create_kindle(destination, use_temp=True)
+            self.create_ebook(destination)
+
+    def create_ebook(self, destination):
+        
+        from .views import (EbookChapterView)
+        
+        book = mkepub.Book(title=self.title, authors=self.authors.split(","))
+
+        if self.book_cover:
+            with open(self.book_cover.path, 'rb') as file:
+                book.set_cover(file.read())
+
+        sections = []
+        # iterate through sections:
+        for s in self.content().sections:
+            anchor = s.anchor()
+            args = (self.slug, s.anchor())
+            path = self.slug + "/epub/" + s.anchor()
+            request = RequestFactory().get(path)
+            content = EbookChapterView.as_view(decorators=False)(
+            request, *args).content
+            content = content.decode("utf-8")
+            book.add_page(s.name, content)
+     
+        file_path = os.path.join(destination, self.slug + ".epub")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        book.save(file_path)
+        print ("rendered epub")
+
 
     def create_kindle(self, destination, use_temp=False):
         """
@@ -1367,7 +1398,6 @@ class Version(models.Model):
                     if i.level in [1, 2]:
                         item = i.level
                         break
-
                 return range(0, item - 1)
 
             def add(self, **kwargs):

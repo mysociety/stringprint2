@@ -704,6 +704,7 @@ class Graf(SerialObject):
             text = text[:417] + "..."
         return text
 
+
     def display_kindle(self, remove_links=True):
 
         text = self.html
