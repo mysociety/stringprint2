@@ -71,6 +71,8 @@ def mammoth_adjust(qt, demote=True):
     text = text.replace("<sup><sup>", "<sup>")
     text = text.replace("</sup></sup>", "</sup>")
 
+    text = text.replace("!!BLOCKQUOTE!!", ">")
+
     last_line = text.split("\n")[-1]
     if "<ol>" in last_line:
         new_footnotes = fix_footnotes(last_line)
@@ -169,7 +171,6 @@ def mammoth_adjust(qt, demote=True):
                   "caption": caption,
                   "slug": slug}
             print ("asset found")
-            print (di)
             qt.assets.append(di)
             line.update("[asset:{0}]".format(slug))
         toc = toc_find.search(line)
@@ -215,9 +216,18 @@ def get_tables(html):
               "content": qg,
               "caption": "",
               "slug": slug}
-        assets.append(di)
-        table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-        new_html = new_html.replace(table_html, asset_format.format(slug))
+
+        if len(qg.data) == 0:
+            if len(qg.header) == 2:
+                replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)
+                table_html = str(table).replace(
+                    "<tbody>", "").replace("</tbody>", "")
+                new_html = new_html.replace(table_html, replacement)
+        else:
+            assets.append(di)
+            table_html = str(table).replace(
+                "<tbody>", "").replace("</tbody>", "")
+            new_html = new_html.replace(table_html, asset_format.format(slug))
     return new_html, assets
 
 
@@ -315,7 +325,6 @@ def convert_word(source, dest, demote=False):
     extract_assets(q)
     q.save(dest)
     print ("done")
-
 
 
 if __name__ == "__main__":
