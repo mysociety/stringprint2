@@ -755,6 +755,7 @@ class Article(models.Model):
                     self.article = article
                     self.article.baking = True
                     self.content = c
+                    self.graf = None
                     if v is True:
                         self.graf = grafs.get(k, None)
                     elif v is not None:
@@ -762,7 +763,7 @@ class Article(models.Model):
                     if self.graf:
                         self.graf._article = article
                     else:
-                        "old tag: rendering {0}".format(g)
+                        "old tag: rendering {0}".format(k)
                     self.paragraph_tag = shorter_link
 
             args = ("blah", "blah")
