@@ -900,7 +900,21 @@ class Article(models.Model):
             content = EbookChapterView.as_view(decorators=False)(
             request, *args).content
             content = content.decode("utf-8")
+            content = content.replace('src="/media/','src="images/')
             book.add_page(s.name, content)
+    
+        media_files = []
+        for a in self.assets.all():
+            if a.type == Asset.IMAGE:
+                media_files.append(a.image.name)
+            if a.type == Asset.CHART:
+                if a.chart.chart_type != "table_chart":
+                    media_files.append(a.image_chart.name)
+                    
+        for f in media_files:
+            origin = os.path.join(settings.MEDIA_ROOT, f)
+            with open(origin, 'rb') as file:
+                book.add_image(f, file.read())
      
         file_path = os.path.join(destination, self.slug + ".epub")
         if os.path.exists(file_path):
