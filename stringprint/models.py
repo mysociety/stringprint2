@@ -1163,7 +1163,6 @@ class HeaderImage(FlexiBulkModel):
         """
 
         tell template about different resolutions
-
         """
         for width in [768, 992, 1200, 1440, 1920]:
             image_name = settings.MEDIA_URL + self.get_image_name(width)
@@ -1230,19 +1229,33 @@ class HeaderImage(FlexiBulkModel):
         else:
             images = ((self.image, [768, 992, 1200, 1440, 1920]),
                       )
+            
+        pos = 0
         for i_file, res in images:
-
             print("creating responsive versions")
             image = Image.open(i_file)
             o_width, o_height = image.size
             for width in res:
-                new_height = width / float(o_width) * o_height
+                pos += 1
+                # if display is being scaled down, reduce size of image
+                new_width = width
+                if pos > 1 and self.size:
+                    new_width = (new_width / 12) * self.size
+                    print ("resizing to {0}".format(new_width))
+                new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
-                thumbnail.thumbnail((width, new_height), Image.ANTIALIAS)
+                thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
                 new_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
+                print ("saving as {0}".format(new_name))
+                if os.path.exists(new_name):
+                    print ("deleting")
+                    os.remove(new_name)
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
+                if os.path.exists(webp_name):
+                    print ("deleting")
+                    os.remove(webp_name)
                 webp.cwebp(new_name, webp_name, "-q 80")
 
         self.queue_responsive = False

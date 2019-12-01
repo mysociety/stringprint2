@@ -165,6 +165,7 @@ h2::after {
 margin-bottom: 30px;
 }
 
+
 .index::after {
   content: '';
   display: block;

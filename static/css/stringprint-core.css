@@ -2,6 +2,13 @@
     display:none;
 }
 
+.header-pos {
+    float: none;
+    margin: 0 auto;
+    text-align:center; 
+}
+
+
 .icon-link {
 	color:black;
 }
