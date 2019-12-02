@@ -478,6 +478,9 @@ class Article(models.Model):
                                          content_type='image/png')
                 f.image = suf
                 django_file.close()
+                f.size = 6
+                f.create_responsive(ignore_first=False)
+                f.create_tiny()
             if a["content_type"] == "table":
                 f.chart = GoogleChart(chart_type="table_chart",
                                       file_name=file_path)
@@ -866,10 +869,10 @@ class Article(models.Model):
 
         for a in self.assets.filter(active=True):
             if a.image:
-                print(a.image.name)
-                shutil.copyfile(os.path.join(media, a.image.name),
-                                os.path.join(destination, "media",
-                                             a.image.name))
+                for f in a.get_all_files():
+                    shutil.copyfile(os.path.join(media, f),
+                                    os.path.join(destination, "media",
+                                                 f))                    
             if a.image_chart:
                 print(a.image_chart.name)
                 shutil.copyfile(os.path.join(media, a.image_chart.name),
@@ -1092,46 +1095,16 @@ class Article(models.Model):
         else:
             return None
 
-
-class HeaderImage(FlexiBulkModel):
-
-    title_image = models.BooleanField(default=False)
-    section_name = models.CharField(max_length=255, null=True, blank=True)
-    source_loc = models.CharField(max_length=255, null=True, blank=True)
-    image = models.ImageField(null=True, blank=True,
-                              storage=OverwriteStorage())
-    image_vertical = models.ImageField(null=True, blank=True)
-    image_alt = models.CharField(max_length=255, null=True, blank=True)
-    article = models.ForeignKey(Article, related_name="images",
-                                on_delete=models.CASCADE)
-    size = models.IntegerField(default=0)
-    queue_responsive = models.BooleanField(default=False)
-    queue_tiny = models.BooleanField(default=False)
-
-    def offset(self):
-        """
-        return offset to center image
-        """
-        lookup = {2: 5,
-                  4: 4,
-                  6: 4,
-                  8: 2,
-                  10: 2,
-                  12: 0
-                  }
-        try:
-            return lookup[self.size]
-        except KeyError:
-            return 0
-
+class HeaderMixin(object):
+    """
+    converts images to various responsive sizes
+    """
+    
     def get_image_name(self, resolution):
         """
         returns big or small image depending if we've tinified
         """
-        if self.queue_tiny is True:
-            return self.get_responsive_image_name(resolution)
-        else:
-            return self.get_tiny_responsive_image_name(resolution)
+        return self.get_tiny_responsive_image_name(resolution)
 
     def get_share_image(self):
         """
@@ -1197,7 +1170,7 @@ class HeaderImage(FlexiBulkModel):
 
         tinify.key = settings.TINY_PNG_KEY
 
-        if self.image_vertical:
+        if hasattr(self,"image_vertical") and self.image_vertical:
             images = ((self.image_vertical, [768]),
                       (self.image, [992, 1200, 1440, 1920]),
                       )
@@ -1213,7 +1186,7 @@ class HeaderImage(FlexiBulkModel):
                 source = tinify.from_file(str(new_name))
                 source.to_file(tiny_name)
 
-    def create_responsive(self):
+    def create_responsive(self, ignore_first=True):
         """
         creates the different sized versions of the header image.
 
@@ -1222,7 +1195,7 @@ class HeaderImage(FlexiBulkModel):
         Passes up to tinyimg to reduce.
         """
 
-        if self.image_vertical:
+        if hasattr(self,"image_vertical") and self.image_vertical:
             images = ((self.image_vertical, [768]),
                       (self.image, [992, 1200, 1440, 1920]),
                       )
@@ -1239,12 +1212,13 @@ class HeaderImage(FlexiBulkModel):
                 pos += 1
                 # if display is being scaled down, reduce size of image
                 new_width = width
-                if pos > 1 and self.size:
+                if (pos > 1 or ignore_first == False) and self.size:
                     new_width = (new_width / 12) * self.size
                     print ("resizing to {0}".format(new_width))
                 new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
-                thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
+                if new_width < o_width:
+                    thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
                 new_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
                 print ("saving as {0}".format(new_name))
@@ -1258,9 +1232,21 @@ class HeaderImage(FlexiBulkModel):
                     os.remove(webp_name)
                 webp.cwebp(new_name, webp_name, "-q 80")
 
-        self.queue_responsive = False
-        HeaderImage.objects.filter(id=self.id).update(queue_responsive=False)
+class HeaderImage(FlexiBulkModel, HeaderMixin):
 
+    title_image = models.BooleanField(default=False)
+    section_name = models.CharField(max_length=255, null=True, blank=True)
+    source_loc = models.CharField(max_length=255, null=True, blank=True)
+    image = models.ImageField(null=True, blank=True,
+                              storage=OverwriteStorage())
+    image_vertical = models.ImageField(null=True, blank=True)
+    image_alt = models.CharField(max_length=255, null=True, blank=True)
+    article = models.ForeignKey(Article, related_name="images",
+                                on_delete=models.CASCADE)
+    size = models.IntegerField(default=0)
+    queue_responsive = models.BooleanField(default=False)
+    queue_tiny = models.BooleanField(default=False)
+    
 
 class Version(models.Model):
     article = models.ForeignKey(Article, related_name="versions",
@@ -1860,7 +1846,7 @@ class Version(models.Model):
         super(Version, self).save(*args, **kwargs)
 
 
-class Asset(FlexiBulkModel):
+class Asset(FlexiBulkModel, HeaderMixin):
 
     RAW_HTML = "h"
     IMAGE = "i"
@@ -1880,6 +1866,7 @@ class Asset(FlexiBulkModel):
     regenerate_image_chart = models.BooleanField(default=False)
     image = models.ImageField(null=True, blank=True,
                               storage=OverwriteStorage())
+    size = models.IntegerField(default=0)
     alt_text = models.CharField(max_length=255, null=True, blank=True)
     caption = models.CharField(max_length=255, null=True, blank=True)
     content = models.TextField(null=True)
@@ -1974,12 +1961,19 @@ class Asset(FlexiBulkModel):
 
         if self.caption is None:
             self.caption = ""
+            
+        if basic:
+            template = 'charts//basic_image.html'
+        else:
+            template = 'charts//responsive_image.html'
 
-        context = {"source": url,
+        context = {"asset":self,
+                   "source": url,
                    "alt": escape(at),
                    "title": escape(self.caption),
                    "caption": self.caption}
-        rendered = render_to_string('charts//basic_image.html', context)
+        
+        rendered = render_to_string(template, context)
         return mark_safe(rendered)
 
     def render_code(self):

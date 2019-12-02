@@ -1,0 +1,12 @@
+{% load extra_tags %}
+<div class="header-pos">
+        <picture>
+            <!--[if IE 9]><video style="display: none;"><![endif]-->
+            {% for source, source_webp, size in asset.header_image_res %}
+			<source srcset="{{source_webp}}" media="(max-width: {{size}}px)" type="image/webp">
+            <source srcset="{{source}}" media="(max-width: {{size}}px)">
+            {% endfor %}
+            <!--[if IE 9]></video><![endif]-->
+            <img srcset="{{asset.image.url}}" class="header-pos" title="{{title}}" loading="lazy" alt="{{caption|empty_if_none}}" style="margin:0 auto;">
+        </picture>
+</div>

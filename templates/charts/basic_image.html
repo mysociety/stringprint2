@@ -1,9 +1,7 @@
 
-<div class = "row">
-	<div class = "col-md-8" style="float: none; margin: 0 auto;text-align:center">
-			<img class="img-responsive center-block" src="{{source}}" alt="{{alt}}"  title="{{title}}">
-	{% if caption %}
-		<p class="asset-caption">{{caption}}</p>
-	{% endif %}
-	</div>
+<div style="width:50%">
+        <img class="center-block" src="{{source}}" alt="{{alt}}"  title="{{title}}">
+{% if caption %}
+    <p class="asset-caption">{{caption}}</p>
+{% endif %}
 </div>
