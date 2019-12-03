@@ -1131,18 +1131,30 @@ class HeaderMixin(object):
         """
         name, ext = os.path.splitext(self.image.name)
         return name + "_{0}_tiny".format(resolution) + ext
-
+    
     def header_image_res(self):
+        if not hasattr(self,"_cached_imageres"):
+            self._cached_imageres = [x for x in self._header_image_res()]
+        return self._cached_imageres
+
+    def _header_image_res(self):
         """
 
         tell template about different resolutions
         """
+        previous_width = 0
         for width in [768, 992, 1200, 1440, 1920]:
             image_name = settings.MEDIA_URL + self.get_image_name(width)
             not_tiny_name = settings.MEDIA_URL + \
                 self.get_responsive_image_name(width)
+            file_path = os.path.join(settings.MEDIA_ROOT,self.get_image_name(width))
+            image = Image.open(file_path)
+            o_width, o_height = image.size
+            image.close()
             webp_name = os.path.splitext(not_tiny_name)[0] + ".webp"
-            yield image_name, webp_name, width
+            ratio = int((float(o_height)/float(o_width))*100)
+            yield image_name, webp_name, previous_width, width,o_width, o_height, ratio
+            previous_width = width
 
     def largest_header(self):
         """
