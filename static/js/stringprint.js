@@ -671,13 +671,19 @@ $(window).on("load", function () {
           if (splits.length > 1) {
 		  page_loaded = true;
           return gotoHash(hash,true);
+          } else {
+              if (hash != "#start") {
+                hash = hash.replace("#","")
+                section = $('.anchor[name ="' + hash + '"]').first()
+                id = section.attr("id");
+                title = $("#"+id +".section-anchor").text()
+                changeSelected(id,title,true); 
+              }
           }
           }
 	page_loaded = true;
-	first_section = $(".section-anchor").first()
-	id = first_section.attr("id");
-	title = $("#"+id +".section-anchor").text()
-	changeSelected(id,title,true);
+    
+
     });
 	
 function followHash() {
