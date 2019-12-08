@@ -571,14 +571,13 @@ function citeBox(dialog_title,link, para_id, para_tag){
         ele_id = para_id    ;
     };
 	
-	box_content = 'Link: <a href="' + link+ '">' + title + current_section_name + ', ' + ele_name + ' '+ ele_id + '</a>'
+	box_content = 'Link : <a href="' + link+ '">' + title + current_section_name + ', ' + ele_name + ' '+ ele_id + '</a>'
 	if (include_citation == "true"){
     box_content = box_content + '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>'+ full_title + '</i>. [online] , ' + org + '. '+ ele_name + ': ' + ele_id + ', Available at: '+ link + ' [Accessed ' + getNow() + ']</span>'
-	}
-    swal({
-    title: dialog_title,    
-    text: box_content,
-    html: true,
+	};
+    box_content = "<h4>" + dialog_title + "</h4>" + box_content
+    Swal.fire({
+    html: box_content,
     confirmButtonText: "OK" });
 	
 	send_ga("Generated Link", link)

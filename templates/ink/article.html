@@ -64,7 +64,6 @@
 	
 {% compress css file base_css_file %}
 	<link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
-	<link href="{% static 'css/sweetalert.css' %}" rel="stylesheet"  type='text/css'>
 	<link href="{% static 'css/stringprint-core.css' %}" rel="stylesheet"  type='text/css'>
 	<link href="{% static 'css/stringprint-default.css' %}" rel="stylesheet"  type='text/css'>
 	{% if article.org.stylesheet %}
@@ -169,15 +168,17 @@ display:none;
 </script>
 {% endif %}
 
+
 {% compress js file base_js %}
     <script type="text/javascript"  src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/sweetalert.min.js' %}"></script>
     <script type="text/javascript"  src="{% static 'js/jquery.waypoints.min.js' %}" ></script>
     <script type="text/javascript" src="{% static 'js/clipboard.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/stringprint.js' %}"></script>
  {% endcompress %}
 
+     <script type="text/javascript" src="{% static 'js/sweetalert2.all.min.js' %}"></script>
+ 
 <script type="text/javascript">
 	$(window).on("load",function(){
 	$('<iframe>').attr(
