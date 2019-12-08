@@ -1101,7 +1101,12 @@ class Article(models.Model):
         if title:
             yield title
         
-        for a in self.cached_assets:
+        if hasattr(self,"cached_assets"):
+            assets = self.cached_assets
+        else:
+            assets = self.assets.all()
+        
+        for a in assets:
             if a.type == Asset.IMAGE:
                 yield a
 
