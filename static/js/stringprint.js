@@ -575,8 +575,9 @@ function citeBox(dialog_title,link, para_id, para_tag){
 	if (include_citation == "true"){
     box_content = box_content + '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>'+ full_title + '</i>. [online] , ' + org + '. '+ ele_name + ': ' + ele_id + ', Available at: '+ link + ' [Accessed ' + getNow() + ']</span>'
 	};
-    box_content = "<h4>" + dialog_title + "</h4>" + box_content
+    box_content = "<h4><b>" + dialog_title + "</b></h4>" + box_content
     Swal.fire({
+    icon: 'success',
     html: box_content,
     confirmButtonText: "OK" });
 	
