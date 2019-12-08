@@ -1094,6 +1094,16 @@ class Article(models.Model):
             return title_image.get_share_image()
         else:
             return None
+        
+    def headers_and_images(self):
+        
+        title = self.title_image()
+        if title:
+            yield title
+        
+        for a in self.cached_assets:
+            if a.type == Asset.IMAGE:
+                yield a
 
 class HeaderMixin(object):
     """

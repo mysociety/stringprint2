@@ -1,19 +1,5 @@
 {% load extra_tags %}
 
-<style>
-{% for source, source_webp, previous_size, size, width, height, ratio in image.header_image_res %}
-@media (min-width: {{previous_size}}px) and (max-width: {{size}}px) {
- .size_{{image.image.name|slugify}} {
- {% if size == 768 %}
- height:{{ratio}}vw;
- width: 100%;
- {% else %}
- height:{{height}}px;
- {% endif %}
- }
-}
-{% endfor %}
-</style>
 <div class="header-pos">
         <picture>
             <!--[if IE 9]><video style="display: none;"><![endif]-->
