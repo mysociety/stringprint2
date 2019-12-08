@@ -177,10 +177,10 @@ display:none;
     <script type="text/javascript" src="{% static 'js/stringprint.js' %}"></script>
  {% endcompress %}
 
-     <script type="text/javascript" src="{% static 'js/sweetalert2.all.min.js' %}"></script>
+     <script type="text/javascript" src="{% static 'js/sweetalert2.all.min.js' %}" defer></script>
  
-<script type="text/javascript">
-	$(window).on("load",function(){
+<script type="text/javascript" defer>
+    window.addEventListener('DOMContentLoaded', function() {
 	$('<iframe>').attr(
 	{
 	  "src": "{{article.bottom_iframe}}",
