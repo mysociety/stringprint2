@@ -33,12 +33,12 @@
 {% endblock %}
 
 {% block code %}
-<script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}"></script>
-<script type="text/javascript" src="tipuesearch_content.js"></script>
+<script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}" defer></script>
+<script type="text/javascript" src="tipuesearch_content.js" defer></script>
 <link rel="stylesheet" type="text/css" href="{% static 'css/tipuesearch.css' %}">
-<script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}" defer></script>
 <script>
-$(document).ready(function() {
+    window.addEventListener('DOMContentLoaded', function() {
 
 	$('form input').keydown(function (e) {
 		if (e.keyCode == 13) {
