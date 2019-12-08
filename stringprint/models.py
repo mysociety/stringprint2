@@ -811,6 +811,7 @@ class Article(models.Model):
 
         files = [
             "js//clipboard.min.js",
+            "js//sweetalert2.all.min.js",
             "js//stringprint.js",
             "js//picturefill.min.js",
             "js//tipuesearch.min.js",
