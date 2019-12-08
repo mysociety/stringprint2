@@ -478,8 +478,8 @@ class Article(models.Model):
                                          content_type='image/png')
                 f.image = suf
                 django_file.close()
-                f.size = 6
-                f.create_responsive(ignore_first=False)
+                f.size = 4
+                f.create_responsive(ignore_first=True)
                 f.create_tiny()
             if a["content_type"] == "table":
                 f.chart = GoogleChart(chart_type="table_chart",
