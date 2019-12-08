@@ -384,6 +384,7 @@
   "css": [
     "tables.less",
     "forms.less",
+    "input-groups.less",
     "navs.less",
     "navbar.less",
     "component-animations.less",
