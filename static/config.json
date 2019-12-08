@@ -382,16 +382,12 @@
     "@hr-border": "@gray-lighter"
   },
   "css": [
-    "print.less",
-    "type.less",
-    "grid.less",
+    "tables.less",
     "forms.less",
     "navs.less",
     "navbar.less",
     "component-animations.less",
-    "dropdowns.less",
-    "popovers.less",
-    "modals.less"
+    "dropdowns.less"
   ],
   "js": [
     "dropdown.js",
