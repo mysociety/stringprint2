@@ -456,7 +456,6 @@ class Article(models.Model):
                 slugs.append(k)
                 assets.append(v)
         Asset.objects.filter(article=self, slug__in=slugs).delete()
-
         slugs = []
         for a in assets:
 
@@ -884,7 +883,7 @@ class Article(models.Model):
                 for f in a.get_all_files():
                     shutil.copyfile(os.path.join(media, f),
                                     os.path.join(destination, "media",
-                                                 f))                    
+                                                 f))
             if a.image_chart:
                 print(a.image_chart.name)
                 shutil.copyfile(os.path.join(media, a.image_chart.name),
@@ -896,9 +895,9 @@ class Article(models.Model):
             self.create_ebook(destination)
 
     def create_ebook(self, destination):
-        
+
         from .views import (EbookChapterView)
-        
+
         book = mkepub.Book(title=self.title, authors=self.authors.split(","))
 
         if self.book_cover:
@@ -913,32 +912,29 @@ class Article(models.Model):
             path = self.slug + "/epub/" + s.anchor()
             request = RequestFactory().get(path)
             content = EbookChapterView.as_view(decorators=False)(
-            request, *args).content
+                request, *args).content
             content = content.decode("utf-8")
-            content = content.replace('src="/media/','src="images/')
+            content = content.replace('src="/media/', 'src="images/')
             book.add_page(s.name, content)
-    
+
         media_files = []
-        for a in self.assets.all():
         for a in self.assets.filter(active=True):
             if a.type == Asset.IMAGE:
-                media_files.append(a.image.name)
                 media_files.append(a.get_image_name(1200))
             if a.type == Asset.CHART:
                 if a.chart.chart_type != "table_chart":
                     media_files.append(a.image_chart.name)
-                    
+
         for f in media_files:
             origin = os.path.join(settings.MEDIA_ROOT, f)
             with open(origin, 'rb') as file:
                 book.add_image(f, file.read())
-     
+
         file_path = os.path.join(destination, self.slug + ".epub")
         if os.path.exists(file_path):
             os.remove(file_path)
         book.save(file_path)
         print ("rendered epub")
-
 
     def create_kindle(self, destination, use_temp=False):
         """
@@ -979,10 +975,8 @@ class Article(models.Model):
         opf = os.path.join(staging, self.slug + ".opf")
 
         media_files = []
-        for a in self.assets.all():
         for a in self.assets.filter(active=True):
             if a.type == Asset.IMAGE:
-                media_files.append(a.image.name)
                 media_files.append(a.get_image_name(1200))
             if a.type == Asset.CHART:
                 if a.chart.chart_type != "table_chart":
@@ -1110,28 +1104,28 @@ class Article(models.Model):
             return title_image.get_share_image()
         else:
             return None
-        
+
     def headers_and_images(self):
-        
+
         title = self.title_image()
         if title:
             yield title
-        
-        if hasattr(self,"cached_assets"):
+
+        if hasattr(self, "cached_assets"):
             assets = self.cached_assets
         else:
-            assets = self.assets.all()
-        
             assets = self.assets.filter(active=True)
+
         for a in assets:
             if a.type == Asset.IMAGE:
                 yield a
+
 
 class HeaderMixin(object):
     """
     converts images to various responsive sizes
     """
-    
+
     def get_image_name(self, resolution):
         """
         returns big or small image depending if we've tinified
@@ -1170,7 +1164,7 @@ class HeaderMixin(object):
         """
         name, ext = os.path.splitext(self.image.name)
         return name + "_{0}_tiny".format(resolution) + ext
-    
+
     def header_image_res(self):
         if not hasattr(self, "_cached_imageres"):
             self._cached_imageres = [x for x in self._header_image_res()]
@@ -1186,13 +1180,14 @@ class HeaderMixin(object):
             image_name = settings.MEDIA_URL + self.get_image_name(width)
             not_tiny_name = settings.MEDIA_URL + \
                 self.get_responsive_image_name(width)
-            file_path = os.path.join(settings.MEDIA_ROOT,self.get_image_name(width))
+            file_path = os.path.join(
+                settings.MEDIA_ROOT, self.get_image_name(width))
             image = Image.open(file_path)
             o_width, o_height = image.size
             image.close()
             webp_name = os.path.splitext(not_tiny_name)[0] + ".webp"
-            ratio = int((float(o_height)/float(o_width))*100)
-            yield image_name, webp_name, previous_width, width,o_width, o_height, ratio
+            ratio = int((float(o_height) / float(o_width)) * 100)
+            yield image_name, webp_name, previous_width, width, o_width, o_height, ratio
             previous_width = width
 
     def largest_header(self):
@@ -1249,14 +1244,14 @@ class HeaderMixin(object):
         Passes up to tinyimg to reduce.
         """
 
-        if hasattr(self,"image_vertical") and self.image_vertical:
+        if hasattr(self, "image_vertical") and self.image_vertical:
             images = ((self.image_vertical, [768]),
                       (self.image, [992, 1200, 1440, 1920]),
                       )
         else:
             images = ((self.image, [768, 992, 1200, 1440, 1920]),
                       )
-            
+
         pos = 0
         for i_file, res in images:
             print("creating responsive versions")
@@ -1287,6 +1282,7 @@ class HeaderMixin(object):
                     os.remove(webp_name)
                 webp.cwebp(new_name, webp_name, "-q 80")
 
+
 class HeaderImage(FlexiBulkModel, HeaderMixin):
 
     title_image = models.BooleanField(default=False)
@@ -1301,7 +1297,7 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
     size = models.IntegerField(default=0)
     queue_responsive = models.BooleanField(default=False)
     queue_tiny = models.BooleanField(default=False)
-    
+
 
 class Version(models.Model):
     article = models.ForeignKey(Article, related_name="versions",
@@ -2004,7 +2000,6 @@ class Asset(FlexiBulkModel, HeaderMixin):
         else:
             image = self.image
 
-        url = image.url
         url = settings.MEDIA_URL + self.get_image_name(1200)
         if settings.MEDIA_URL not in url and url[0] == "/":
             url = url[1:]
@@ -2018,18 +2013,18 @@ class Asset(FlexiBulkModel, HeaderMixin):
 
         if self.caption is None:
             self.caption = ""
-            
+
         if basic:
             template = 'charts//basic_image.html'
         else:
             template = 'charts//responsive_image.html'
 
-        context = {"asset":self,
+        context = {"asset": self,
                    "source": url,
                    "alt": escape(at),
                    "title": escape(self.caption),
                    "caption": self.caption}
-        
+
         rendered = render_to_string(template, context)
         return mark_safe(rendered)
 

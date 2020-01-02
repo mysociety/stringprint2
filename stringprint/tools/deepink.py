@@ -304,7 +304,8 @@ class Section(SerialObject):
                 expanded_block.extra_grafs.append(p)
             elif p.type == Graf.EXTENDED_END:
                 if not expanded_block:
-                    raise ValueError("paragraph end without start: {0}".format(p.plain_txt))
+                    raise ValueError(
+                        "paragraph end without start: {0}".format(p.plain_txt))
                 expanded_block.extra_grafs.append(p)
                 expanded_block.end_tag = p.end_tag
                 self.stored_grafs.append(expanded_block)
@@ -459,8 +460,7 @@ class Graf(SerialObject):
         elif self.start_tag == "StartNotes":
             return "extended"
         return ""
-            
-        
+
     def extended(self):
         """
         Boolean - is this an extended paragraph>
@@ -708,7 +708,6 @@ class Graf(SerialObject):
             text = text[:417] + "..."
         return text
 
-
     def display_kindle(self, remove_links=True):
 
         text = self.html
@@ -840,7 +839,7 @@ def process_ink(version, content):
 
     existing_anchors = []
     previous_anchors = {}
-    
+
     def get_anchor_offset(v):
         if not v:
             return ""
@@ -867,7 +866,7 @@ def process_ink(version, content):
         if p.text != "" and p.parent.name not in ["blockquote", "li"]:
             if p.name in ["h2", "h3", "h4"]:
                 if section_title:
-                    #if multiple headers straight after each other
+                    # if multiple headers straight after each other
                     ng = Graf(title=section_title,
                               order=order,
                               header_level=header_level,
