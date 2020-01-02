@@ -298,6 +298,15 @@ display:none
   a[href]:after {
     content: None;
   }
+  
+  .navbar {
+	display: none;
+  }
+  
+  iframe {
+	display: none;
+  }
+  	  
 
 }
 
