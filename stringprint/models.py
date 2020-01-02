@@ -1221,7 +1221,10 @@ class HeaderMixin(object):
 
         tinify.key = settings.TINY_PNG_KEY
 
-        if hasattr(self,"image_vertical") and self.image_vertical:
+        if settings.TINYIFY is False:
+            return None
+
+        if hasattr(self, "image_vertical") and self.image_vertical:
             images = ((self.image_vertical, [768]),
                       (self.image, [992, 1200, 1440, 1920]),
                       )
