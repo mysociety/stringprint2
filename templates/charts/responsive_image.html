@@ -11,3 +11,6 @@
             <a href="{{asset.image.url}}"> <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{caption|empty_if_none}}" style="margin:0 auto;"></a>
         </picture>
 </div>
+{% if caption.strip %}
+    <p class="asset-caption">Image: {{caption}}</p>
+{% endif %}
