@@ -1,9 +1,11 @@
-<table align="center">
+<table >
+	{% if header %}
 	<tr>
 		{% for h in header %}
 			<th>{{h}}</th>
 		{% endfor %}
 	</tr>
+	{% endif %}
 	{% for row in rows %}
 		<tr>
 		{% for v in row %}

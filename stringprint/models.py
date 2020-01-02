@@ -460,11 +460,18 @@ class Article(models.Model):
 
         slugs = []
         for a in assets:
+
+            no_header = False
+            if a["content_type"] == "table-no-header":
+                a["content_type"] = "table"
+                no_header = True
+
             f = Asset(article=self,
                       slug=a["slug"],
                       type=a["content_type"],
                       alt_text=a["caption"],
                       caption=a["caption"],
+                      no_header=no_header,
                       )
             file_name = "{0}.{1}".format(a["slug"], a["type"])
             file_path = os.path.join(asset_folder, file_name)
@@ -1899,6 +1906,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
     caption = models.CharField(max_length=255, null=True, blank=True)
     content = models.TextField(null=True)
     code_content = models.TextField(null=True)
+    no_header = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
 
     def get_chart_image(self):
@@ -2015,9 +2023,9 @@ class Asset(FlexiBulkModel, HeaderMixin):
         if self.type == Asset.CHART:
             if self.chart.chart_type == "table_chart":
                 if basic:
-                    return self.chart.render_html_table(self.caption)
+                    return self.chart.render_html_table(self.caption, self.no_header)
                 else:
-                    return self.chart.render_bootstrap_table(self.caption)
+                    return self.chart.render_bootstrap_table(self.caption, self.no_header)
             else:
                 if basic:
                     return self.render_image(basic=basic, chart_alt=True)
