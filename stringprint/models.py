@@ -394,7 +394,7 @@ class Article(models.Model):
         driver = Chrome.get_driver()
         driver.set_page_load_timeout(60)
         print(url)
-        driver.set_window_size(500, 568)
+        driver.set_window_size(520, 568)
         driver.get(url)
 
         for g in grafs_to_do:
@@ -409,9 +409,9 @@ class Article(models.Model):
             size = element.size
 
             offset = 50
-            left_offset = 15
-            if g.blockquote:
-                left_offset += 30
+            left_offset = 30
+            # if g.blockquote:
+            #    left_offset += 30
 
             driver.execute_script(
                 "window.scrollTo(0, {0});".format(location['y'] - offset))
@@ -419,12 +419,11 @@ class Article(models.Model):
             screenshot = driver.get_screenshot_as_base64()
             img = Image.open(
                 BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
-            width = 500
+            width = 520
             height = int(width / 1.91)
-
             left = location['x'] - left_offset
             top = offset - 8
-            right = left + 4 + width
+            right = left + 16 + width
             bottom = top + height  # size['height'] + 2
 
             elements = (int(left), int(top), int(right), int(bottom))
