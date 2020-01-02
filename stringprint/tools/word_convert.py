@@ -6,7 +6,6 @@ import os
 import io
 import html2markdown
 
-
 from collections import OrderedDict
 from ruamel.yaml import YAML
 
@@ -72,6 +71,7 @@ def mammoth_adjust(qt, demote=True):
     text = text.replace("</sup></sup>", "</sup>")
 
     text = text.replace("!!BLOCKQUOTE!!", ">")
+    text = text.replace("&nbsp;", " ")
 
     last_line = text.split("\n")[-1]
     if "<ol>" in last_line:
@@ -87,7 +87,11 @@ def mammoth_adjust(qt, demote=True):
                             "[^{0}]".format(count))
         text = text.replace('{0}. <a id="footnote-{0}"></a>'.format(count),
                             "[^{0}]:".format(count))
+        text = text.replace('[{0}]: <li id="footnote-{0}"><p>'.format(count),
+                            "[^{0}]:".format(count))
         text = text.replace("[↑](#footnote-ref-{0})".format(count),
+                            "!!!FOOTNOTE!!!\n")
+        text = text.replace('<a href="#footnote-ref-{0}">↑</a></p></li>'.format(count),
                             "!!!FOOTNOTE!!!\n")
         count += 1
 
@@ -147,7 +151,10 @@ def mammoth_adjust(qt, demote=True):
 
     qt.text = text
 
-    image_find = re.compile(r"\(data:image/(.*?);base64,(.*)\)(.*)")
+    normal_image_find = re.compile(r"\(data:image/(.*?);base64,(.*)\)(.*)")
+    alt_image_find = re.compile(
+        r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>')
+    image_finders = [normal_image_find, alt_image_find]
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
 
     asset_count = 0
@@ -160,19 +167,24 @@ def mammoth_adjust(qt, demote=True):
             line.update(None)
         if list(set(l_line)) == ["#"]:
             line.update(None)
-        if "(data:" in line:
+        if l_line and l_line[0] == "#":
+            line.update(fix_header(line))
+        if "data:" in line and "base64" in line:
             asset_count += 1
-            search = image_find.search(line)
-            image_type, content, caption = search.groups()
-            slug = "word-asset-{0}".format(asset_count)
-            di = {"content_type": "image",
-                  "type": image_type,
-                  "content": content,
-                  "caption": caption,
-                  "slug": slug}
-            print ("asset found")
-            qt.assets.append(di)
-            line.update("[asset:{0}]".format(slug))
+            for i in image_finders:
+                search = i.search(line)
+                if not search:
+                    continue
+                image_type, content, caption = search.groups()
+                slug = "word-asset-{0}".format(asset_count)
+                di = {"content_type": "image",
+                      "type": image_type,
+                      "content": content,
+                      "caption": caption,
+                      "slug": slug}
+                print ("asset found")
+                qt.assets.append(di)
+                line.update("[asset:{0}]".format(slug))
         toc = toc_find.search(line)
         if toc:
             line.update(None)
@@ -181,9 +193,8 @@ def mammoth_adjust(qt, demote=True):
         if "!!!footnote!!!" in l_line:
             footnote_count += 1
             new_line = line.replace("!!!FOOTNOTE!!!", "")
-            new_line = new_line[2:].strip()
+            new_line = remove_supports(new_line)
             new_line = fix_url(new_line)
-            new_line = "[^{0}]:".format(footnote_count) + new_line
             line.update(new_line)
         if line and line[0] == "-" and prev and prev.strip()[0] != "-":
             line.update("\n" + line)
@@ -192,6 +203,40 @@ def mammoth_adjust(qt, demote=True):
         prev = line
 
     qt.text = qt.text.replace("\n", "\r\n")
+
+
+def fix_header(line):
+    level = "".join([x for x in line if x == "#"])
+    text = line.replace("#", "").strip()
+    if len(text) == 0:
+        return ""
+    if text and text == text.upper():
+        text = text[0] + text[1:].lower()
+    return "{0} {1}".format(level, text)
+
+
+def remove_supports(t):
+    return t
+    for x in range(0, 100):
+        t = t.replace("footnote-{0}".format(x), "")
+    t = t.replace('<li id=""><p>', "")
+    t = t.replace('</p></li>', "")
+    return t
+
+
+def markdown_table_contents(x):
+    """
+    extracts table row contents and converts to markdown
+    """
+    contents = x.contents
+    if contents:
+        html = html2markdown.convert(str(contents[0]))
+        html = html.replace("&nbsp;", " ")
+        html = html.replace("&amp;", " ")
+        html = html.strip()
+        return html
+    else:
+        return ""
 
 
 def get_tables(html):
@@ -206,8 +251,13 @@ def get_tables(html):
         table_count += 1
         slug = slug_format.format(table_count)
         table_data = []
-        for row in table.find_all("tr"):
-            table_data.append([td.get_text() for td in row.find_all("td")])
+        for n, row in enumerate(table.find_all("tr")):
+            if n == 0: #header:
+                table_data.append([td.get_text()
+                                   for td in row.find_all("td")])
+            else:
+                table_data.append([markdown_table_contents(td)
+                                   for td in row.find_all("td")])
         qg = QuickGrid()
         qg.header = table_data[0]
         qg.data = table_data[1:]
@@ -228,6 +278,8 @@ def get_tables(html):
             table_html = str(table).replace(
                 "<tbody>", "").replace("</tbody>", "")
             new_html = new_html.replace(table_html, asset_format.format(slug))
+            #if asset_format.format(slug) not in new_html:
+            #    raise ValueError("Table slug not successfully inserted.")
     return new_html, assets
 
 
@@ -297,7 +349,7 @@ def extract_assets(q):
             print (a["slug"])
             image_output = io.BytesIO()
             # Write decoded image to buffer
-            base64_content = base64.b64decode(a["content"].encode("utf-8"))
+            base64_content = base64.b64decode(a["content"].encode("utf-8") + b"===")
             image_output.write(base64_content)
             image_output.seek(0)  # seek beginning of the image string
             file_path = os.path.join(asset_folder, a["slug"] + "." + a["type"])
@@ -328,4 +380,5 @@ def convert_word(source, dest, demote=False):
 
 
 if __name__ == "__main__":
-    pass
+    f = r"E:\Users\Alex\Dropbox\mysociety\projects\sp_involve\test-valley-report"
+    convert_word(os.path.join(f,"Romsey Citizens' Assembly Report December 2019.docx"),os.path.join(f,"document.md"))
