@@ -273,7 +273,7 @@ class SPPrompt(Cmd):
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         doc.load_from_yaml(self.doc_folder, refresh_header)
-        doc.import_assets(os.path.join(self.doc_folder, "assets"))
+        doc.import_assets(os.path.join(self.doc_folder, "assets"),refresh_header)
         doc.load_from_file()
         doc.process()
         print ("Finished Processing: {0}".format(doc.title))

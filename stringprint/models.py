@@ -440,7 +440,7 @@ class Article(models.Model):
         else:
             return "search"
 
-    def import_assets(self, asset_folder):
+    def import_assets(self, asset_folder, refresh):
         """
         given the assets folder - loads all assets inside
         """
@@ -476,18 +476,23 @@ class Article(models.Model):
             file_path = os.path.join(asset_folder, file_name)
             if a["content_type"] == "image":
                 reopen = open(file_path, "rb")
+                filename = '{2}_{0}.{1}'.format(a["slug"],
+                                                a["type"],
+                                                self.id)
+                process_images = True
+                if os.path.exists(os.path.join(settings.MEDIA_ROOT, filename)) and refresh is False:
+                    process_images = False
                 django_file = File(reopen)
-                suf = SimpleUploadedFile('{2}_{0}.{1}'.format(a["slug"],
-                                                              a["type"],
-                                                              self.id),
+                suf = SimpleUploadedFile(filename,
                                          django_file.read(),
                                          content_type='image/png')
                 f.image = suf
                 django_file.close()
                 f.size = 4
-                f.create_responsive(ignore_first=True)
-                f.create_tiny()
-            if a["content_type"] == "table":
+                if process_images:
+                    f.create_responsive(ignore_first=True)
+                    f.create_tiny()
+            if "table" in a["content_type"]:
                 f.chart = GoogleChart(chart_type="table_chart",
                                       file_name=file_path)
             if a["content_type"] == "html":
@@ -915,8 +920,10 @@ class Article(models.Model):
     
         media_files = []
         for a in self.assets.all():
+        for a in self.assets.filter(active=True):
             if a.type == Asset.IMAGE:
                 media_files.append(a.image.name)
+                media_files.append(a.get_image_name(1200))
             if a.type == Asset.CHART:
                 if a.chart.chart_type != "table_chart":
                     media_files.append(a.image_chart.name)
@@ -973,8 +980,10 @@ class Article(models.Model):
 
         media_files = []
         for a in self.assets.all():
+        for a in self.assets.filter(active=True):
             if a.type == Asset.IMAGE:
                 media_files.append(a.image.name)
+                media_files.append(a.get_image_name(1200))
             if a.type == Asset.CHART:
                 if a.chart.chart_type != "table_chart":
                     media_files.append(a.image_chart.name)
@@ -1113,6 +1122,7 @@ class Article(models.Model):
         else:
             assets = self.assets.all()
         
+            assets = self.assets.filter(active=True)
         for a in assets:
             if a.type == Asset.IMAGE:
                 yield a
@@ -1126,7 +1136,14 @@ class HeaderMixin(object):
         """
         returns big or small image depending if we've tinified
         """
-        return self.get_tiny_responsive_image_name(resolution)
+        tiny = self.get_tiny_responsive_image_name(resolution)
+        normal = self.get_responsive_image_name(resolution)
+        options = [tiny, normal]
+        for o in options:
+            path = os.path.join(settings.MEDIA_ROOT, o)
+            if os.path.exists(path):
+                return o
+        raise ValueError("{0} missing".format(path))
 
     def get_share_image(self):
         """
@@ -1155,7 +1172,7 @@ class HeaderMixin(object):
         return name + "_{0}_tiny".format(resolution) + ext
     
     def header_image_res(self):
-        if not hasattr(self,"_cached_imageres"):
+        if not hasattr(self, "_cached_imageres"):
             self._cached_imageres = [x for x in self._header_image_res()]
         return self._cached_imageres
 
@@ -1985,6 +2002,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
             image = self.image
 
         url = image.url
+        url = settings.MEDIA_URL + self.get_image_name(1200)
         if settings.MEDIA_URL not in url and url[0] == "/":
             url = url[1:]
         if hasattr(self.article, "baking") and self.article.baking:
