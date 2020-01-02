@@ -8,6 +8,6 @@
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
             {% endfor %}
             <!--[if IE 9]></video><![endif]-->
-            <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{caption|empty_if_none}}" style="margin:0 auto;">
+            <a href="{{asset.image.url}}"> <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{caption|empty_if_none}}" style="margin:0 auto;"></a>
         </picture>
 </div>
