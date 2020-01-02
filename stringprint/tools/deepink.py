@@ -673,6 +673,8 @@ class Graf(SerialObject):
             making_screenshot = getattr(
                 self._section._version.article, "making_screenshot")
 
+        making_screenshot = False  # highlight the first sentence, currently off
+
         if making_screenshot:
             beg = 50
             if len(text) < beg:
@@ -686,6 +688,8 @@ class Graf(SerialObject):
                     end_of_sentence = text.index(",", beg)
                 except Exception:
                     end_of_sentence = None
+            if end_of_sentence and end_of_sentence > len(text) - 5:
+                end_of_sentence = None
 
             if end_of_sentence:
                 text = '<span class="first-sentence">' + \
