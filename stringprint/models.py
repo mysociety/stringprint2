@@ -1252,8 +1252,9 @@ class HeaderMixin(object):
                     print ("resizing to {0}".format(new_width))
                 new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
-                if new_width < o_width:
-                    thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
+                if new_width < o_width and new_width > 1 and new_height > 1:
+                    thumbnail.thumbnail(
+                        (new_width, new_height), Image.ANTIALIAS)
                 new_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
                 print ("saving as {0}".format(new_name))
