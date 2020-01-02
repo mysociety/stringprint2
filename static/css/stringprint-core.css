@@ -162,6 +162,13 @@ font-style: italic;
 margin-bottom:30px;
 }
 
+.asset-caption-table {
+display: block;
+text-align:left;
+font-style: italic;
+margin-bottom:30px;
+}
+
 .nav-has-child{
 	padding-right:0px !important;
 }
