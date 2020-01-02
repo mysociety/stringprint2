@@ -13,9 +13,16 @@ from django.template.loader import render_to_string
 from django.template.loader import get_template
 from charts.chart_config import ChartType
 from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
-
+import markdown
 
 RENDER_TABLES_AS_CHARTS = False
+
+
+def safe_markdown(x):
+    if isinstance(x, str):
+        return markdown.markdown(x)
+    return x
+
 
 def id_generator(size=6, chars=string.ascii_uppercase):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -27,13 +34,12 @@ class ChartCollection(object):
     """
 
     def __init__(self, charts):
-        
+
         if RENDER_TABLES_AS_CHARTS is False:
             charts = [x for x in charts if x.chart_type != "table_chart"]
         self.charts = charts
         self.make_static = False
         self.packages = set([x.package_name() for x in self.charts])
-
 
     def render_packages(self):
         return mark_safe(json.dumps(list(self.packages)))
@@ -177,9 +183,10 @@ class GoogleChart(SerialObject):
             multiple = 24.5
         else:
             multiple = 24.5
-        self.row_height = (multiple * (len(self.rows)+extra_rows)) + 5
+        self.row_height = (multiple * (len(self.rows) + extra_rows)) + 5
         self.caption = caption
-        rendered = render_to_string('charts//google_charts_div.html', {"chart": self})
+        rendered = render_to_string(
+            'charts//google_charts_div.html', {"chart": self})
         return mark_safe(rendered)
 
     def load_from_file(self, path):
@@ -242,16 +249,21 @@ class GoogleChart(SerialObject):
 
         return mark_safe(json.dumps(table))
 
-    def render_bootstrap_table(self, caption):
+    def render_bootstrap_table(self, caption, no_header=False):
         """
-        makes a plain, boring html table of the data
+        makes a bootstrap table of the data
         """
         header = [x.name for x in self.columns]
         rows = []
 
         for r in self.rows:
-            row = [self.columns[i].boring_format(x) for i, x in enumerate(r)]
+            row = [mark_safe(safe_markdown(self.columns[i].boring_format(x)))
+                   for i, x in enumerate(r)]
             rows.append(row)
+
+            if no_header:
+                rows.insert(0, header)
+                header = []
 
         context = {"header": header,
                    "rows": rows,
@@ -260,7 +272,7 @@ class GoogleChart(SerialObject):
         rendered = render_to_string('charts//bootstrap_table.html', context)
         return mark_safe(rendered)
 
-    def render_html_table(self, caption):
+    def render_html_table(self, caption, no_header=False):
         """
         makes a plain, boring html table of the data
         """
@@ -268,8 +280,14 @@ class GoogleChart(SerialObject):
         rows = []
 
         for r in self.rows:
-            row = [self.columns[i].boring_format(x) for i, x in enumerate(r)]
+            row = [mark_safe(safe_markdown(self.columns[i].boring_format(x)))
+                   for i, x in enumerate(r)]
             rows.append(row)
+
+        if no_header:
+            rows.insert(0, header)
+            header = []
+
 
         context = {"header": header,
                    "rows": rows,
