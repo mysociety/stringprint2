@@ -231,7 +231,7 @@ class SPPrompt(Cmd):
 
     def do_loadunloaded(self, inp):
         dir = self.current_org.storage_dir
-        slugs = self.org.articles.all().values_list("slug", flat=True)
+        slugs = self.current_org.articles.all().values_list("slug", flat=True)
 
         for f in os.listdir(dir):
             doc_folder = os.path.join(dir, f)
