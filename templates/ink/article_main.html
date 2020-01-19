@@ -4,6 +4,7 @@
 
 {% block body %}
 {% block title_image %}
+
 <div class = "container-fluid image-container" >
 {% with article.title_image as tl %}
     {% if tl %}
@@ -13,13 +14,12 @@
 </div>
 {% endblock %}
 
-
 {% block title %}
 <main>
 <div class="container" >
 <a class="anchor" id="1" name="start"></a> 
       <div class="header-text text-center">
-        <h1 id="article_title">{{article.title}}</h1>
+        <p class="article_title h1{% if article.title_image.size == -1 %} background_title{% endif %}" id="article_title">{{article.title}}</p>
       {% if article.byline %}
           <p class = "byline">{{article.byline}}</p>
       {% endif %}
@@ -34,9 +34,10 @@
 	{% endblock %}
 	
         <a class="anchor" id="index"  name="index"></a> 
-        <div id="index" class="index content">
-                <H1>Table of Contents</h1>
-                <ul>
+        <div id="index" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
+                <H1 id="toc">Table of Contents</h1>
+                <div class="toc_content">
+				<ul>
 				{% with content.toc as toc %}
                 {% for s in content.toc %}
 					{% with s.future_level_difference as fl %}
@@ -54,6 +55,7 @@
                 {% endfor %}
 				{% for i in toc.final_level_range %}
                 </ul>
+				</div>
 				{% endfor %}
 				{% endwith %}
         </div> 

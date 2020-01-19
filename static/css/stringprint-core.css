@@ -1,3 +1,7 @@
+body {
+	overflow-x:hidden;
+}
+
 .container {
     margin-right: auto;
     margin-left: auto
@@ -130,7 +134,7 @@ p {
 
 
 
-.index {
+.hide-index {
     display:none;
 }
 
@@ -193,9 +197,10 @@ padding-left: 15px;
   display:none;
 }
 
+
+
 .content-row{
 transition:background-color 1s ease;
-background-color:white;
 }
 
 .content{
@@ -345,11 +350,34 @@ margin-bottom:0px;
 
 }
 
-@media (max-width:767px){
+
   .divider {
         height: 1px;
         margin: 9px 0;
         overflow: hidden;
         background-color: #e5e5e5;
     }
+
+
+p.background_title{
+  margin-top: 200px;
+}
+
+@media (max-width:767px){
+p.background_title{
+  margin-top:20px;
+}	
+}
+
+@media print{
+p.background_title{
+  margin-top: inherit;
+}
+.icon-link{
+	display:none;
+}
+.other-formats-text{
+	display:none;
+}
+h1 {page-break-before: always;}
 }

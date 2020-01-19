@@ -3,7 +3,7 @@
 
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <title>{{article.title}}</title>
 
@@ -78,48 +78,107 @@
 {% endif %}
 
 {% if article.display_notes %}
-<style>
-.extended-row, .extended{
-display:inline-block;
-}
-.expand-link{
-display:none;
-}
-</style>
+	<style>
+		.extended-row, .extended{
+		display:inline-block;
+		}
+		.expand-link{
+		display:none;
+		}
+	</style>
 {% endif %}
+
+{# hide smarter bits of menu if no js #}
+
+<script>
+  document.documentElement.classList.remove("no-js");
+</script>
 
 <noscript>
 <style>
-.index{
-display:block;
-}
-li#search-link, li#menu-prev, li#menu-next, li.top-menu-item {
-display:none;
-}
+	.index{
+	display:block;
+	}
+	li#search-link, li#menu-prev, li#menu-next, li.top-menu-item {
+	display:none;
+	}
 
-.caret {
-display:none;
-}
-
+	.caret {
+	display:none;
+	}
 </style>
 </noscript>
 
+{# resize header image and assets at diferent sizes #}
+
 <style>
-{% for asset in article.headers_and_images %}
-{% for source, source_webp, previous_size, size, width, height, ratio in asset.header_image_res %}
-@media (min-width: {{previous_size}}px) and (max-width: {{size}}px) {
- .size_{{asset.image.name|slugify}} {
- {% if size == 768 %}
- height:{{ratio}}vw;
- width: 100%;
- {% else %}
- height:{{height}}px;
- {% endif %}
- }
-}
-{% endfor %}
-{% endfor %}
+	{% for asset in article.headers_and_images %}
+		
+		{% for source, source_webp, previous_size, size, width, height, ratio in asset.header_image_res %}
+			{% if size != 1920 %}
+			@media (min-width: {{previous_size}}px) and (max-width: {{size}}px) {
+			{% else %}
+			@media (min-width: {{previous_size}}px){
+			{% endif %}
+		 .size_{{asset.image.name|slugify}} {
+		 {% if size == 768 or asset.size == 12 %}
+		 height:{{ratio}}vw;
+		 width: 100%;
+		 {% else %}
+		 {% if asset.size == -1 %}
+		 display: none;
+		 {% else %}
+		 height:{{height}}px;
+		 {% endif %}
+		 {% endif %}
+		 }
+		}
+		{% endfor %}
+		
+	@media print {
+		.size_{{asset.image.name|slugify}} {
+		display:block;
+		}
+	}
+	{% endfor %}
+
 </style>
+
+{# background image css formatting #}
+
+{% with article.title_image as tl %}
+{% if tl and tl.size == -1 %}
+	<style>
+
+		body {
+		 background-repeat: no-repeat;
+		 background-position: center top;
+		 background-size: 100vw;
+		 background-image: none;
+		}
+
+		{% for source, source_webp, previous_size, size, width, height, ratio in tl.header_image_res %}
+			{% if forloop.counter > 1 %}
+			{% if size != 1920 %}
+			@media (min-width: {{previous_size}}px) and (max-width: {{size}}px) {
+			{% else %}
+			@media (min-width: {{previous_size}}px){
+			{% endif %}
+			.no-webp body {
+			 background-image: url("{{source}}");
+			 }
+			.webp body {
+			 background-image: url("{{source_webp}}");
+			 }
+			.no-js body {
+			 background-image: url("{{source}}");
+			 }
+			 }
+			{% endif %}
+		{% endfor %}
+	</style>
+{% endif %}
+{% endwith %}
 
 <script>
     // Picture element HTML5 shiv
@@ -162,6 +221,7 @@ display:none;
   ga('create', '{{article.org.get_ga_code}}', 'auto');
   {% else %}
   ga('create', '{{article.org.get_ga_code}}', {'storage': 'none', 'storeGac': false});  
+  ga('set', 'anonymizeIp', true);
   {% endif %}
   ga('send', 'pageview');
 
@@ -175,6 +235,7 @@ display:none;
     <script type="text/javascript"  src="{% static 'js/jquery.waypoints.min.js' %}" ></script>
     <script type="text/javascript" src="{% static 'js/clipboard.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/stringprint.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/modernizr-custom.js' %}"></script>
  {% endcompress %}
 
      <script type="text/javascript" src="{% static 'js/sweetalert2.all.min.js' %}" defer></script>

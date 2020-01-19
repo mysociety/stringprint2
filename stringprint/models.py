@@ -271,6 +271,7 @@ class Article(models.Model):
     production_url = models.URLField(default="")
     display_notes = models.BooleanField(default=False)
     display_footnotes_at_foot = models.BooleanField(default=True)
+    display_toc = models.BooleanField(default=False)
     repo_entry = models.URLField(blank=True, default="")
     bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
@@ -305,11 +306,14 @@ class Article(models.Model):
                     self.org.storage_dir, self.slug, file_name)
             file_ext = os.path.splitext(file_name)[1]
             internal_name = self.slug + file_ext
+            image_size = header.get("size", "6")
+            if image_size == "background":
+                image_size = -1
             self.add_image(file_name,
                            refresh=refresh_header,
                            internal_name=internal_name,
                            title_image=True,
-                           size=header.get("size", "6"))
+                           size=image_size)
 
         if "book_cover" in data:
             print ("loading book cover")
@@ -592,8 +596,10 @@ class Article(models.Model):
 
         ni, created = HeaderImage.objects.get_or_create(article=self,
                                                         source_loc=file_location,
-                                                        **kwargs
                                                         )
+        for k, v in kwargs.items():
+            setattr(ni,k,v)
+        
         ni.save()
         if created is True or refresh is True:
             fi = get_file(file_location)
@@ -1021,7 +1027,9 @@ class Article(models.Model):
             return self.url()
 
     def url(self, section=""):
-
+        """
+        get url of article (with section)
+        """
         if hasattr(self, "baking") and self.baking:
             if section:
                 return "./" + section + ".html"
@@ -1038,9 +1046,15 @@ class Article(models.Model):
             return settings.SITE_ROOT + reverse("article_view", args=args)
 
     def live_url(self):
+        """
+        return version for live site
+        """
         return settings.LIVE_ROOT + reverse("article_view", args=(self.slug,))
 
     def year(self):
+        """
+        get year - 'now' if publication date not avaliable
+        """
         if self.publish_date:
             return self.publish_date.year
         else:
@@ -1056,7 +1070,7 @@ class Article(models.Model):
 
     def content(self):
         """
-        retrieve current version
+        retrieve current version of content
         """
         q = Version.objects.filter(article=self,
                                    number=self.current_version)
@@ -1075,7 +1089,9 @@ class Article(models.Model):
         return v
 
     def display_content(self, slugs=[]):
-
+        """
+        initialize the content for rendering
+        """
         content = self.content()
         content.article = self
         content.load_sections(slugs)
@@ -1083,7 +1099,9 @@ class Article(models.Model):
         return content
 
     def load_from_file(self):
-
+        """
+        load markdown from file
+        """
         with codecs.open(self.file_source, encoding='utf-8') as f:
             raw = f.read()
         if raw:
@@ -1092,13 +1110,19 @@ class Article(models.Model):
             c.save()
 
     def title_image(self):
-        images = self.images.filter(title_image=True)
+        """
+        get the header image reference
+        """
+        images = self.images.filter(title_image=True).order_by('-id')
         if images.exists():
             return images[0]
         else:
             return None
 
     def get_share_image(self):
+        """
+        return a filename for an social share
+        """
         title_image = self.title_image()
         if title_image:
             return title_image.get_share_image()
@@ -1106,8 +1130,11 @@ class Article(models.Model):
             return None
 
     def headers_and_images(self):
-
+        """
+        generator that returns the title image and image assets
+        """
         title = self.title_image()
+        title.is_title = True
         if title:
             yield title
 
@@ -1118,6 +1145,7 @@ class Article(models.Model):
 
         for a in assets:
             if a.type == Asset.IMAGE:
+                a.is_title = False
                 yield a
 
 
@@ -1261,7 +1289,7 @@ class HeaderMixin(object):
                 pos += 1
                 # if display is being scaled down, reduce size of image
                 new_width = width
-                if (pos > 1 or ignore_first == False) and self.size:
+                if (pos > 1 or ignore_first == False) and self.size != -1:
                     new_width = (new_width / 12) * self.size
                     print ("resizing to {0}".format(new_width))
                 new_height = new_width / float(o_width) * o_height

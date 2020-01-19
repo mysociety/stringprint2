@@ -509,7 +509,9 @@ function gotoHash(hash,addText){
                 Waypoint.refreshAll()
             }
             } else {
-                if ($("div#index").is(':visible') == true) {
+				index = $("div#index");
+                if ((index.is(':visible') == true) && (index.hasClass("hide-index") == true)) {
+					
                     $("div#index").hide()
                     Waypoint.refreshAll()
                 }
