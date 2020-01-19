@@ -171,7 +171,8 @@ class SPPrompt(Cmd):
 
     def do_setorg(self, slug):
         self.current_org = Organisation.objects.get(slug=slug)
-        prompt.print_status()
+        self.do_listdocs("")
+        self.do_setdoc("1")
 
     def do_setdoc(self, slug):
         slug = self.dir_lookup.get(slug, slug)
@@ -367,7 +368,6 @@ if __name__ == "__main__":
     default_org = load_org_details()
     prompt = SPPrompt()
     prompt.do_setorg(default_org)
-    prompt.do_listdocs("")
     continue_in_shell = False
     for a in sys.argv[1:]:
         a = a.replace(":", " ")
