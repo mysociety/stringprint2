@@ -18,7 +18,7 @@
 {% block title %}
 <main>
 <div class="container" >
-<a class="anchor" id="1" name="start"></a> 
+	<a class="anchor" id="0" name="top"></a>   
       <div class="header-text text-center">
         <p class="article_title h1{% if article.title_image.size == -1 %} background_title{% endif %}" id="article_title">{{article.title}}</p>
       {% if article.byline %}
@@ -65,7 +65,7 @@
         </div> 
     {% block content %}
     <div class="content">
-      
+	<a class="anchor" id="1" name="start"></a>       
     {% for s in content.display_sections %}
 		{# iterate through sections #}
 		

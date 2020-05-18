@@ -16,7 +16,6 @@
 	<h3>
             <ul>
             {% if content.sections.0.name == "" %}
-            <li><a href="#intro">Introduction</a>
             {% endif %}
 			
 			{% with content.toc as toc %}
@@ -53,7 +52,7 @@
         <H2 id="{{s.anchor}}">{{s.name|safe}}</h2>
     {% else %}
         {% if forloop.counter == 1 %}
-            <h2 id="intro">{{article.short_title|safe}}</a></h2>
+            <h2 id="start">{{article.short_title|safe}}</a></h2>
         {% endif %}
     {% endif %}
     {% for g in s.get_kindle_grafs %}

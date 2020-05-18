@@ -1558,8 +1558,11 @@ class Version(models.Model):
 
         toc = Toc()
         for s in self.sections:
-            if s.name:
-                l = toc.add(name=s.name,
+            name = s.name
+            if s.order == 1 and not name:
+                name = "Introduction"
+            if name:
+                l = toc.add(name=name,
                             anchor=s.anchor(),
                             nav_url=s.nav_url(),
                             id=s.order,
@@ -1585,9 +1588,6 @@ class Version(models.Model):
 
         yield y("Table of Contents", "toc", "1")
         count = 2
-        if self.sections[0].name == "":
-            yield y("Introduction", "intro", count)
-            count += 1
         for s in self.toc():
             indent = s.level - 1
             i = "".join(["-" for x in range(0, indent)])
