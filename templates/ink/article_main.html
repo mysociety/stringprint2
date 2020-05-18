@@ -106,9 +106,11 @@
 					{% endif %}
 					{# blockquotes and notes sections count additional sections of text in the same 'graf' #}
 					{% for p in g.self_and_extras %}
-					<a class="cite-link cite-copy" id="{{g.order}}" href="{{article|cite_link:g}}" para_tag="{{g.para_tag|empty_if_none}}" title="Get paragraph link" >
-					<i class="icon-link"></i>
-					</a>
+					{% if forloop.counter == 1 %}
+						<a class="cite-link cite-copy" id="{{g.order}}" href="{{article|cite_link:g}}" para_tag="{{g.para_tag|empty_if_none}}" title="Get paragraph link" >
+						<i class="icon-link"></i>
+						</a>
+					{% endif %}
 					<p id = "{{p.order}}">
 								{% if p.asset %}
 									{{article|display_asset:p.asset}}
@@ -118,7 +120,7 @@
 							{% if p.expand_link.0 == "expand" %}
 								<a href="#" class = "expand-link" id="{{p.expand_link.1}}">(Notes)</a>
 							{% endif %}
-							{% if forloop.last and g.extended %}
+							{% if forloop.last and g.extended and article.display_notes == false %}
 								<a href="#" class = "hide-link" id="{{g.order}}">(Hide)</a>
 							{% endif %}
 						</p>
