@@ -516,7 +516,7 @@ function gotoHash(hash,addText){
                     Waypoint.refreshAll()
                 }
             }
-            $('html,body').scrollTop($('a[name="' + new_hash + '"]').offset().top - 60)
+            $('html,body').scrollTop($('a[name="' + new_hash + '"]').offset().top - 10)
             return false
             }
       
