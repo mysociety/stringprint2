@@ -1156,8 +1156,8 @@ class Article(models.Model):
         generator that returns the title image and image assets
         """
         title = self.title_image()
-        title.is_title = True
         if title:
+            title.is_title = True
             yield title
 
         if hasattr(self, "cached_assets"):
