@@ -210,7 +210,7 @@ padding-right: 15px;
 padding-left: 15px;
 float: left;
 margin-left: 20px;
-margin-right: 20px;
+margin-right:20px;
 }
 
 
@@ -218,6 +218,7 @@ margin-right: 20px;
 .content{
 width: 66.66666667%;
 margin-left: 16.66666667%;
+margin-right: 20px;
 }
 }
 

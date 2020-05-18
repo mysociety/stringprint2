@@ -10,6 +10,18 @@ p {
 text-align:justify;
 }
 
+ul, ol {
+	padding-inline-start: 20px;
+}
+
+@media (min-width: 767px) {
+ul, ol {
+	padding-inline-start: 40px;
+}
+
+}
+
+
 /* header styling */
 .h1,
 h1,
@@ -186,11 +198,6 @@ h3::after {
   margin-top:20px;
   text-indent: -9999px;
   border-top: 1px solid #585858;
-}
-
-
-.header-text {
-margin-bottom: 30px;
 }
 
 

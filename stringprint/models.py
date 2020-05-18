@@ -67,7 +67,7 @@ def get_yaml(file_path):
     yaml = YAML(typ="safe")
     with open(file_path, "rb") as doc:
         data = yaml.load(doc)
-    #data = fix_yaml(data)
+    # data = fix_yaml(data)
     return data
 
 
@@ -611,7 +611,7 @@ class Article(models.Model):
                                                         source_loc=file_location,
                                                         )
         for k, v in kwargs.items():
-            setattr(ni,k,v)
+            setattr(ni, k, v)
         
         ni.save()
         if created is True or refresh is True:
@@ -1445,6 +1445,7 @@ class Version(models.Model):
         """
         return a set of links for the different parts
         """
+
         class Link(object):
 
             def __init__(self, **kwargs):
@@ -1484,6 +1485,7 @@ class Version(models.Model):
                 splits title into layers based on words
                 to stop very long horizontal titles in submenus
                 """
+
                 def character_group(v):
                     limit = 35
                     words = v.split(" ")
@@ -1845,6 +1847,7 @@ class Version(models.Model):
         """
         given orphan paragraphs, match to better ones
         """
+
         class MiniGraf(object):
 
             order = ["para_key_position",
@@ -2034,6 +2037,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
         """
         add image from file location
         """
+
         def get_file(fi):
             reopen = open(fi, "rb")
             django_file = File(reopen)
