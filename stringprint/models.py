@@ -1220,6 +1220,24 @@ class HeaderMixin(object):
             self._cached_imageres = [x for x in self._header_image_res()]
         return self._cached_imageres
 
+    def get_ratio(self):
+        file_path = os.path.join(
+                settings.MEDIA_ROOT, self.get_image_name(1440))
+        image = Image.open(file_path)
+        o_width, o_height = image.size
+        image.close()
+        ratio = (float(o_height) / float(o_width))
+        return ratio
+        
+    def get_average_color(self):
+        file_path = os.path.join(
+                settings.MEDIA_ROOT, self.get_image_name(1440))
+        image = Image.open(file_path)
+        q = image.quantize(colors=2, method=2)
+        color = q.getpalette()[:3]
+        image.close()
+        return '#{:02x}{:02x}{:02x}'.format(*color)
+
     def _header_image_res(self):
         """
 

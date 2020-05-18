@@ -150,32 +150,43 @@
 {% if tl and tl.size == -1 %}
 	<style>
 
-		body {
+		.background_image {
 		 background-repeat: no-repeat;
 		 background-position: center top;
 		 background-size: 100vw;
-		 background-image: none;
+		 background-color: {{tl.get_average_color}};
+		 -webkit-backface-visibility: hidden;
+		-moz-backface-visibility:    hidden;
+		-ms-backface-visibility:     hidden;
+		-webkit-transform: translate3d(0, 0, 0);
+		height: calc(100vw*{{tl.get_ratio}});
+		border-bottom: 5px solid black;
 		}
 
 		{% for source, source_webp, previous_size, size, width, height, ratio in tl.header_image_res %}
-			{% if forloop.counter > 1 %}
+			
 			{% if size != 1920 %}
 			@media (min-width: {{previous_size}}px) and (max-width: {{size}}px) {
 			{% else %}
 			@media (min-width: {{previous_size}}px){
 			{% endif %}
-			.no-webp body {
+			{% if forloop.counter == 1 %}
+			.background_image {
+			 background-color: inherit;
+			 }
+			{% else %}
+			.no-webp .background_image {
 			 background-image: url("{{source}}");
 			 }
-			.webp body {
+			.webp .background_image {
 			 background-image: url("{{source_webp}}");
 			 }
-			.no-js body {
+			.no-js .background_image {
 			 background-image: url("{{source}}");
 			 }
+			 {% endif %}
 			 }
-			{% endif %}
-		{% endfor %}
+		{% endfor %}			
 	</style>
 {% endif %}
 {% endwith %}
