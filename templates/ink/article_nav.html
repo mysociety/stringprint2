@@ -37,8 +37,8 @@
 		
 		</ul>
         <ul class="nav navbar-nav navbar-right">
-		{% if article.pdf_location %}
-		<li id = "download-link" class="action-buttons"><a href="{{article.pdf_location}}" title="Download PDF" class="alt_link" type="pdf" ><i class="icon-download"></i></a></li>
+		{% if article.pdf_url %}
+		<li id = "download-link" class="action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link" type="pdf" ><i class="icon-download"></i></a></li>
 		{% endif %}
 			<li class="dropdown action-buttons" item="info-link" id="home-link">
 			<a href="#" class="dropdown-toggle" data-toggle="dropdown" id="info-link" title="{{article.org.name}}">
@@ -86,8 +86,8 @@
     <div class="collapse navbar-collapse" id="mobile_menu">
       <ul class="nav navbar-nav nav-text">
         <li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="#index">Table of Contents</a></li>
-		{% if article.pdf_location %}
-		<li ><a class="nav-link alt_link" data-toggle="collapse" data-target=".navbar-collapse" href="{{article.pdf_location}}" type="pdf">Download PDF</a></li>
+		{% if article.pdf_url %}
+		<li ><a class="nav-link alt_link" data-toggle="collapse" data-target=".navbar-collapse" href="{{article.pdf_url}}" type="pdf">Download PDF</a></li>
 		{% endif %}
 		<li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="search">Search</a></li>
 		<li role="separator" class="divider"></li>

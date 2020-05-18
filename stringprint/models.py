@@ -265,6 +265,7 @@ class Article(models.Model):
     multipage = models.BooleanField(default=False)
     first_section_name = models.CharField(
         max_length=255, default="start", blank=True)
+    pdf_file = models.CharField(max_length=255, default="", blank=True)
     pdf_location = models.CharField(max_length=255, default="", blank=True)
     needs_processing = models.BooleanField(default=False)
     reprocess_source = models.BooleanField(default=False)
@@ -276,6 +277,14 @@ class Article(models.Model):
     bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
 
+    def pdf_url(self):
+        if self.pdf_location:
+            return self.pdf_location
+        elif self.pdf_file:
+            return self.url() + "{0}.pdf".format(self.slug)
+        else:
+            return None
+
     def load_from_yaml(self, storage_dir, refresh_header=False):
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
         ignore = ["repo_slug", "header", "book_cover"]
@@ -284,6 +293,10 @@ class Article(models.Model):
         if "sections_over_pages" in data:
             data["multipage"] = data["sections_over_pages"]
             del data["sections_over_pages"]
+
+        if "pdf" in data:
+            data["pdf_file"] = data["pdf"]
+            del data["pdf"]
 
         for k, v in data.items():
             if k not in ignore:
@@ -712,6 +725,15 @@ class Article(models.Model):
         settings.COMPRESS_URL = "static/"
         settings.DEBUG = False
         settings.COMPRESS_ENABLED = True
+
+        """
+        move pdf if local
+        """
+        
+        if self.pdf_file:
+            source_file = os.path.join(self.org.storage_dir, self.slug, self.pdf_file)
+            dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
+            shutil.copyfile(source_file, dest_file)
 
         """
         generate paragraph images

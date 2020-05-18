@@ -25,7 +25,7 @@
       {% endif %}
               <p class="other-formats-text">
 			  Other Formats: <a href="{{SITE_ROOT}}plain.html" class="alt_link" type="plain" >Plain Text</a>,
-			  {% if article.pdf_location %} <a href="{{article.pdf_location}}" class="alt_link" type="pdf" >PDF</a>,{% endif %}
+			  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf" >PDF</a>,{% endif %}
 			  <a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>,
 			  <a href="{{SITE_ROOT}}{{article.slug}}.epub"  class="alt_link" type="epub" >EPUB</a>.</p>
       </div>
