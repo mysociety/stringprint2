@@ -619,6 +619,10 @@ var dragging = false;
 $(".nav-link").on("touchmove", function(){
       dragging = true;
 });
+
+$("a").on("touchmove", function(){
+      dragging = true;
+});
   
 $("body").on("touchstart", function(){
     dragging = false;
