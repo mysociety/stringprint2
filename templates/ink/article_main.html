@@ -32,10 +32,13 @@
 {% endblock %}
 	{% block search %}
 	{% endblock %}
-	
         <a class="anchor" id="index"  name="index"></a> 
         <div id="index" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
-                <H1 id="toc">Table of Contents</h1>
+		
+			{% block search_results %}
+			{% endblock %}
+		
+                <H1 id="toc">Contents</h1>
                 <div class="toc_content">
 				<ul>
 				{% with content.toc as toc %}
