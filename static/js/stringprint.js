@@ -58,10 +58,10 @@ function changeSelected(id,title,nohash){
     $("#menu-" + id).addClass("active");
     $("#caret-menu-" + id).addClass("active");
     if (nohash == false){
-        harmlessHashChange($("#" + id + ".anchor").attr('name'));
+        harmlessHashChange($("#a" + id + ".anchor").attr('name'));
     }
     adjustMenus(id);
-	paragraph_id = $("#" + id + ".linkable").attr("first_graf");
+	paragraph_id = $("#a" + id + ".linkable").attr("first_graf");
 	set_mobile_link(paragraph_id);
 
 }
@@ -87,7 +87,7 @@ $("a.top-nav-item").on("mouseup", function(){
     // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
 	send_ga("Top Nav Click",$(this).attr('href'));
     id = $(this).attr('section');
-    title = $("#"+id +".section-anchor").text()
+    title = $("#s"+id +".section-anchor").text()
     changeSelected(id,title,true);
 	
 })
@@ -99,11 +99,11 @@ var waypoints = $('.section-anchor').waypoint(function(direction) {
     }
     
     if (direction == "down") {
-        id = $(this.element).attr('id');
+        id = $(this.element).attr('id').substring(1);
         title = $(this.element).text()
     } else {
-        id = $(this.element).attr('prev');
-        title = $("#"+id+".section-anchor").text()
+        id = $(this.element).attr('prev').substring(1);
+        title = $("#s"+id+".section-anchor").text()
     };
 	if (page_loaded){
     changeSelected(id,title);
@@ -148,7 +148,7 @@ $('.expand-footnotes').on('click touchend',function(event){
     event.preventDefault();
     id = $(this).attr('id');
     name = $(this).attr('name');
-    footnotes_window = $("#" + id + ".footnotes")
+    footnotes_window = $("#f" + id + ".footnotes")
     footnotes_window.animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
     window.setTimeout(Waypoint.refreshAll,500);
     if (footnotes_window.is(':visible')) {
@@ -160,8 +160,8 @@ $('.expand-footnotes').on('click touchend',function(event){
 //hides an individual footnote
  $('.hide-footnotes').on('click touchend',function(event){
     event.preventDefault();
-    id = $(this).parent().parent().attr('id');
-    $("#" + id + ".footnotes").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
+    id = $(this).parent().parent().attr('id').substring(1);
+    $("#f" + id + ".footnotes").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
     window.setTimeout(Waypoint.refreshAll,500);
  });
 
@@ -169,9 +169,9 @@ $('.expand-footnotes').on('click touchend',function(event){
 $('.expand-link').on('click touchend',function(event){
     event.preventDefault();
     $(this).fadeOut();
-    id = $(this).attr('id');
-    $("#" + id + ".extended-row").show();
-    $("#" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
+    id = $(this).attr('id').substring(1);
+    $("#r" + id + ".extended-row").show();
+    $("#g" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
     window.setTimeout(Waypoint.refreshAll,500);
 	send_ga("Show Note", id)
  });
@@ -179,21 +179,24 @@ $('.expand-link').on('click touchend',function(event){
 //hides an individual note
  $('.hide-link').on('click touchend',function(event){
     event.preventDefault();
-    id = $(this).attr('id');
-    $("#" + id + ".extended-row").hide();
-    $("#" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
-    $("#" + id + ".expand-link").fadeIn();
+    id = $(this).attr('id').substring(1);
+    $("#r" + id + ".extended-row").hide();
+    $("#g" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
+    $("#e" + id + ".expand-link").fadeIn();
     window.setTimeout(Waypoint.refreshAll,500);
  });
  
 //show citation link as hovering over text
  $( ".content-row" ).on('mouseenter',
   function() {
-    id = $(this).attr('id')
-    $(".cite-link" ).not(".manual_paragraph").hide();
-    $('#' + id + ".cite-link" ).show();
-	set_mobile_link(id);
-  })
+    id = $(this).attr('id');
+	if (typeof id != 'undefined'){
+		id = id.substring(1);
+		$(".cite-link" ).not(".manual_paragraph").hide();
+		$('#c' + id + ".cite-link" ).show();
+		set_mobile_link(id);
+	};
+  });
 
 var last_id = 1
 var default_past = 1
@@ -204,15 +207,13 @@ function set_mobile_link(id){
 var ua = window.navigator.userAgent;
 var isIE = /MSIE|Trident/.test(ua);
 if ( !isIE ) {
-
-	console.log(id);
-	item = $("#" + id + ".cite-link");
+	item = $("#c" + id + ".cite-link");
 	link_ref = item.attr("href");
 	para_tag = item.attr("para_tag");
 	mobile_link = $(".mobile-header-link");
 	mobile_link.attr("href", link_ref);
 	mobile_link.attr("para_tag", para_tag);
-	mobile_link.prop("id",id);
+	mobile_link.prop("id","x"+id);
 	}
 }
 
@@ -388,44 +389,35 @@ function gotoTarget(target,addText,internalMove){
     
     if (internalMove == true){
         highlightTime = 5000;
-        createCatchup = false;
     } else {
         highlightTime = 20000;
-        createCatchup = true;
     }
       
     //clever hash link that adds markers around the right place
     para_id = target.attr('name')
-	
             if (addText && currently_moving == false) {
-            currently_moving = true
-            
-            $('#' + para_id + ".extended-row" ).show();
-            $('#' + para_id + ".extended" ).show();
-            $('#' + para_id + ".catchup-link" ).show();
-            $('#' + para_id + ".cite-link" ).addClass("manual_paragraph");
+				currently_moving = true
+				
+				$('#r' + para_id + ".extended-row" ).show();
+				$('#g' + para_id + ".extended" ).show();
+				$('#c' + para_id + ".cite-link" ).addClass("manual_paragraph");
             }
-            if (internalMove == false) {
-                catchup = assembleCatchup(target.attr("parent"),target.attr('last_title'))
-                $("#" + (parseInt(para_id) + 2) + ".content-row").before(catchup)
-                $("#catchup.extended").show()
-            }
-            $('html,body').scrollTop(target.offset().top - 60) //offsets for fixed header
-            parent = $("#" + target.attr('parent') + ".anchor")
-            $("#" + para_id + ".content-row").removeClass('content-row').addClass("highlighted-content content-row")
-            window.setTimeout(function() {$("#" + para_id + ".content-row").removeClass("highlighted-content")},highlightTime)
+            $('html,body').scrollTop(target.offset().top - 60)
+			//offsets for fixed header
+            parent = $("#a" + target.attr('parent') + ".anchor")
+            $("#r" + para_id + ".content-row").removeClass('content-row').addClass("highlighted-content content-row")
+            window.setTimeout(function() {$("#r" + para_id + ".content-row").removeClass("highlighted-content")},highlightTime)
             currently_moving = false;
 			set_mobile_link(para_id);
 			if (page_loaded == false){
 				id = target.attr('parent')
-				title = $("#"+id +".section-anchor").text()
+				title = $("#s"+id +".section-anchor").text()
 				changeSelected(id,title,true);
 			}
 }
 
 function gotoHash(hash,addText){
 //decodes the clever hash function
-
 	  send_ga("External Section Link", hash)
 
       key_areas = hash.split(".") //0 - section, 1 paragraph, 2 - prime, 3 - start, 4-end
@@ -467,7 +459,6 @@ function gotoHash(hash,addText){
       for(var i=0, len=options.length; i < len; i++){
           target = $(options[i]);
           if (target.length == 1) {
-          
             gotoTarget(target,addText,internalMove);
             break;
           }
@@ -504,15 +495,15 @@ function gotoHash(hash,addText){
             new_hash = this.hash.slice(1)
             if (new_hash == "index") {
 				send_ga("TOC View")
-            if ($("div#index").is(':visible') == false) {
-                $("div#index").show()
+            if ($("div#index-container").is(':visible') == false) {
+                $("div#index-container").show()
                 Waypoint.refreshAll()
             }
             } else {
-				index = $("div#index");
+				index = $("div#index-container");
                 if ((index.is(':visible') == true) && (index.hasClass("hide-index") == true)) {
 					
-                    $("div#index").hide()
+                    $("div#index-container").hide()
                     Waypoint.refreshAll()
                 }
             }
@@ -592,7 +583,7 @@ $(".cite-copy").on('click touchend',function(e) {
 
 	link =  $(this).attr("href")
     
-	para_id =  $(this).attr("id")
+	para_id =  $(this).attr("id").substring(1);
 	
     para_tag = $(this).attr("para_tag")
 	
@@ -681,8 +672,8 @@ $(window).on("load", function () {
               if (hash != "#start") {
                 hash = hash.replace("#","")
                 section = $('.anchor[name ="' + hash + '"]').first()
-                id = section.attr("id");
-                title = $("#"+id +".section-anchor").text()
+                id = section.attr("id").substring(1);
+                title = $("#s"+id +".section-anchor").text()
                 changeSelected(id,title,true); 
               }
           }
