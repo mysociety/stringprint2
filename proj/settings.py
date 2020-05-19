@@ -30,7 +30,7 @@ IS_LIVE = False
 SITE_ROOT = local
 PAYPAL_TEST = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "inkleby.press", "testserver", "192.168.1.42"]
+ALLOWED_HOSTS = ["127.0.0.1", "192.168.0.112"]
 
 PROJECT_PATH = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
 MEDIA_ROOT = PROJECT_PATH + '/media/'
