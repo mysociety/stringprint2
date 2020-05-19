@@ -172,7 +172,8 @@ STATICFILES_FINDERS = [
 
 ]
 
-COMPRESS_CSS_FILTERS = ['compressor.filters.css_default.CssAbsoluteFilter',
+COMPRESS_CSS_FILTERS = ["compressor.filters.css_default.CssRelativeFilter",
+                        #'compressor.filters.css_default.CssAbsoluteFilter',
                         'compressor.filters.cssmin.rCSSMinFilter']
 
 
