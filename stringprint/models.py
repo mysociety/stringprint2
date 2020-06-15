@@ -1570,19 +1570,20 @@ class Version(models.Model):
 
         toc = Toc()
         for s in self.sections:
-            name = s.name
-            if s.order == 1 and not name:
-                name = "Introduction"
-            if name:
-                l = toc.add(name=name,
+            if s.has_grafs():
+                name = s.name
+                if s.order == 1 and not name:
+                    name = "Introduction"
+                if name:
+                    toc.add(name=name,
                             anchor=s.anchor(),
                             nav_url=s.nav_url(),
                             id=s.order,
                             level=1
                             )
-            for g in s.get_grafs():
-                if g.title:
-                    l = toc.add(name=g.title,
+                for g in s.get_grafs():
+                    if g.title:
+                        toc.add(name=g.title,
                                 anchor=g.anchor(),
                                 nav_url=g.nav_url(),
                                 id=g.order,

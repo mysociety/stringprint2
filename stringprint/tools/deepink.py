@@ -251,7 +251,9 @@ class Section(SerialObject):
 
     def has_grafs(self):
         if self.grafs:
-            return True
+            grafs = [x for x in self.grafs if len(x.plain_txt) > 1]
+            if grafs:
+                return len(grafs)
         return False
 
     def get_grafs(self, just_titles=False):
