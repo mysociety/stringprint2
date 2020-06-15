@@ -339,7 +339,7 @@ class Article(models.Model):
                            size=image_size)
 
         if "book_cover" in data:
-            print ("loading book cover")
+            print("loading book cover")
             file_name = data["book_cover"]
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(self.org.storage_dir,
@@ -430,7 +430,7 @@ class Article(models.Model):
                 element = driver.find_element_by_xpath(
                     "//div[@id='r{0}']".format(g.order))
             except common.exceptions.NoSuchElementException:
-                print ("skipping - element {0} not found".format(g.order))
+                print("skipping - element {0} not found".format(g.order))
                 continue
             location = element.location
             size = element.size
@@ -527,7 +527,7 @@ class Article(models.Model):
                 file_name = ".".join([a["slug"], a["type"]])
                 file_path = os.path.join(asset_folder, file_name)
                 f.content = QuickText().open(file_path).text
-            print ("saving {0}".format(f.slug))
+            print("saving {0}".format(f.slug))
             f.save()
 
     def prepare_assets(self):
@@ -614,7 +614,7 @@ class Article(models.Model):
             q = HeaderImage.objects.filter(article=self, title_image=True)
             q = q.exclude(source_loc=file_location)
             if q.exists():
-                print ("found-deleting")
+                print("found-deleting")
                 q.delete()
 
         ni, created = HeaderImage.objects.get_or_create(article=self,
@@ -622,7 +622,7 @@ class Article(models.Model):
                                                         )
         for k, v in kwargs.items():
             setattr(ni, k, v)
-        
+
         ni.save()
         if created is True or refresh is True:
             fi = get_file(file_location)
@@ -739,9 +739,10 @@ class Article(models.Model):
         """
         move pdf if local
         """
-        
+
         if self.pdf_file:
-            source_file = os.path.join(self.org.storage_dir, self.slug, self.pdf_file)
+            source_file = os.path.join(
+                self.org.storage_dir, self.slug, self.pdf_file)
             dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
             shutil.copyfile(source_file, dest_file)
 
@@ -851,7 +852,7 @@ class Article(models.Model):
                                  for x in self.compressed_files]
 
         for c in self.compressed_files:
-            print (c)
+            print(c)
 
         """
         move required static files
@@ -972,7 +973,7 @@ class Article(models.Model):
         if os.path.exists(file_path):
             os.remove(file_path)
         book.save(file_path)
-        print ("rendered epub")
+        print("rendered epub")
 
     def create_kindle(self, destination, use_temp=False):
         """
@@ -1108,11 +1109,11 @@ class Article(models.Model):
                                    number=self.current_version)
         # error handling
         if q.count() > 1:
-            print ("deleting previous")
+            print("deleting previous")
             q.delete()
 
         if not q.exists():
-            print ("creating new content")
+            print("creating new content")
             v = Version.objects.get_or_create(article=self,
                                               number=self.current_version)[0]
         else:
@@ -1232,16 +1233,16 @@ class HeaderMixin(object):
 
     def get_ratio(self):
         file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(1440))
+            settings.MEDIA_ROOT, self.get_image_name(1440))
         image = Image.open(file_path)
         o_width, o_height = image.size
         image.close()
         ratio = (float(o_height) / float(o_width))
         return ratio
-        
+
     def get_average_color(self):
         file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(1440))
+            settings.MEDIA_ROOT, self.get_image_name(1440))
         image = Image.open(file_path)
         q = image.quantize(colors=2, method=2)
         color = q.getpalette()[:3]
@@ -1341,7 +1342,7 @@ class HeaderMixin(object):
                 new_width = width
                 if (pos > 1 or ignore_first == False) and self.size != -1:
                     new_width = (new_width / 12) * self.size
-                    print ("resizing to {0}".format(new_width))
+                    print("resizing to {0}".format(new_width))
                 new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
                 if new_width < o_width and new_width > 1 and new_height > 1:
@@ -1349,14 +1350,14 @@ class HeaderMixin(object):
                         (new_width, new_height), Image.ANTIALIAS)
                 new_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
-                print ("saving as {0}".format(new_name))
+                print("saving as {0}".format(new_name))
                 if os.path.exists(new_name):
-                    print ("deleting")
+                    print("deleting")
                     os.remove(new_name)
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
                 if os.path.exists(webp_name):
-                    print ("deleting")
+                    print("deleting")
                     os.remove(webp_name)
                 webp.cwebp(new_name, webp_name, "-q 80")
 
@@ -1818,9 +1819,9 @@ class Version(models.Model):
         short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]
 
         from_render = self.source_paragraph_links_from_render()
-        print ("{0} previously rendered".format(len(from_render)))
+        print("{0} previously rendered".format(len(from_render)))
         new_render = [x for x in from_render if x not in short_keys]
-        print ("{0} old links found".format(len(new_render)))
+        print("{0} old links found".format(len(new_render)))
         for n in new_render:
             paragraph_lookup[n] = None
 
@@ -1910,7 +1911,7 @@ class Version(models.Model):
                         if c.distance <= self.fuzzy_distance:
                             matches.append(c)
                 if matches:
-                    print ("{0} matched fuzzy".format(self.key))
+                    print("{0} matched fuzzy".format(self.key))
                     matches.sort(key=lambda x: x.distance)
                     self.match = matches[0].key
 
@@ -1927,7 +1928,7 @@ class Version(models.Model):
                         if self.check_match(c, s):
                             matches.append(c.key)
                     if len(matches) == 1:
-                        print ("matched {1} {0}".format(s, self.key))
+                        print("matched {1} {0}".format(s, self.key))
                         self.match = matches[0]
                         return
 

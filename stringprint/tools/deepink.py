@@ -848,7 +848,7 @@ def process_ink(version, content):
         if v in existing_anchors:
             current = previous_anchors.get(v, 0)
             current += 1
-            print (v + " already used")
+            print(v + " already used")
             previous_anchors[v] = current
             return str(current)
         else:
