@@ -277,6 +277,16 @@ class Article(models.Model):
     bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
 
+    def split_title(self):
+        if ":" in self.title:
+            return self.title.split(":")[0].strip() + ":"
+        else:
+            return self.title
+
+    def split_subtitle(self):
+        if ":" in self.title:
+            return self.title.split(":")[1].strip()
+
     def pdf_url(self):
         if self.pdf_location:
             return self.pdf_location
