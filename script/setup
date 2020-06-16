@@ -1,0 +1,3 @@
+#!/bin/sh
+# create or update database
+sudo python3 manage.py migrate

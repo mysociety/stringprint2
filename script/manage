@@ -1,3 +1,5 @@
+#!/bin/sh
+
 default_venv_activate="$(dirname "$0")/../../venv/bin/activate"
 managepy="$(dirname "$0")/../manage.py"
 
@@ -8,6 +10,4 @@ then
     . $default_venv_activate
 fi
 
-#!/bin/sh
-
-python3 shell.py "$@"
+python3 "$managepy" "$@"

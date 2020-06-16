@@ -59,9 +59,9 @@ Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/xenial64"
 
   # Enable NFS access to the disk
-  config.vm.synced_folder ".", "/vagrant", :nfs => true
+  config.vm.synced_folder ".", "/vagrant/stringprint", :nfs => true
 
-  # correct links to all the relevant directories
+  # connect links to all the relevant directories
   config_yaml["ORGS"].each do |key, value|
 	storage_dir = "/sp_" + key + "_storage"
 	publish_dir = "/sp_" + key + "_publish"
@@ -81,8 +81,7 @@ Vagrant.configure(2) do |config|
   config.vm.network :private_network, ip: "10.11.12.13"
 
   # Django dev server
-  config.vm.network "forwarded_port", guest: 8000, host: 8001
-  #config.vm.network "forwarded_port", guest: 1080, host: 1080
+  config.vm.network "forwarded_port", guest: 8000, host: 8000
 
   # Give the VM a bit more power to speed things up
   config.vm.provider "virtualbox" do |v|
@@ -93,22 +92,41 @@ Vagrant.configure(2) do |config|
   # Provision the vagrant box
 
   config.vm.provision "shell", :inline => script
-  config.vm.provision "shell", path: "conf/provisioner.sh", privileged: false
-  config.vm.provision "shell", inline: "touch /etc/is_vagrant_vm"
   config.vm.provision "shell", inline: <<-SHELL
-
-    cd /vagrant
+	
+	curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add
+	echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+	
+	sudo apt-get update
+	
+	touch /etc/is_vagrant_vm
+    cd /vagrant/stringprint
 
     #fix dpkg-preconfigure error
     export DEBIAN_FRONTEND=noninteractive
-    # Install the packages from conf/packages
-    xargs sudo apt-get install -qq -y < conf/packages
+    # Install the packages
+	echo "Installing packages"
+	xargs sudo apt-get install -qq -y < script/config/packages
+	echo "Install complete, running bootstrap script"
+	#setup venv and packages
+    script/bootstrap
+	sudo chmod -R ugo+rwx /vagrant/venv
 
-    # Run post-deploy actions script to update the virtualenv, install the
-    # python packages we need, migrate the db and generate the sass etc
-    conf/post_deploy_actions.bash
-	conf/chrome_setup.bash
+	cd /vagrant/
+	# get and setup get chromedriver
+
+	wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
+	unzip chromedriver_linux64.zip
+	mv chromedriver /usr/bin/chromedriver
+	chown root:root /usr/bin/chromedriver
+	chmod +x /usr/bin/chromedriver
+	
+	cd /vagrant/stringprint
+	script/server
   SHELL
 
+config.vm.provision "shell", inline: 'echo ". /vagrant/venv/bin/activate" > ~/.profile', privileged: false
+
+config.ssh.extra_args = ["-t", "cd /vagrant/stringprint; bash --login"]
 
 end

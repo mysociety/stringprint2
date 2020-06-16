@@ -6,14 +6,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # load settings from config file
 with open(os.path.join(BASE_DIR, 'conf', 'config.yaml')) as fi:
-    config = yaml.load(fi)
+    config = yaml.load(fi, Loader=yaml.FullLoader)
 
 # if running as a vagrant, need to address through file system
 is_vagrant = os.path.exists("/etc/is_vagrant_vm")
 if is_vagrant:
     for k, v in config["ORGS"].items():
-            v["storage_dir"] = "/sp_" + k + "_storage"
-            v["publish_dir"] = "/sp_" + k + "_publish"
+        v["storage_dir"] = "/sp_" + k + "_storage"
+        v["publish_dir"] = "/sp_" + k + "_publish"
 
 # import config settings into module
 for k, v in config.items():
@@ -177,7 +177,7 @@ COMPRESS_CSS_FILTERS = ["compressor.filters.css_default.CssRelativeFilter",
                         'compressor.filters.cssmin.rCSSMinFilter']
 
 
-#not really required - used to configure what is now the back end
+# not really required - used to configure what is now the back end
 SHARE_IMAGE = ""
 TWITTER_SHARE_IMAGE = ""
 SITE_DESCRIPTION = ""
