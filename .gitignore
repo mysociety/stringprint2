@@ -12,7 +12,7 @@ _env/
 #################
 ## Eclipse
 #################
-
+/vendor/kindlegen
 *.pydevproject
 .project
 .metadata

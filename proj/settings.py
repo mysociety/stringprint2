@@ -5,7 +5,7 @@ import yaml
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # load settings from config file
-with open(os.path.join(BASE_DIR, 'conf', 'config.yaml')) as fi:
+with open(os.path.join(BASE_DIR, 'proj', 'conf', 'config.yaml')) as fi:
     config = yaml.load(fi, Loader=yaml.FullLoader)
 
 # if running as a vagrant, need to address through file system
