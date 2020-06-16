@@ -15,7 +15,7 @@
 </div>
 {% endblock %}
 {% block title %}
-<div class="container" >
+<div class="container">
 	<a class="anchor" id="a0" name="top"></a>   
       <div class="header-text text-center">
         <p class="article_title h1{% if article.title_image.size == -1 %} background_title{% endif %}" id="article_title">{{article.split_title}}</p>
@@ -73,7 +73,7 @@
         {% if s.name %}
 			<section aria-labelledby="h.{{s.order}}">
             <a class="anchor linkable" id="a{{s.order}}" name="{{s.anchor}}" first_graf="{{s.first_graf_id}}"></a> 
-            <div id = "s{{s.order}}" prev = "s{{s.prev_if_single_page}}" class="content-row row section-anchor header-text">
+            <div id = "s{{s.order}}" prev = "s{{s.prev_if_single_page}}" class="content-row section-anchor header-text">
             {% with article.image_lookup|get_item:s.name as image %}
                 {% if image %}
                     <div class="section-heading-image">
@@ -99,14 +99,14 @@
 		<div class = "section">
 		{% for g in s.get_grafs %}
 			{%if g.title %}
-			<div class = "row content-row">
+			<div class = "content-row">
 				<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
 				<h{{g.header_level}}>{{g.title|safe}}</h{{g.header_level}}>
 			</div>
 			{% endif %}
 			<a class="noscript-anchor" name = "{{g.combo_key}}"></a>
 			{{g.anchor_code}}
-			<div class = "row content-row {{g.classes}}" id = "r{{g.order}}">
+			<div class = "content-row {{g.classes}}" id = "r{{g.order}}">
 					{% if g.start_tag %}
 					<div id="g{{g.order}}" class="{{g.start_tag_class_type}}">
 					{% endif %}
@@ -170,7 +170,7 @@
 	{% endif %}
              {% with content.footnotes as notes %}
                 {% if notes and article.display_footnotes_at_foot %}       
-                        <div class = "row content-row dont-break-out">
+                        <div class = "content-row dont-break-out">
                                     <h1 id="endnotes">Footnotes</h3>
                                     <div class="footnote_list">
                                     {% for f in notes %}

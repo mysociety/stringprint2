@@ -42,12 +42,24 @@ function changeSelected(id,title,nohash){
         $("#mobile-title").text(title);
     }
     current_section = title;
-	
+		console.log(title);
+		console.log();
+		console.log();
         font_size = 14
 		$("#mobile-title").css("font-size", font_size + "pt");
-        while (($("#mobile-navbar-header").height() > ($("#mobile-title").height() * 3)) ){
-        font_size = font_size - 2
-        $("#mobile-title").css("font-size", font_size + "pt");
+		
+		button_top = $("#mobile-menu-toggle").position()["top"];
+		text_top = $("#mobile-title").position()["top"];
+		
+        while (text_top < button_top){
+			font_size = font_size - 2
+			if (font_size == 6){
+				break
+			};
+			console.log("doing the resize loop")
+			$("#mobile-title").css("font-size", font_size + "pt");
+			button_top = $("#mobile-menu-toggle").position()["top"];
+			text_top = $("#mobile-title").position()["top"];
         }
         
     if (nohash == undefined){
@@ -271,10 +283,12 @@ function adjustMenus(id,future, past) {
         
     
     })
+	
+	
 
     
     // set the << button to the previous section
-    if (id > 1 && bottombar -1 > 0) {
+    if (id > 0 && bottombar > 0) {
         prev_link = $('[section='+ bottombar +']').attr('href')
         $("a#menu-prev").show().attr("href",prev_link);
     } else {
@@ -289,8 +303,9 @@ function adjustMenus(id,future, past) {
         $("a#menu-next").hide()
     }
     
-    //if we're now on two lines - adjust downwards
-    if (($("#large-menu").height() > ($("#brand").height() * 3)) ){
+
+    //if home link icon not visible, adjust 
+    if($("#home-link").position()["left"] > $(window).width() - 30){
         if (past > 1 ){
             adjustMenus(id,future,past-1)
         } else if (future > 0) {
@@ -299,8 +314,49 @@ function adjustMenus(id,future, past) {
     } else {
 
     }
-    
+	
+	
+	$(".top-menu-item").each(function(i){
+
+		if ($(this).is(":visible") == false) {
+			return;
+		};
+		if ($(this).offset()["left"] + $(this).width() > $("#home-link").offset()["left"] - 30) {
+			if (past > 1 ){
+				adjustMenus(id,future,past-1)
+			} else if (future > 0) {
+				adjustMenus(id,future-1,past)
+			}
+		}
+	})
+  
+	
 }
+
+
+/*!
+ * Check if an element is out of the viewport
+ * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
+ * @param  {Node}  elem The element to check
+ * @return {Object}     A set of booleans for each side of the element
+ */
+var isOutOfViewport = function (elem) {
+
+	// Get element's bounding
+	var bounding = elem.getBoundingClientRect();
+
+	// Check if it's out of the viewport on each side
+	var out = {};
+	out.top = bounding.top < 0;
+	out.left = bounding.left < 0;
+	out.bottom = bounding.bottom > (window.innerHeight || document.documentElement.clientHeight);
+	out.right = bounding.right > (window.innerWidth || document.documentElement.clientWidth);
+	out.any = out.top || out.left || out.bottom || out.right;
+	out.all = out.top && out.left && out.bottom && out.right;
+
+	return out;
+
+};
 
 
 function closeCatchup(){  
@@ -598,11 +654,17 @@ $(".cite-copy").on('click touchend',function(e) {
     return false;
 });
  
- $("a.caret-link").on('click touchend',function() {
-   parent_id = $(this).attr("parent")
-   $("#"+ parent_id + ".dropdown-toggle").dropdown("toggle");
-   window.location.href = this.href;
-   return false
+ 
+$("a.dropdown-toggle").attr('href','javascript:void(0)');
+
+
+ $(".dropdown-menu a").click(function() {
+	$(this).closest(".dropdown").find("[data-toggle='dropdown']").dropdown("toggle");
+});
+  
+
+$('.mobile-menu-list>li>a').on('click', function(){
+    $('.navbar-collapse').collapse('hide');
 });
   
 var dragging = false;
@@ -619,7 +681,7 @@ $("body").on("touchstart", function(){
     dragging = false;
 });
   
-$('.nav-link').on('click touchend',
+$('.nav-link').not('.dropdown-toggle').on('click touchend',
     function () {
 	    if (dragging) {
 		   return;

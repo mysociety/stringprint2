@@ -1,93 +1,78 @@
 {% load cache %}
 {% load static %}
-{% cache 10000 article_nav %}
 
 
-<!-- desktop menu -->
-<nav class="navbar navbar-default navbar-fixed-top " role="navigation">
+<nav class="d-sm-none d-md-flex d-lg-flex navbar navbar-expand-md fixed-top navbar-light bg-light large-menu">
+  <a id="brand" class="navbar-brand short-title" href="{{article.url}}#top">{{article.short_title}}</a>
 
-  <div id="large-menu" class="container-fluid large-menu">
-      <a id="brand" class="navbar-brand short-title" href="{{article.url}}#top">{{article.short_title}}</a>
 
-      <ul class="nav navbar-nav nav-text">
-		<li id = "search-link" class="action-buttons search_link">
-		    <a class="search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a>
+  <div id="desktop-menu" class="collapse navbar-collapse">
+    <ul class="navbar-nav mr-auto">
+		<li id = "search-link" class="nav-item action-buttons search_link">
+		    <a class="nav-link search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a>
 		</li>
- 		<li id ="menu-index" class="action-buttons"><a href="#index"  title="View Table of Contents"><i class="icon-th-list"></i></a></li>
-            <li><a id ="menu-prev" href="#" name="Next section" aria-label="Previous section"><i class="icon-angle-double-left"></i></a>
+ 		<li id ="menu-index" class="nav-item action-buttons"><a class="nav-link" href="#index"  title="View Table of Contents"><i class="icon-th-list"></i></a></li>
+            <li class="nav-item"><a class="nav-link" id ="menu-prev" href="#" name="Previous section" aria-label="Previous section"><i class="icon-angle-double-left"></i></a>
         </li>
 		{% with content.toc as toc %}
         {% for s in toc.level_1 %}
-			<li class="top-menu-item {% if s.order not in article.nav_default_range %}hide-item{% endif %}"
+			<li class="nav-item top-menu-item {% if s.order not in article.nav_default_range %}hide-item{% endif %}"
 			id ="menu-{{s.id}}"
 			item={{s.id}}>
-				<a class="top-nav-item {%if s.has_children %}nav-has-child{%endif%}" section={{s.id}}  href="{{s.nav_url}}">{{s.name}}</a></li>
+				<a class="nav-link top-nav-item {%if s.has_children %}nav-has-child{%endif%}" section={{s.id}}  href="{{s.nav_url}}">{{s.name}}</a></li>
 				{% if s.has_children %}
-					<li id ="caret-menu-{{s.id}}" item={{s.id}} class="dropdown {% if s.id not in article.nav_default_range %}hide-item{% endif %}" ><a href="#" id="m{{s.id}}" class="dropdown-toggle" data-toggle="dropdown" aria-hidden="true"><span class="caret"></span></a>
-					<ul class="dropdown-menu pull-right" role="menu">
+					<li id ="caret-menu-{{s.id}}" item={{s.id}} class="nav-item dropdown {% if s.id not in article.nav_default_range %}hide-item{% endif %}" ><a href="#" id="m{{s.id}}" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-hidden="true"></a>
+					<div class="dropdown-menu dropdown-menu-right" aria-labelledby="menu-{{s.id}}">
 						{% for c in s.children %}            
-							<li><a parent="m{{s.id}}" class="caret-link" href="{{c.nav_url}}">{{c.caret_title}}</a></li>
+							<a parent="m{{s.id}}" class="dropdown-item caret-link " href="{{c.nav_url}}">{{c.caret_title}}</a>
 						{% endfor %}
-					</ul>
+					</div>
 				{% endif %}
-            </li>
         {% endfor %}
 		{% endwith %}
-		<li><a id ="menu-next" href="#" aria-label="Next section"><i class="icon-angle-double-right"></i></a></li>
-		
+		<li class="nav-item"><a class="nav-link" id ="menu-next" href="#" aria-label="Next section"><i class="icon-angle-double-right"></i></a></li>
+
 		</ul>
-        <ul class="nav navbar-nav navbar-right">
+		<ul class="navbar-nav ml-auto">
 		{% if article.pdf_url %}
-		<li id = "download-link" class="action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link" type="pdf" ><i class="icon-download"></i></a></li>
+		<li id = "download-link" class="nav-item action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link nav-link" type="pdf" ><i class="icon-download"></i></a></li>
 		{% endif %}
-			<li class="dropdown action-buttons" item="info-link" id="home-link">
-			<a href="#" class="dropdown-toggle" data-toggle="dropdown" id="info-link" title="{{article.org.name}}" aria-label="Dropdown for organisational links" >
-			{% if article.org.icon %}
-			<img src="{% static article.org.icon %}" alt="{{article.org.name}} logo"/>
-			{% else %}
-			<i class="icon-home" ></i>
+
+	
+		<li class="nav-item dropdown" id="home-link">
+		<a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" id="info-link" title="{{article.org.name}}" aria-label="Dropdown for organisational links" role="button" aria-haspopup="true" aria-expanded="false" >
+		{% if article.org.icon %}
+		<img src="{% static article.org.icon %}" alt="{{article.org.name}} logo"/>
+		{% else %}
+		<i class="icon-home" ></i>
+		{% endif %}
+		</a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="info-link">
+			{% if article.repo_entry %}
+			<a class="dropdown-item" href="{{article.repo_entry}}">About this publication</a>
 			{% endif %}
-			</a>
-			<ul class="dropdown-menu" role="menu">
-				{% if article.repo_entry %}
-				<li><a href="{{article.repo_entry}}">About This Publication</a></li>
-				{% endif %}
-				{% for link in article.org.org_links_ordered %}
-				<li><a href="{{link.link}}">{{link.name}}</a></li>
-				{% endfor %}
-			</ul>
-			</li>
-				
-        </ul>
-        
-    {% comment %}
-    {% if article.has_notes %}
-    <ul class="nav navbar-nav navbar-right ">
-    <li id ="master_expand"><a id ="master_expand_link" href="#">Expand All Notes</a></li>
-    </ul>
-    {% endif %}
-    {% endcomment %}
-
+			{% for link in article.org.org_links_ordered %}
+			<a class="dropdown-item" href="{{link.link}}">{{link.name}}</a>
+			{% endfor %}
+        </div>
+      </li>
+	  </ul>
   </div>
+</nav>
 
-  
-    <!-- mobile menu -->
-    <div class="container-fluid mobile-menu">
-    <div class="navbar-header" id="mobile-navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mobile_menu">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
+<nav class="d-sm-flex d-md-none d-lg-none navbar fixed-top navbar-light bg-light" id="mobile-navbar-header">
       <a class="navbar-brand short-title cite-copy mobile-header-link" href="#" name="Copy link to paragraph"><i class="icon-link header-icon"></i></a><a id="mobile-title" class="navbar-brand short-title" href="#">{{article.short_title}}</a>
-    </div>
+	  <ul class="navbar-nav ml-auto">
+	  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" id="mobile-menu-toggle">
+    <span class="navbar-toggler-icon"></span>
+	</ul>
+  </button>
 
-    <div class="collapse navbar-collapse" id="mobile_menu">
-      <ul class="nav navbar-nav nav-text">
-        <li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="#index">Contents</a></li>
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav ml-auto mobile-menu-list">
+<li data-toggle="collapse" data-target="#navbarSupportedContent"><a class="nav-link" data-toggle="collapse" data-target="#navbarSupportedContent" href="#index">Contents</a></li>
 		{% if article.pdf_url %}
-		<li ><a class="nav-link alt_link" data-toggle="collapse" data-target=".navbar-collapse" href="{{article.pdf_url}}" type="pdf">Download PDF</a></li>
+		<li data-toggle="collapse" data-target="#navbarSupportedContent"><a class="nav-link alt_link"  href="{{article.pdf_url}}" type="pdf">Download PDF</a></li>
 		{% endif %}
 		<li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="search">Search</a></li>
 		<li role="separator" class="divider"></li>
@@ -105,9 +90,8 @@
 		{% endfor %}
         </ul>
 
-    </div>
-  </div>
-  
-</nav>
 
-{% endcache %}
+		</ul>
+		
+  </div>
+</nav>
