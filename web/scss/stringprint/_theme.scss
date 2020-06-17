@@ -1,0 +1,311 @@
+
+/* font settings for all text */
+body {
+		font-family: 'Open Sans', sans-serif;
+		font-size: 12pt;
+		background-color: $page-background-color;
+}
+
+ .navbar-toggler {
+    color: $navbar-main-color
+}
+
+a{
+	color: $link-color;
+}
+
+.large-menu{
+	padding-top:0px;
+	padding-bottom:0px;
+	border-bottom: 1px solid $navbar-border-color;
+}
+
+
+h1 {
+margin-top: 1em;
+margin-bottom: 0.5em;
+font-size: 1.8em;
+}
+
+h2, h3 {
+margin-top: 1em;
+margin-bottom: 0.5em;
+}
+
+.nav-item{
+	padding-top:4px;
+	padding-bottom:4px;
+}
+
+
+.nav-link{
+    margin-left: 1em;
+	margin-right: 1em;
+}
+
+.icon-search{
+    margin-top: -2px;
+	}
+
+.action-buttons > .nav-link {
+    margin-left: 0em;
+	margin-right: 0em;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+
+}
+
+
+.nav-link.nav-has-child{
+	margin-right: 0em;
+}
+
+
+.navbar-nav {
+
+    .show > .nav-link,
+    .active > .nav-link,
+    .nav-link.show,
+    .nav-item.active {
+      background-color: $navbar-dark-active-background-color;
+	  color: $navbar-dark-active-color;
+    }
+  }
+
+.header-icon{
+	background-color:$navbar-accent-color ;
+	color:$link-icon-color;
+}
+
+.content-row, p.byline, p.other-formats-text, .container,  #tipue_search_content{
+	background-color: $content-background-color
+}
+
+.highlighted-content {
+background-color: $highlight-color;
+}
+
+/* paragraph styling */
+p {
+text-align:left;
+}
+
+#article_title{
+	margin-bottom:0px;
+	text-align:center;
+	font-size: 2.2em;
+}
+
+#article_subtitle {
+	text-align:center;
+	padding:0px;
+	margin-top:5px;
+	font-size: 1.5em;
+}
+
+
+ul, ol {
+	padding-inline-start: 20px;
+}
+
+@media (min-width: 767px) {
+ul, ol {
+	padding-inline-start: 40px;
+}
+
+}
+
+.large-menu {
+margin-left:0px;
+margin-right:0px;
+}
+
+/* header styling */
+.h1,
+h1,
+h2,
+h3 {
+    text-align: left;
+    font-family: 'Raleway', sans-serif;
+}
+
+/* top left 'brand' title styling */
+.short-title {
+	font-weight: bold;
+	font-size: 14pt;
+}
+
+.next_section {
+}
+
+/* style for menu links */
+.nav-text {
+	font-size: 14pt;
+}
+
+.table {
+   display: block !important;
+}
+
+table, th, td {
+   border: none;	
+}
+
+
+.previous_section{
+	text-align:center;
+	font-style: italic;
+	padding-top:0px;
+	padding-bottom: 10px;
+}
+
+@media screen and (max-width: 767px) {
+.responsive-table {
+	max-width:85vw; 
+	overflow-x:auto;
+}
+
+}
+
+/* style for blockquotes */
+.blockquote {
+  background-color: $blockquote-main-color;
+  border-left: 10px solid $blockquote-border-color;
+  margin: 5px 0px 10px 0px;
+  padding: 5px 10px 10px 5px;
+  quotes: "\201C""\201D""\2018""\2019";
+}
+
+/* style for inline quotes - e.g. ""hello"" */
+span.quote {
+    font-style: italic; 
+}
+
+/* style for footnote bubbles */
+.footnotes {
+  border: 2px solid $footnote-border-color;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+  word-wrap: break-word;
+}
+
+.footnotes > p {
+  text-align:left;
+}
+
+/* style for aside bubbles */
+.extended  {
+  border: 10px solid $aside-border-color;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+  display:none;
+}
+
+.content {
+word-wrap: break-word;
+padding-left:0px;
+padding-right:0px;
+}
+
+/* style applied to content when it has been highlighted by a link */
+.highlighted-content {
+background-color:yellow;
+}
+
+.byline {
+text-align:center;
+}
+
+.other-formats-text {
+text-align: center;
+}
+
+#related-research::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+}
+        
+.next_section::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin: 0px auto;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+}
+
+.h1,h1,h2,h3,h4,h5,h6 {
+    font-weight: 600;
+    line-height: 1.1;
+    color: inherit;
+}
+		
+.h1 {
+	font-size: 2em;
+	margin: 0.67em 0;
+}
+		
+h1::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+}
+
+h2::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 40%;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+}
+
+
+h3::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 30%;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+}
+
+
+.index::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 50%;
+  margin-top:20px;
+  text-indent: -9999px;
+  border-top: 1px solid $divider-color;
+  margin-bottom:20px;
+}
+
+.chart_holder{
+	width:300px;
+}
+
+@media (min-width: 767px) {
+	.chart_holder{
+	width:100%;
+	text-align:center;
+}
+}

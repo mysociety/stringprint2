@@ -1,0 +1,47 @@
+
+$white:    #fff !default;
+$gray-100: #f8f9fa !default;
+$gray-200: #e9ecef !default;
+$gray-300: #dee2e6 !default;
+$gray-400: #ced4da !default;
+$gray-500: #adb5bd !default;
+$gray-600: #6c757d !default;
+$gray-700: #495057 !default;
+$gray-800: #343a40 !default;
+$gray-900: #212529 !default;
+$black:    #000 !default;
+$offwhite: #f8f8ff !default;
+$nice-purple: #797A9E !default;;
+
+$page-background-color: $offwhite !default;
+$content-background-color: $offwhite !default;
+
+$footnote-border-color: lightgrey !default;
+$aside-border-color: lightgrey !default;
+
+$blockquote-main-color: #D6E6FF !default;
+$blockquote-border-color: #8AB7FF !default;
+
+$divider-color: #585858 !default;
+
+$highlight-color: #FFD836 !default;
+
+$navbar-main-color : $white !default;
+$navbar-accent-color: $black !default;
+$navbar-border-color: $black !default;
+$link-icon-color: $navbar-main-color !default;
+
+$dark: $navbar-accent-color !default;
+
+$link-color: #174F91;
+
+$navbar-dark-active-color:          $black !default;
+$navbar-dark-active-background-color:          $white !default;
+
+$navbar-dark-color:                 $navbar-main-color;
+$navbar-dark-hover-color:           rgba($white, .75) !default;
+$navbar-dark-disabled-color:        rgba($white, .25) !default;
+$navbar-dark-toggler-border-color:  rgba($white, .1) !default;
+
+$navbar-dark-brand-color:                 $navbar-dark-color !default;
+$navbar-dark-brand-hover-color:           $navbar-dark-hover-color !default;

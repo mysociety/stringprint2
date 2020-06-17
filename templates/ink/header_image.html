@@ -7,10 +7,12 @@
 			{% if image.size == -1 and forloop.counter <= 1  or image.size != -1 %}
 			<source srcset="{{source_webp}}" media="(max-width: {{size}}px)" type="image/webp">
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
-            
+            {% if size == 1200 %}
+			<source srcset="{{image.image.url}}" media="(print)">
+			{% endif %}
 			{% endif %}
             {% endfor %}
-			<source srcset="{{image.image.url}}" media="(print)">
+			
             <!--[if IE 9]></video><![endif]-->
             <img srcset="{{image.image.url}}" class="header-pos size_{{image.image.name|slugify}}" title="{{alt_text}}" loading="lazy" alt="{{image.image_alt|empty_if_none}}" style="margin:0 auto;">
         </picture>

@@ -1,6 +1,7 @@
 {% extends "ink/article_main.html" %}
+{% load compile_static %}
 {% load static %}
-
+{% load compress %}
 
 {% block title_image %}
 {% endblock %}
@@ -11,6 +12,10 @@
     display:block;
 }
 </style>
+	{% compress css file search_css_file %}
+	<link href="{% static 'scss/search.scss'|compile %}" rel="stylesheet"  type='text/css'>
+	{% endcompress %}
+
 {% endblock %}
 
 {% block search %}
@@ -24,7 +29,6 @@
   </div>
 </div>
     </form>
-    </div>
 {% endblock %}
 
 {% block search_results %}
@@ -36,10 +40,15 @@
 {% endblock %}
 
 {% block code %}
+
+
 <script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}" defer></script>
 <script type="text/javascript" src="tipuesearch_content.js" defer></script>
 <link rel="stylesheet" type="text/css" href="{% static 'css/tipuesearch.css' %}">
 <script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}" defer></script>
+
+
+
 <script>
     window.addEventListener('DOMContentLoaded', function() {
 

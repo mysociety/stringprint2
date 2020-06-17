@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 require 'yaml'
 
-config_yaml = YAML::load(File.read("#{File.dirname(__FILE__)}/conf/config.yaml"))
+config_yaml = YAML::load(File.read("#{File.dirname(__FILE__)}/proj/conf/config.yaml"))
 
 def is_env_format(v)
 	if v.class == String
@@ -120,6 +120,17 @@ Vagrant.configure(2) do |config|
 	mv chromedriver /usr/bin/chromedriver
 	chown root:root /usr/bin/chromedriver
 	chmod +x /usr/bin/chromedriver
+	
+	curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+	sudo apt-get install -y nodejs
+	cd /home/vagrant/
+	npm install -g postcss-cli autoprefixer
+
+	wget https://github.com/sass/dart-sass/releases/download/1.26.8/dart-sass-1.26.8-linux-x64.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
+	tar -xzf dart-sass-1.26.8-linux-x64.tar.gz
+	mv dart-sass /usr/bin/dart-sass
+	chown root:root /usr/bin/dart-sass
+	chmod +x /usr/bin/dart-sass
 	
 	cd /vagrant/stringprint
 	script/server

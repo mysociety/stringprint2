@@ -40,3 +40,4 @@ watchdog==0.9
 webptools==0.0.2
 python-Levenshtein==0.12.0
 mkepub==1.2
+django-static-precompiler==1.8.2

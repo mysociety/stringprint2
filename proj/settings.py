@@ -19,7 +19,7 @@ if is_vagrant:
 for k, v in config.items():
     vars()[k] = v
 
-local = "http://127.0.0.1:8001"
+local = "http://127.0.0.1:8000"
 
 LOGIN_REDIRECT_URL = "/"
 
@@ -59,20 +59,20 @@ TEMPLATES = [
     },
 ]
 
+STATIC_ROOT = PROJECT_PATH + '/static/'
+COMPRESS_ROOT = STATIC_ROOT
 
-STATIC_DIR = PROJECT_PATH + '/static/'
-COMPRESS_ROOT = STATIC_DIR
-
-STATICFILES_DIRS = []
+STATICFILES_DIRS = [
+    (PROJECT_PATH + '/web/'),
+    ("vendor", PROJECT_PATH + '/vendor/'),
+]
 
 for k, v in config["ORGS"].items():
-    static_path = os.path.join(v["storage_dir"], "static")
+    static_path = os.path.join(v["storage_dir"], "web")
     if os.path.exists(static_path):
-        STATICFILES_DIRS.append(static_path)
+        STATICFILES_DIRS.append(("orgs/" + k, static_path))
 
-STATICFILES_DIRS.append(STATIC_DIR)
 COMPRESS_ENABLED = True
-# Application definition
 
 INSTALLED_APPS = (
     'django.contrib.admin',
@@ -86,6 +86,7 @@ INSTALLED_APPS = (
     'bootstrapform',
     'import_export',
     'frontend',
+    'static_precompiler'
 )
 
 MIDDLEWARE = (
@@ -169,13 +170,31 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'compressor.finders.CompressorFinder',
+    'static_precompiler.finders.StaticPrecompilerFinder',
 
 ]
 
 COMPRESS_CSS_FILTERS = ["compressor.filters.css_default.CssRelativeFilter",
                         #'compressor.filters.css_default.CssAbsoluteFilter',
-                        'compressor.filters.cssmin.rCSSMinFilter']
+                        #'compressor.filters.cssmin.rCSSMinFilter',
+                        'stringprint.compiler.SVGSafeMinify']
 
+
+bootstrap_sass = os.path.join(PROJECT_PATH, "vendor", "bootstrap", "scss")
+
+normal_scss = os.path.join(PROJECT_PATH, "web", "scss")
+
+
+STATIC_PRECOMPILER_COMPILERS = (
+    ('stringprint.compiler.CustomSCSS', {
+        # ""
+        "executable": "/usr/bin/dart-sass/sass",
+        "sourcemap_enabled": False,
+        "compass_enabled": False,
+        "precision": 2,
+        "load_paths": [bootstrap_sass, normal_scss]
+    }),
+)
 
 # not really required - used to configure what is now the back end
 SHARE_IMAGE = ""

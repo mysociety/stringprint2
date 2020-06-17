@@ -66,8 +66,7 @@
         </div> 
     {% block content %}
 	<main>
-    <div class="content">
-	<a class="anchor" id="start" name="start"></a>       
+    <div class="content">  
     {% for s in content.display_sections %}
 		{# iterate through sections #}
         {% if s.name %}
@@ -85,6 +84,7 @@
             {% endwith %}
             </div>
 		{% else %}
+		<a class="anchor" id="start" name="start"></a>     
 		<section aria-label="Introduction">
         {% endif %}
 	{% if article.multipage and s.active_section %}

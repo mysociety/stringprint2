@@ -25,6 +25,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import now
 from dirsync import sync
+from django.contrib.staticfiles import finders
+
 
 from collections import OrderedDict
 from ruamel.yaml import YAML
@@ -122,6 +124,42 @@ class Organisation(models.Model):
     @property
     def publish_dir(self):
         return settings.ORGS[self.slug]["publish_dir"]
+
+    def org_scss(self):
+        """
+        is there a local scss file to use
+        """
+        scss_file = os.path.join(self.storage_dir,
+                                 "web",
+                                 "scss",
+                                 "main.scss"
+                                 )
+
+        scss_file_rel = os.path.join("orgs",
+                                     self.slug,
+                                     "scss",
+                                     "main.scss"
+                                     )
+        if os.path.exists(scss_file):
+            return scss_file_rel
+
+    def org_scss_screenshot(self):
+        """
+        is there a local scss file to use for screenshots
+        """
+        scss_file = os.path.join(self.storage_dir,
+                                 "web",
+                                 "scss",
+                                 "screenshot.scss"
+                                 )
+
+        scss_file_rel = os.path.join("orgs",
+                                     self.slug,
+                                     "scss",
+                                     "screenshot.scss"
+                                     )
+        if os.path.exists(scss_file):
+            return scss_file_rel
 
     def load_from_yaml(self):
         print(self.storage_dir)
@@ -276,6 +314,14 @@ class Article(models.Model):
     repo_entry = models.URLField(blank=True, default="")
     bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
+
+    def org_related_links(self):
+        items = []
+        if self.repo_entry:
+            items.append([self.repo_entry, "About this publication"])
+        for link in self.org.org_links_ordered():
+            items.append([link.link, link.name])
+        return items
 
     def split_title(self):
         if ":" in self.title:
@@ -694,8 +740,6 @@ class Article(models.Model):
             raise ValueError("No valid sharing URl stated.")
 
         files = []
-        if self.org.stylesheet:
-            files.append(self.org.stylesheet)
 
         # compress_static(files)
         self.prepare_assets()
@@ -778,6 +822,9 @@ class Article(models.Model):
                                          "baking": True,
                                          "search": True}
 
+            def get_article(self, request, article_slug):
+                return current_article
+
         class BakeTOCView(TOCView):
             article_settings_override = {"paywall": False,
                                          "baking": True,
@@ -859,15 +906,10 @@ class Article(models.Model):
         """
 
         files = [
-            "js//clipboard.min.js",
             "js//sweetalert2.all.min.js",
-            "js//stringprint.js",
             "js//picturefill.min.js",
             "js//tipuesearch.min.js",
             "js//tipuesearch_set.js",
-            "css//stringprint-core.min.css",
-            "css//stringprint-core.min.css",
-            "css//stringprint-default.min.css",
             "css//tipuesearch.css",
             "css//kindle.css",
             "css//text_mode.css",
@@ -882,12 +924,11 @@ class Article(models.Model):
             "font"
         ]
 
-        static = settings.STATIC_DIR
         media = settings.MEDIA_ROOT
 
         for f in files:
             print(f)
-            shutil.copyfile(os.path.join(static, f),
+            shutil.copyfile(finders.find(f),
                             os.path.join(destination, "static", f))
 
         for f in folders:
@@ -895,16 +936,17 @@ class Article(models.Model):
             d = os.path.join(destination, "static", f)
             if os.path.isdir(d) is False:
                 os.makedirs(d)
-            sync(os.path.join(static, f), d, "sync")
+            sync(finders.find(f), d, "sync")
 
         """
         pull in org based static directories
         """
-        org_static_dirs = [x for x in settings.STATICFILES_DIRS if x != static]
 
-        for o in org_static_dirs:
+        org_directory = os.path.join(self.org.storage_dir, "static")
+
+        if os.path.exists(org_directory):
             d = os.path.join(destination, "static")
-            sync(o, d, "sync")
+            sync(org_directory, d, "sync")
 
         """
         move media files - from headerimages and assets
@@ -1030,7 +1072,7 @@ class Article(models.Model):
         KindleOPF.write_file(path=opf, args=args, minimise=False)
         KindleNCX.write_file(path=os.path.join(
             staging, "toc.ncx"), args=args, minimise=False)
-        copyfile(os.path.join(settings.STATIC_DIR, "css", "kindle.css"),
+        copyfile(finders.find(os.path.join("css", "kindle.css")),
                  os.path.join(css_dir, "kindle.css"))
         if self.book_cover:
             copyfile(self.book_cover.path,

@@ -1,10 +1,9 @@
 {% load cache %}
 {% load static %}
 
-
-<nav class="d-sm-none d-md-flex d-lg-flex navbar navbar-expand-md fixed-top navbar-light bg-light large-menu">
+{# Desktop Menu #}
+<nav class="d-sm-none d-md-flex d-lg-flex navbar navbar-expand-md fixed-top navbar-dark bg-dark large-menu">
   <a id="brand" class="navbar-brand short-title" href="{{article.url}}#top">{{article.short_title}}</a>
-
 
   <div id="desktop-menu" class="collapse navbar-collapse">
     <ul class="navbar-nav mr-auto">
@@ -38,7 +37,11 @@
 		<li id = "download-link" class="nav-item action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link nav-link" type="pdf" ><i class="icon-download"></i></a></li>
 		{% endif %}
 
-	
+		{% with article.org_related_links as links %}
+		{% if links|length == 0 %}
+		{% elif links|length == 1 %}
+		<li id = "home-link" class="nav-item action-buttons"><a href="{{links.0.0}}" title="{{links.0.1}}" class="nav-link" id="info-link"><i class="icon-home"></i></a></li>
+		{% else %}
 		<li class="nav-item dropdown" id="home-link">
 		<a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" id="info-link" title="{{article.org.name}}" aria-label="Dropdown for organisational links" role="button" aria-haspopup="true" aria-expanded="false" >
 		{% if article.org.icon %}
@@ -48,19 +51,20 @@
 		{% endif %}
 		</a>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="info-link">
-			{% if article.repo_entry %}
-			<a class="dropdown-item" href="{{article.repo_entry}}">About this publication</a>
-			{% endif %}
-			{% for link in article.org.org_links_ordered %}
-			<a class="dropdown-item" href="{{link.link}}">{{link.name}}</a>
+			{% for link in links %}
+			<a class="dropdown-item" href="{{link.0}}">{{link.1}}</a>
 			{% endfor %}
         </div>
-      </li>
+		</li>
+		{% endif %}
+		{% endwith %}
 	  </ul>
   </div>
 </nav>
 
-<nav class="d-sm-flex d-md-none d-lg-none navbar fixed-top navbar-light bg-light" id="mobile-navbar-header">
+
+{# Mobile Menu #}
+<nav class="d-sm-flex d-md-none d-lg-none navbar fixed-top navbar-dark bg-dark" id="mobile-navbar-header">
       <a class="navbar-brand short-title cite-copy mobile-header-link" href="#" name="Copy link to paragraph"><i class="icon-link header-icon"></i></a><a id="mobile-title" class="navbar-brand short-title" href="#">{{article.short_title}}</a>
 	  <ul class="navbar-nav ml-auto">
 	  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" id="mobile-menu-toggle">
@@ -82,7 +86,7 @@
         {% endfor %}
 		{% endwith %}
 		{% if article.repo_entry %}
-		<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{article.repo_entry}}">About This Publication</a></li>
+		<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{article.repo_entry}}">About this publication</a></li>
 		{% endif %}
 		<li role="separator" class="divider"></li>
 		{% for link in article.org.org_links_ordered %}
