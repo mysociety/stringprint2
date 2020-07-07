@@ -45,7 +45,7 @@ def fix_footnotes(block):
         nl = nl.strip()
         nl = html2markdown.convert(nl).replace("\n", "")
         if l:
-            final.append("[{0}]: {1}".format(count + 1, nl))
+            final.append("[^{0}]: {1}".format(count + 1, nl))
         count += 1
     return "\n".join(final)
 
@@ -140,8 +140,8 @@ def mammoth_adjust(qt, demote=True):
         for full, contents in re.findall(p, text):
             if "*" not in r and len(r) < 15:
                 replace = replace_format.format(contents)
-                print (full)
-                print (replace)
+                print(full)
+                print(replace)
                 text = text.replace(full, replace)
 
     for s in special_characters:
@@ -157,11 +157,15 @@ def mammoth_adjust(qt, demote=True):
     image_finders = [normal_image_find, alt_image_find]
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
 
+    ignore_before_h1 = True
+
     asset_count = 0
     qt.assets = []
     footnote_count = 0
     prev = None
+
     for line in qt:
+        new_asset = None
         l_line = line.lower().strip()
         if line and line.strip() == "":
             line.update(None)
@@ -169,6 +173,7 @@ def mammoth_adjust(qt, demote=True):
             line.update(None)
         if l_line and l_line[0] == "#":
             line.update(fix_header(line))
+            ignore_before_h1 = False
         if "data:" in line and "base64" in line:
             asset_count += 1
             for i in image_finders:
@@ -182,13 +187,27 @@ def mammoth_adjust(qt, demote=True):
                       "content": content,
                       "caption": caption,
                       "slug": slug}
-                print ("asset found")
+                print("asset found")
                 qt.assets.append(di)
-                line.update("[asset:{0}]".format(slug))
+                new_asset = "[asset:{0}]".format(slug)
+                line.update(new_asset)
+
         toc = toc_find.search(line)
+        if l_line and l_line[0] == "_" and l_line[-1] == "_":
+            # assume this is a blockquote paragraph
+            if "asset:" not in prev:
+                line.update(">" + line)
+        if l_line and l_line[0] == "_" and l_line[-1] == "]":
+            # assume this is a blockquote paragraph ending in a quote
+            if "_[^" in l_line[-7:]:
+                if "asset:" not in prev:
+                    line.update(">" + line)
         if toc:
             line.update(None)
         if l_line in ["table of contents", "contents"]:
+            line.update(None)
+        if line and line[0] == "[" and "(#_" in line:
+            # assume this is google docs TOC and remove
             line.update(None)
         if "!!!footnote!!!" in l_line:
             footnote_count += 1
@@ -200,7 +219,20 @@ def mammoth_adjust(qt, demote=True):
             line.update("\n" + line)
         if line and line[0] == "#" and demote:
             line.update("#" + line)
-        prev = line
+        if len(line) > 2 and line[-2:] == " _":
+            # fixing where italics haven't been ended right
+            nl = line[:-2] + "_"
+            line.update(nl)
+        if ignore_before_h1:
+            # blank all lines before first h1
+            line.update(None)
+        if line:
+            prev = line
+        if new_asset:
+            prev = new_asset
+
+    while "\n\n\n" in qt.text:
+        qt.text = qt.text.replace("\n\n\n", "\n\n")
 
     qt.text = qt.text.replace("\n", "\r\n")
 
@@ -252,7 +284,7 @@ def get_tables(html):
         slug = slug_format.format(table_count)
         table_data = []
         for n, row in enumerate(table.find_all("tr")):
-            if n == 0: #header:
+            if n == 0:  # header:
                 table_data.append([td.get_text()
                                    for td in row.find_all("td")])
             else:
@@ -278,7 +310,7 @@ def get_tables(html):
             table_html = str(table).replace(
                 "<tbody>", "").replace("</tbody>", "")
             new_html = new_html.replace(table_html, asset_format.format(slug))
-            #if asset_format.format(slug) not in new_html:
+            # if asset_format.format(slug) not in new_html:
             #    raise ValueError("Table slug not successfully inserted.")
     return new_html, assets
 
@@ -342,14 +374,15 @@ def extract_assets(q):
 
     for a in q.assets:
         if a["content_type"] == "table":
-            print ("table")
-            print (a["slug"])
+            print("table")
+            print(a["slug"])
             a["content"].save([asset_folder, a["slug"] + ".xls"])
         if a["content_type"] == "image":
-            print (a["slug"])
+            print(a["slug"])
             image_output = io.BytesIO()
             # Write decoded image to buffer
-            base64_content = base64.b64decode(a["content"].encode("utf-8") + b"===")
+            base64_content = base64.b64decode(
+                a["content"].encode("utf-8") + b"===")
             image_output.write(base64_content)
             image_output.seek(0)  # seek beginning of the image string
             file_path = os.path.join(asset_folder, a["slug"] + "." + a["type"])
@@ -376,9 +409,10 @@ def convert_word(source, dest, demote=False):
     q = convert_docx(source, demote)
     extract_assets(q)
     q.save(dest)
-    print ("done")
+    print("done")
 
 
 if __name__ == "__main__":
     f = r"E:\Users\Alex\Dropbox\mysociety\projects\sp_involve\test-valley-report"
-    convert_word(os.path.join(f,"Romsey Citizens' Assembly Report December 2019.docx"),os.path.join(f,"document.md"))
+    convert_word(os.path.join(
+        f, "Romsey Citizens' Assembly Report December 2019.docx"), os.path.join(f, "document.md"))
