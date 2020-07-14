@@ -125,6 +125,14 @@ class Organisation(models.Model):
     def publish_dir(self):
         return settings.ORGS[self.slug]["publish_dir"]
 
+    def relative_icon_path(self):
+        """
+        resolve for local org static dirs
+        """
+        if self.icon:
+            relative_org_static = "orgs/{0}/".format(self.slug)
+            return relative_org_static + self.icon
+
     def org_scss(self):
         """
         is there a local scss file to use
@@ -326,12 +334,16 @@ class Article(models.Model):
     def split_title(self):
         if ":" in self.title:
             return self.title.split(":")[0].strip() + ":"
+        elif "?" in self.title:
+            return self.title.split("?")[0].strip() + "?"
         else:
             return self.title
 
     def split_subtitle(self):
         if ":" in self.title:
             return self.title.split(":")[1].strip()
+        elif "?" in self.title:
+            return self.title.split("?")[1].strip()
 
     def pdf_url(self):
         if self.pdf_location:
