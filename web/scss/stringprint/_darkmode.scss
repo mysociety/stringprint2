@@ -1,0 +1,73 @@
+@media (prefers-color-scheme: dark) {
+
+body {
+background-color: $dark-page-background-color;
+color: $dark-content-text-color;
+word-spacing: .05em; 
+line-height: 1.7;
+}	
+
+.content-row,p.byline,p.other-formats-text,.container,#tipue_search_content
+{
+background-color:$dark-content-background-color;
+}
+
+.blockquote
+{
+  background-color:$dark-blockquote-main-color;
+  border-left:10px solid $dark-blockquote-border-color;
+}
+
+a
+{
+  color:$dark-link-color;
+}
+
+a:hover {
+  color:$dark-link-color;
+}
+
+.icon-link{
+color: $dark-content-text-color;
+}
+
+.table {
+  color: $dark-table-color;
+background-color: $dark-table-bg;
+}
+
+.table-striped {
+  tbody tr:nth-of-type(#{$table-striped-order}) {
+    background-color: $dark-table-accent-bg;
+  }
+}
+
+.table-hover {
+  tbody tr {
+    @include hover() {
+      color: $dark-table-hover-color;
+      background-color: $dark-table-hover-bg;
+    }
+  }
+}
+
+@include table-row-variant(active, $dark-table-active-bg);
+
+.table {
+  .thead-light {
+    th {
+      color: $dark-table-head-color;
+      background-color: $dark-table-head-bg;
+    }
+  }
+}
+
+img {
+opacity: .75;
+transition: opacity .5s ease-in-out;
+}
+img:hover {
+opacity: 1;
+}
+
+}

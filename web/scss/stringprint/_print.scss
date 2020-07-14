@@ -1,0 +1,90 @@
+
+
+/* print settings */
+
+@page {
+  size: A4;
+}
+
+
+@page:first {
+  margin-left: 1cm;
+  margin-right: 1cm;
+}
+
+
+
+@media print {
+
+  picture,
+  img {
+	max-height: none !important;
+	height: 100% !important;
+	}
+
+  a[href]:after {
+    content: None;
+  }
+  
+  nav {
+	display: none !important;
+  }
+  
+  .navbar {
+	display: none !important;
+  }
+  
+  .blockquote{
+      border-left: 10px solid $gray-400 !important;
+	}
+  
+  iframe {
+	display: none;
+  }
+  
+  h1, .h1 {
+	font-weight:1000 !important;
+	color:black;
+  }
+  
+  .content {
+	padding-left:0px;
+	margin-right:3cm;
+	padding-right: 0px;
+	margin-left:10px;
+	color:black;
+	}
+  	  
+
+	p.background_title{
+	  margin-top: inherit;
+	}
+	.icon-link{
+		display:none;
+	}
+	.other-formats-text{
+		display:none;
+	}
+
+	.byline {
+	  page-break-after: always;
+	  color:black;
+	}
+
+	h1, h2, h3, h4, h5 {
+	  page-break-after: avoid;
+	}
+
+	table, figure {
+	  page-break-inside: avoid;
+	}
+	
+	.blockquote, p {
+		page-break-inside: avoid;
+	}
+	
+	#related-research {
+		display:none;
+	}
+
+}

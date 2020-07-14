@@ -12,6 +12,10 @@ $gray-900: #212529 !default;
 $black:    #000 !default;
 $offwhite: #f8f8ff !default;
 $nice-purple: #797A9E !default;;
+$colour_blue: #54b1e4;
+$colour_blue_dark: #2b8cdb;
+$colour_blue_dark_2: #207cba;
+
 
 $page-background-color: $offwhite !default;
 $content-background-color: $offwhite !default;
@@ -31,12 +35,37 @@ $navbar-accent-color: $black !default;
 $navbar-border-color: $black !default;
 $link-icon-color: $navbar-main-color !default;
 
+$highlighted-content: yellow;
+
 $dark: $navbar-accent-color !default;
 
 $link-color: #174F91;
 
+//variables for darkmode
+
+$dark-page-background-color: $gray-900 !default;
+$dark-content-background-color: $gray-800 !default;
+$dark-content-text-color: $offwhite;
+$dark-link-color: $colour_blue;
+
+$dark-blockquote-main-color: $gray-700 !default;
+$dark-blockquote-border-color: $blockquote-border-color !default;
+
+$dark-table-color:                 $dark-content-text-color !default;
+$dark-table-bg:                    $gray-800 !default;
+$dark-table-accent-bg:             rgba($white, .05) !default;
+$dark-table-hover-color:           $dark-table-color !default;
+$dark-table-hover-bg:              rgba($white, .075) !default;
+$dark-table-active-bg:             lighten($dark-table-bg, 7.5%) !default;
+
+$dark-table-head-bg:               $gray-700 !default;
+$dark-table-head-color:            $dark-content-text-color !default;
+
+
+//applying stringprint to navbar
+
 $navbar-dark-active-color:          $black !default;
-$navbar-dark-active-background-color:          $white !default;
+$navbar-dark-active-background-color:$white !default;
 
 $navbar-dark-color:                 $navbar-main-color;
 $navbar-dark-hover-color:           rgba($white, .75) !default;
@@ -45,3 +74,4 @@ $navbar-dark-toggler-border-color:  rgba($white, .1) !default;
 
 $navbar-dark-brand-color:                 $navbar-dark-color !default;
 $navbar-dark-brand-hover-color:           $navbar-dark-hover-color !default;
+
