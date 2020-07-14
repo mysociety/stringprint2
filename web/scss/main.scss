@@ -4,7 +4,8 @@
 /* @import "org_variables";*/
 /* end */
 
-@import "stringprint/stringprint_variables";
-@import "stringprint/bootstrap_import";
-@import "stringprint/core";
-@import "stringprint/theme";
+@import "stringprint/main";
+
+/* Add local override in here */
+/* @import "org_theme";*/
+/* end */
