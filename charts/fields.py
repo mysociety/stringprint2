@@ -1,15 +1,9 @@
-'''
-Created on Aug 1, 2016
-
-@author: Alex
-'''
-
 from django.db import models
 from useful_inkleby.useful_django.serialisers import BasicSerial
-from .display import GoogleChart
+from .display import Chart
 
 
-class GoogleChartField(models.TextField):
+class ChartField(models.TextField):
     """
     store a collection of generic objects in a jsonblock. 
     Useful for when you have a hierarchy of classes that are only accessed
@@ -21,19 +15,19 @@ class GoogleChartField(models.TextField):
         if "chart_type" in kwargs:
             self.chart_type = kwargs["chart_type"]
             del kwargs['chart_type']
-        super(GoogleChartField, self).__init__(*args, **kwargs)
+        super(ChartField, self).__init__(*args, **kwargs)
 
     def from_db_value(self, value, expression, connection):
         if value is None:
             if self.chart_type:
-                return GoogleChart(chart_type=self.chart_type)
+                return Chart(chart_type=self.chart_type)
             else:
-                return GoogleChart()
+                return Chart()
 
         return BasicSerial.loads(value)
 
     def to_python(self, value):
-        if isinstance(value, GoogleChart):
+        if isinstance(value, Chart):
             return value
 
         if value is None:

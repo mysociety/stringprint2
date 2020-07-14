@@ -29,7 +29,7 @@ from stringprint.tools.word_convert import convert_word
 from stringprint.functions import compress_static
 from stringprint.models import Article, Organisation, Asset
 from frontend.views import HomeView, ArticleSettingsView
-from charts import ChartCollection, GoogleChart
+from charts import ChartCollection, Chart
 
 
 def upload_zip(url, slug, filepath, token):
@@ -41,7 +41,8 @@ def upload_zip(url, slug, filepath, token):
                'Authorization': 'Token {0}'.format(token)}
     with open(filepath, 'rb') as filedata:
         r = requests.put(url, data=filedata, headers=headers)
-    print (r.content)
+    print(r.content)
+
 
 def fix_yaml(ya):
     if type(ya) == list:
@@ -67,7 +68,7 @@ def load_org_details():
     """
     ingest org details from files
     """
-    print ("refreshing org details")
+    print("refreshing org details")
     first_org = None
     for k, v in settings.ORGS.items():
         org, created = Organisation.objects.get_or_create(slug=k)
@@ -109,7 +110,7 @@ def create_thumbnail(source, destination, base_width=110):
 
 
 def create_hero(source, destination, base_width=1024):
-    print ("resizing hero image")
+    print("resizing hero image")
     target_height = 680
     img = Image.open(source)
     wpercent = (base_width / float(img.size[0]))
@@ -119,45 +120,44 @@ def create_hero(source, destination, base_width=1024):
     img.save(destination)
     tinify.key = settings.TINY_PNG_KEY
     tiny_destination = "{0}-tiny{1}".format(*os.path.splitext(destination))
-    print ("shrinking")
+    print("shrinking")
     source = tinify.from_file(destination)
     source.to_file(tiny_destination)
 
 
 def select_doc(func):
-    
-        def inner(self, inp):
-            
-            protected_terms = ["--refresh"]
-            inp = inp.strip().lower()
-            inp = inp.split(" ")
-            pass_down = " ".join([x for x in inp if x in protected_terms])
-            inp = [x for x in inp if x not in protected_terms + [""]]
-            # use current doc
-            print (inp)
-            if not inp: #
-                func(self,pass_down)
-            # apply to all
-            elif "all" in inp:
-                for slug in self.loaded_docs():
-                    self.do_setdoc(slug)
-                    func(self,pass_down)
-            else:
-                # apply to space seperated names
-                for i in inp:
-                    self.do_setdoc(i)
-                    func(self,pass_down)
-        return inner
+
+    def inner(self, inp):
+
+        protected_terms = ["--refresh"]
+        inp = inp.strip().lower()
+        inp = inp.split(" ")
+        pass_down = " ".join([x for x in inp if x in protected_terms])
+        inp = [x for x in inp if x not in protected_terms + [""]]
+        # use current doc
+        print(inp)
+        if not inp:
+            func(self, pass_down)
+        # apply to all
+        elif "all" in inp:
+            for slug in self.loaded_docs():
+                self.do_setdoc(slug)
+                func(self, pass_down)
+        else:
+            # apply to space seperated names
+            for i in inp:
+                self.do_setdoc(i)
+                func(self, pass_down)
+    return inner
 
 
 class SPPrompt(Cmd):
 
-
     def print_status(self):
         if self.current_org:
-            print ("Current org: {0}".format(self.current_org.name))
+            print("Current org: {0}".format(self.current_org.name))
         if self.current_doc:
-            print ("Current doc: {0}".format(self.current_doc))
+            print("Current doc: {0}".format(self.current_doc))
 
     @property
     def doc_folder(self):
@@ -179,7 +179,7 @@ class SPPrompt(Cmd):
         doc_folder = os.path.join(self.current_org.storage_dir, slug)
         config_file = os.path.join(doc_folder, "settings.yaml")
         if os.path.exists(config_file) is False:
-            print ("No valid folder at: {0}".format(doc_folder))
+            print("No valid folder at: {0}".format(doc_folder))
             return
         self.current_doc = slug
         prompt.print_status()
@@ -208,9 +208,9 @@ class SPPrompt(Cmd):
                 x += 1
                 slugged = f in slugs
                 if slugged:
-                    print (x, f)
+                    print(x, f)
                 else:
-                    print (x, f + "(unloaded)")
+                    print(x, f + "(unloaded)")
                 self.dir_lookup[str(x)] = f
 
     def do_load(self, inp):
@@ -245,7 +245,7 @@ class SPPrompt(Cmd):
 
     def do_listorgs(self, inp):
         for o in Organisation.objects.all():
-            print (o.slug)
+            print(o.slug)
 
     @select_doc
     def do_convertword(self, demote=None):
@@ -257,9 +257,9 @@ class SPPrompt(Cmd):
         f = self.doc_folder
         docxs = [x for x in os.listdir(f) if os.path.splitext(x)[1] == ".docx"]
         if len(docxs) > 1:
-            print ("More than one docx file")
+            print("More than one docx file")
         elif len(docxs) == 0:
-            print ("No Docx file")
+            print("No Docx file")
         else:
             docx = os.path.join(f, docxs[0])
             dest = os.path.join(f, "document.md")
@@ -274,14 +274,15 @@ class SPPrompt(Cmd):
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         doc.load_from_yaml(self.doc_folder, refresh_header)
-        doc.import_assets(os.path.join(self.doc_folder, "assets"),refresh_header)
+        doc.import_assets(os.path.join(
+            self.doc_folder, "assets"), refresh_header)
         doc.load_from_file()
         doc.process()
-        print ("Finished Processing: {0}".format(doc.title))
+        print("Finished Processing: {0}".format(doc.title))
 
     @select_doc
     def do_test(self, inp):
-        print (self.current_doc)
+        print(self.current_doc)
 
     def do_quit(self, inp):
         quit()
@@ -321,7 +322,7 @@ class SPPrompt(Cmd):
                                                      slug=self.current_doc)
         zip_location = doc.render_to_zip(
             zip_destination, refresh_all=refresh_all)
-        print ("Zip created")
+        print("Zip created")
 
     @select_doc
     def do_uploadzip(self, inp):
@@ -335,7 +336,7 @@ class SPPrompt(Cmd):
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         repo_slug = doc.repo_entry.split("/")[-1]
-        print ("using {0} as slug".format(repo_slug))
+        print("using {0} as slug".format(repo_slug))
         upload_zip(upload_url, repo_slug, zip_destination, token)
 
     @select_doc
@@ -363,7 +364,8 @@ class SPPrompt(Cmd):
         hero_path = os.path.join(self.doc_folder, hero_location)
         destination = os.path.join(self.doc_folder, "hero.png")
         create_hero(hero_path, destination)
-            
+
+
 if __name__ == "__main__":
     default_org = load_org_details()
     prompt = SPPrompt()

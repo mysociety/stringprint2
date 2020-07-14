@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
-'''
-Created on Jul 29, 2016
 
-@author: Alex
-'''
 import json
 from useful_inkleby.files import QuickGrid
 from django.utils.safestring import mark_safe
 import random
 import string
 from django.template.loader import render_to_string
-from django.template.loader import get_template
-from charts.chart_config import ChartType
 from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
 import markdown
 
@@ -40,23 +34,6 @@ class ChartCollection(object):
         self.charts = charts
         self.make_static = False
         self.packages = set([x.package_name() for x in self.charts])
-
-    def render_packages(self):
-        return mark_safe(json.dumps(list(self.packages)))
-
-    def render_chart_code(self):
-
-        for c in self.charts:
-            if self.make_static:
-                c.make_static = True
-            else:
-                c.make_static = False
-        if self.charts:
-            c = {'collection': self}
-            template = get_template("charts//set_code.html")
-            return mark_safe(template.render(c))
-        else:
-            return ""
 
 
 class Column(SerialObject):
@@ -122,7 +99,7 @@ class Column(SerialObject):
                 return {"v": str(value).lower(), "f": str(value)}
 
 
-class GoogleChart(SerialObject):
+class Chart(SerialObject):
     """
     stores the configuration and data for a chart - renders charts
     to be passed to the ChartCollection for final work.
@@ -136,58 +113,9 @@ class GoogleChart(SerialObject):
         self.columns = []
         self.rows = []
         self.ident = id_generator(5)
-        self.set_local_options()
 
         if file_name:
             self.load_from_file(file_name)
-
-    def change_chart_type(self, chart_type):
-        self.chart_type = chart_type
-        self.set_local_options()
-
-    def set_local_options(self):
-        if self.get_config().options:
-            self.options = self.get_config().options()
-        else:
-            self.options = {}
-
-    def get_config(self):
-        # not stored in object so we can seralise and update elsewhere
-        return ChartType.registered[self.chart_type]
-
-    def package_name(self):
-        return self.get_config().package_name
-
-    def google_type(self):
-        return self.get_config().google_type
-
-    def code_template(self):
-        return self.get_config().code_template
-
-    def compile_options(self):
-
-        if self.options:
-            if isinstance(self.options, dict):
-                return self.options
-            else:
-                return self.options.get_options()
-        else:
-            return {}
-
-    def json_options(self):
-        return mark_safe(json.dumps(self.compile_options()))
-
-    def render_div(self, caption):
-        extra_rows = 2
-        if len(self.columns) > 5:
-            multiple = 24.5
-        else:
-            multiple = 24.5
-        self.row_height = (multiple * (len(self.rows) + extra_rows)) + 5
-        self.caption = caption
-        rendered = render_to_string(
-            'charts//google_charts_div.html', {"chart": self})
-        return mark_safe(rendered)
 
     def load_from_file(self, path):
         qg = QuickGrid().open(path)
@@ -233,11 +161,6 @@ class GoogleChart(SerialObject):
     def add_row(self, row):
         assert len(row) == len(self.columns)
         self.rows.append(row)
-
-    def render_code(self):
-        c = {'chart': self}
-        template = get_template(self.code_template())
-        return mark_safe(template.render(c))
 
     def render_data(self):
         table = []
@@ -287,7 +210,6 @@ class GoogleChart(SerialObject):
         if no_header:
             rows.insert(0, header)
             header = []
-
 
         context = {"header": header,
                    "rows": rows,

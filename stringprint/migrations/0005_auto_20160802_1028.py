@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='asset',
             name='chart',
-            field=charts.fields.GoogleChartField(null=True, blank=True),
+            field=charts.fields.ChartField(null=True, blank=True),
         ),
         migrations.AddField(
             model_name='asset',

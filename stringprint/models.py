@@ -37,9 +37,9 @@ from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
 from useful_inkleby.useful_django.models import FlexiBulkModel
 
-from charts.fields import GoogleChartField
+from charts.fields import ChartField
 from .tools.deepink import process_ink
-from charts import GoogleChart
+from charts import Chart
 from .functions import compress_static
 
 chrome_driver_path = settings.CHROME_DRIVER
@@ -577,8 +577,8 @@ class Article(models.Model):
                     f.create_responsive(ignore_first=True)
                     f.create_tiny()
             if "table" in a["content_type"]:
-                f.chart = GoogleChart(chart_type="table_chart",
-                                      file_name=file_path)
+                f.chart = Chart(chart_type="table_chart",
+                                file_name=file_path)
             if a["content_type"] == "html":
                 f.content_type = "html"
                 f.type = Asset.RAW_HTML
@@ -2048,7 +2048,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
     slug = models.CharField(max_length=255, null=True)
     type = models.CharField(max_length=2, choices=types, null=True)
     location = models.CharField(max_length=255, null=True)
-    chart = GoogleChartField(null=True, blank=True)
+    chart = ChartField(null=True, blank=True)
     image_chart = models.ImageField(null=True, blank=True,
                                     storage=OverwriteStorage())
     regenerate_image_chart = models.BooleanField(default=False)

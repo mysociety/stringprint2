@@ -37,7 +37,7 @@ class AssetView(ComboView):
 
     def view(self, request, article_slug, slug, static=None):
 
-        from charts import ChartCollection, GoogleChart
+        from charts import ChartCollection, Chart
 
         a = Asset.objects.get(article__slug=article_slug, slug=slug)
 
@@ -89,10 +89,10 @@ class KindleView(HomeView):
         if self.__class__.article_settings_override:
             a.__dict__.update(self.__class__.article_settings_override)
         return a
-    
-    def restrict(self,sections,code):
+
+    def restrict(self, sections, code):
         if code:
-            return [x for x in sections if x.anchor()==code]
+            return [x for x in sections if x.anchor() == code]
         else:
             return sections
 
@@ -109,6 +109,7 @@ class KindleView(HomeView):
                 'txt_mode': self.__class__.txt_mode,
                 'debug': settings.DEBUG}
 
+
 class EbookChapterView(KindleView):
     """
     Render ebook chapter
@@ -116,6 +117,7 @@ class EbookChapterView(KindleView):
     template = "ink//epub_chapter.html"
     url_patterns = [r'^([A-Za-z0-9_-]+)/epub/([A-Za-z0-9_-]+)/']
     url_name = "epub_view"
+
 
 class TOCView(HomeView):
     """
@@ -180,7 +182,7 @@ class TipueSearchView(HomeView):
         if self.__class__.article_settings_override:
             a.__dict__.update(self.__class__.article_settings_override)
         c = a.display_content()
-        
+
         for s in c.sections:
             if s.grafs:
                 a.nav_default_range = list(range(s.order, s.order + 3))
@@ -335,7 +337,7 @@ class ArticleView(HomeView):
         para = "full"
         c = a.display_content(slugs)
         message = ""
-        
+
         for s in c.sections:
             if s.grafs and s.active_section:
                 a.nav_default_range = list(range(s.order, s.order + 3))
@@ -391,4 +393,4 @@ class RedirectLink(HomeView):
         return {"article": self.article,
                 'content': self.content,
                 'graf': self.graf,
-                'paragraph_tag':self.paragraph_tag}
+                'paragraph_tag': self.paragraph_tag}
