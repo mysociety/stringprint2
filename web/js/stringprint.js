@@ -302,7 +302,7 @@ function adjustMenus(id,future, past) {
     
 
     //if home link icon not visible, adjust 
-    if($("#home-link").position()["left"] > $(window).width() - 30){
+    if($("#home-link").position()["left"] > $(window).width() - 50){
         if (past > 1 ){
             adjustMenus(id,future,past-1)
         } else if (future > 0) {
