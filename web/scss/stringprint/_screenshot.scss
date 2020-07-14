@@ -6,6 +6,10 @@ nav {
 	display: none;
 }
 
+.navbar, .large-menu, .fixed-top, .d-md-flex {
+	display: none!important;
+}
+
 .hide-link{
 	display:none;
 }
