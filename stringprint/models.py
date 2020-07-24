@@ -125,6 +125,15 @@ class Organisation(models.Model):
     def publish_dir(self):
         return settings.ORGS[self.slug]["publish_dir"]
 
+    @property
+    def template_dir(self):
+        template_dir = os.path.join(self.storage_dir,
+                                    "_templates")
+        if os.path.exists(template_dir):
+            return template_dir
+        else:
+            return None
+
     def relative_icon_path(self):
         """
         resolve for local org static dirs
