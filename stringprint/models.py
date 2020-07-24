@@ -12,6 +12,7 @@ import tinify
 import Levenshtein as lev
 import mkepub
 from django.test.client import RequestFactory
+import subprocess
 
 from django.conf import settings
 from django.urls import reverse
@@ -303,6 +304,7 @@ class Article(models.Model):
     subtitle = models.CharField(max_length=255, blank=True, null=True)
     short_title = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(default="")
+    preprocessor = models.TextField(default="")
     byline = models.CharField(max_length=255, blank=True, null=True)
     current_version = models.IntegerField(default=0, null=True)
     copyright = models.TextField(max_length=255, blank=True, null=True)
@@ -1179,6 +1181,21 @@ class Article(models.Model):
             return self.publish_date.year
         else:
             return datetime.datetime.now().year
+
+    def run_preprocessor(self):
+        """
+        script to run before importing document
+        """
+        if not self.preprocessor:
+            return
+
+        commands = self.preprocessor.split(" ")
+
+        working_directory = self.storage_dir
+
+        print("Running preprocessor commands")
+        subprocess.call(commands, cwd=working_directory)
+        print("Preprocessor complete")
 
     def process(self):
         """

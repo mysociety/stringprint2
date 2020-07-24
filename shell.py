@@ -281,6 +281,15 @@ class SPPrompt(Cmd):
         print("Finished Processing: {0}".format(doc.title))
 
     @select_doc
+    def do_preprocess(self, inp):
+
+        doc, created = Article.objects.get_or_create(org=self.current_org,
+                                                     slug=self.current_doc)
+        doc.load_from_yaml(self.doc_folder)
+        doc.run_preprocessor()
+        print("Finished pre-processing: {0}".format(doc.title))
+
+    @select_doc
     def do_test(self, inp):
         print(self.current_doc)
 
