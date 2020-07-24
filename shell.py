@@ -69,13 +69,13 @@ def load_org_details():
     ingest org details from files
     """
     print("refreshing org details")
-    first_org = None
+    default_slug = os.environ.get("DEFAULT_ORG")
     for k, v in settings.ORGS.items():
         org, created = Organisation.objects.get_or_create(slug=k)
         org.load_from_yaml()
-        if first_org is None:
-            first_org = k
-    return first_org
+        if default_slug is None:
+            default_slug = k
+    return default_slug
 
 
 def merge_pdfs(front, contents, output):
@@ -161,7 +161,7 @@ class SPPrompt(Cmd):
 
     @property
     def doc_folder(self):
-        return os.path.join(self.current_org.storage_dir, self.current_doc)
+        return os.path.join(self.current_org.storage_dir, "_docs", self.current_doc)
 
     def __init__(self):
         self.current_org = None
@@ -176,7 +176,7 @@ class SPPrompt(Cmd):
 
     def do_setdoc(self, slug):
         slug = self.dir_lookup.get(slug, slug)
-        doc_folder = os.path.join(self.current_org.storage_dir, slug)
+        doc_folder = os.path.join(self.current_org.storage_dir, "_docs", slug)
         config_file = os.path.join(doc_folder, "settings.yaml")
         if os.path.exists(config_file) is False:
             print("No valid folder at: {0}".format(doc_folder))
@@ -198,11 +198,11 @@ class SPPrompt(Cmd):
                     yield f
 
     def do_listdocs(self, inp):
-        dir = self.current_org.storage_dir
+        docs_dir = os.path.join(self.current_org.storage_dir, "_docs")
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
         x = 0
-        for f in os.listdir(dir):
-            doc_folder = os.path.join(dir, f)
+        for f in os.listdir(docs_dir):
+            doc_folder = os.path.join(docs_dir, f)
             config_file = os.path.join(doc_folder, "settings.yaml")
             if os.path.exists(config_file):
                 x += 1
@@ -222,7 +222,7 @@ class SPPrompt(Cmd):
             self.do_loadunloaded("")
 
     def do_loadall(self, inp):
-        dir = self.current_org.storage_dir
+        dir = os.path.join(self.current_org.storage_dir, "_docs")
         for f in os.listdir(dir):
             doc_folder = os.path.join(dir, f)
             config_file = os.path.join(doc_folder, "settings.yaml")
@@ -231,7 +231,7 @@ class SPPrompt(Cmd):
                 self.do_process(inp)
 
     def do_loadunloaded(self, inp):
-        dir = self.current_org.storage_dir
+        dir = os.path.join(self.current_org.storage_dir, "_docs")
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
 
         for f in os.listdir(dir):
@@ -324,7 +324,7 @@ class SPPrompt(Cmd):
         refresh_all = "refresh" in inp.lower()
         slug = self.current_doc
         origin_folder = self.current_org.storage_dir
-        path = os.path.join(origin_folder, slug)
+        path = os.path.join(origin_folder, "_docs", slug)
         zip_destination = os.path.join(path,
                                        slug)
         doc, created = Article.objects.get_or_create(org=self.current_org,
@@ -341,6 +341,7 @@ class SPPrompt(Cmd):
         origin_folder = self.current_org.storage_dir
         path = os.path.join(origin_folder, slug)
         zip_destination = os.path.join(path,
+                                       "_docs",
                                        slug) + ".zip"
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
