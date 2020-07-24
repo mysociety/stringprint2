@@ -300,6 +300,7 @@ class Chrome(object):
 
 class Article(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
+    subtitle = models.CharField(max_length=255, blank=True, null=True)
     short_title = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(default="")
     byline = models.CharField(max_length=255, blank=True, null=True)
@@ -346,6 +347,11 @@ class Article(models.Model):
         return items
 
     def split_title(self):
+        """
+        return title - but try and split if possible
+        """
+        if self.subtitle:
+            return self.title
         if ":" in self.title:
             return self.title.split(":")[0].strip() + ":"
         elif "?" in self.title:
@@ -354,12 +360,22 @@ class Article(models.Model):
             return self.title
 
     def split_subtitle(self):
+        """
+        return subtitle if present, or try and split 
+        the title
+        """
+        if self.subtitle:
+            return self.subtitle
         if ":" in self.title:
             return self.title.split(":")[1].strip()
         elif "?" in self.title:
             return self.title.split("?")[1].strip()
 
     def pdf_url(self):
+        """
+        returns either the external location 
+        or the local pdf location
+        """
         if self.pdf_location:
             return self.pdf_location
         elif self.pdf_file:
