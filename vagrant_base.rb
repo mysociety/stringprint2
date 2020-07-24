@@ -90,7 +90,7 @@ Vagrant.configure(2) do |config|
   # Provision the vagrant box
 
   config.vm.provision "shell", :inline => script
-  config.vm.provision "shell", path: "script/vagrant-provision"
+  config.vm.provision "shell", path: "#{File.dirname(__FILE__)}/script/vagrant-provision"
   
   # activate venv on ssh start
   config.vm.provision "shell", inline: 'echo ". /vagrant/venv/bin/activate" > ~/.profile', privileged: false
