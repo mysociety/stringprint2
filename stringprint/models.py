@@ -1411,12 +1411,20 @@ class HeaderMixin(object):
                       )
         for i_file, res in images:
             for width in res:
-                new_name = settings.MEDIA_ROOT + \
+                file_name = settings.MEDIA_ROOT + \
                     self.get_responsive_image_name(width)
                 tiny_name = settings.MEDIA_ROOT + \
                     self.get_tiny_responsive_image_name(width)
-                source = tinify.from_file(str(new_name))
-                source.to_file(tiny_name)
+                if settings.TINY_PNG_KEY:
+                    print("reducing using tinify")
+                    source = tinify.from_file(str(file_name))
+                    source.to_file(tiny_name)
+                else:
+                    # boring and simply reduction of file if not
+                    # using tinify
+                    print("using native to reduce")
+                    img = Image.open(file_name)
+                    img.save(tiny_name, optimize=True, quality=95)
 
     def create_responsive(self, ignore_first=True):
         """
