@@ -8,7 +8,8 @@ import math
 import base64
 import hashlib
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
+
 from useful_inkleby.useful_django.serialisers import SerialObject
 from django.utils.html import mark_safe, escape
 import random
@@ -374,6 +375,7 @@ class Graf(SerialObject):
         self.end_key = ""
         self.catch_up = ""
         self.footnotes = []
+        self.custom_classes = []
         self.tag = None
         self.para_tag = None
         self.page_tag = None
@@ -797,6 +799,22 @@ def return_footnote_refs(content):
     return content
 
 
+def get_classes(e):
+    if e.has_attr('class'):
+        return e.attrs['class']
+    return []
+
+
+def get_content(e):
+    if isinstance(e, NavigableString):
+        return str(e)
+    classes = get_classes(e)
+    if e.contents:
+        return "".join([get_content(x) for x in e.contents])
+    else:
+        return str(e)
+
+
 def process_ink(version, content):
 
     Footnote.note_count = 0
@@ -859,9 +877,9 @@ def process_ink(version, content):
         extract_ok = ["p", "blockquote"]
         for e in extract_ok:
             if s.name == e:
-                return s.__unicode__().replace("<{0}>".format(e), "").replace("</{0}>".format(e), "")
-
+                return get_content(s)
         return s.__unicode__()
+
     header_level = 0
     for x, p in enumerate(lines):
         # doesn't give us double entries for <p> contained within these
@@ -917,6 +935,7 @@ def process_ink(version, content):
                               plain_txt=plain_txt,
                               html=html,
                               h_name=p.name,
+                              custom_classes=get_classes(p),
                               order=order,
                               header_level=header_level,
                               parent_id=s.order,

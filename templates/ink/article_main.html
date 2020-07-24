@@ -117,7 +117,7 @@
 						<i class="icon-link"></i>
 						</a>
 					{% endif %}
-					<p id = "p{{p.order}}">
+					<{{p.h_name}} id = "p{{p.order}}" {% if p.custom_classes %} class="{% for p in p.custom_classes%}{{p|safe}} {% endfor %}"{% endif%}>
 								{% if p.asset %}
 									{{article|display_asset:p.asset}}
 								{% else %}
@@ -129,7 +129,7 @@
 							{% if forloop.last and g.extended and article.display_notes == false %}
 								<a href="#" class = "hide-link" id="{{g.order}}">(Hide)</a>
 							{% endif %}
-						</p>
+						</{{p.h_name}}>
 						{% if p.footnotes %}
 						<div id = "f{{p.order}}" class = "footnotes">
 						<p>Notes (<a href="" class="hide-footnotes">hide</a>):</p>
