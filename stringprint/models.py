@@ -147,7 +147,7 @@ class Organisation(models.Model):
         is there a local scss file to use
         """
         scss_file = os.path.join(self.storage_dir,
-                                 "web",
+                                 "_static",
                                  "scss",
                                  "main.scss"
                                  )
@@ -180,7 +180,8 @@ class Organisation(models.Model):
 
     def load_from_yaml(self):
         print(self.storage_dir)
-        data = get_yaml(os.path.join(self.storage_dir, "settings.yaml"))
+        data = get_yaml(os.path.join(
+            self.storage_dir, "_conf", "settings.yaml"))
         ignore = ["orglinks"]
         change = False
 
@@ -332,6 +333,10 @@ class Article(models.Model):
     bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
 
+    @property
+    def storage_dir(self):
+        return os.path.join(self.org.storage_dir, "_docs", self.slug)
+
     def org_related_links(self):
         items = []
         if self.repo_entry:
@@ -363,6 +368,9 @@ class Article(models.Model):
             return None
 
     def load_from_yaml(self, storage_dir, refresh_header=False):
+        """
+        Load config for the article from the stored file
+        """
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
         ignore = ["repo_slug", "header", "book_cover"]
 
@@ -393,7 +401,7 @@ class Article(models.Model):
             file_name = header["location"]
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
-                    self.org.storage_dir, self.slug, file_name)
+                    self.org.storage_dir, "_docs", self.slug, file_name)
             file_ext = os.path.splitext(file_name)[1]
             internal_name = self.slug + file_ext
             image_size = header.get("size", "6")
@@ -807,7 +815,7 @@ class Article(models.Model):
 
         if self.pdf_file:
             source_file = os.path.join(
-                self.org.storage_dir, self.slug, self.pdf_file)
+                self.org.storage_dir, "_docs", self.slug, self.pdf_file)
             dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
             shutil.copyfile(source_file, dest_file)
 
@@ -1832,6 +1840,7 @@ class Version(models.Model):
 
     def load_paragraph_links(self):
         para_file = os.path.join(self.article.org.storage_dir,
+                                 "_docs",
                                  self.article.slug,
                                  "_paragraphs.yaml")
         if os.path.exists(para_file):
@@ -1841,6 +1850,7 @@ class Version(models.Model):
 
     def save_paragraph_links(self):
         para_file = os.path.join(self.article.org.storage_dir,
+                                 "_docs",
                                  self.article.slug,
                                  "_paragraphs.yaml")
         write_yaml(para_file, self.paragraph_links)
