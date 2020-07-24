@@ -41,6 +41,6 @@ webptools==0.0.2
 python-Levenshtein==0.12.0
 mkepub==1.2
 django-static-precompiler==1.8.2
-wlwt==1.3.0
+xlwt==1.3.0
 openpyxl==2.6.4
 xlrd==1.2.0
