@@ -35,16 +35,37 @@ ALLOWED_HOSTS = ["127.0.0.1", "192.168.0.112"]
 PROJECT_PATH = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
 MEDIA_ROOT = PROJECT_PATH + '/media/'
 
+STATIC_ROOT = PROJECT_PATH + '/static/'
+COMPRESS_ROOT = STATIC_ROOT
+
+STATICFILES_DIRS = [
+    (PROJECT_PATH + '/web/'),
+    ("vendor", PROJECT_PATH + '/vendor/'),
+]
+
+ORG_TEMPLATE_DIRS = []
+
+for k, v in config["ORGS"].items():
+    static_path = os.path.join(v["storage_dir"], "_static")
+    if os.path.exists(static_path):
+        STATICFILES_DIRS.append(("orgs/" + k, static_path))
+
+for k, v in config["ORGS"].items():
+    static_path = os.path.join(v["storage_dir"], "_templates")
+    if os.path.exists(static_path):
+        ORG_TEMPLATE_DIRS.append((k + "/templates", static_path))
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
 
-        'DIRS': [
+        'DIRS': ORG_TEMPLATE_DIRS + [
             PROJECT_PATH + '/templates/',
         ],
-        'APP_DIRS': True,
         'OPTIONS': {
             'debug': DEBUG,
+            'loaders': ['proj.loaders.NamespaceAwareLoader',
+                        'django.template.loaders.app_directories.Loader'],
             'context_processors': [
                 'proj.universal.universal_context',
                 'django.contrib.auth.context_processors.auth',
@@ -58,19 +79,6 @@ TEMPLATES = [
         },
     },
 ]
-
-STATIC_ROOT = PROJECT_PATH + '/static/'
-COMPRESS_ROOT = STATIC_ROOT
-
-STATICFILES_DIRS = [
-    (PROJECT_PATH + '/web/'),
-    ("vendor", PROJECT_PATH + '/vendor/'),
-]
-
-for k, v in config["ORGS"].items():
-    static_path = os.path.join(v["storage_dir"], "web")
-    if os.path.exists(static_path):
-        STATICFILES_DIRS.append(("orgs/" + k, static_path))
 
 COMPRESS_ENABLED = True
 

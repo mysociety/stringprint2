@@ -1,3 +1,6 @@
+import re
+import os
+
 from django.shortcuts import HttpResponseRedirect
 from django.conf import settings
 from django.urls import reverse
@@ -11,7 +14,7 @@ from django.shortcuts import render
 from django.template import Template, Context
 from django.dispatch import receiver
 from compressor.signals import post_compress
-import re
+
 
 from .models import Article
 from useful_inkleby.useful_django.views import ComboView
@@ -66,7 +69,6 @@ class HomeView(ComboView):
     url_name = "home_view"
 
     def view(self, request):
-
         return {'books': Article.objects.filter(public=True), }
 
 
@@ -289,18 +291,12 @@ class ArticleView(HomeView):
 
         return di
 
-    def context_to_html(self, request, context):
-        html = render(request,
-                      self.__class__.template,
-                      context=context
-                      )
-        return html
-
     def get_article(self, request, article_slug):
         return Article.objects.get(slug=article_slug)
 
     def view(self, request, article_slug, section_slug=""):
         a = self.get_article(request, article_slug)
+        self.article = a
         """
         lets the bake view interact with the settings for the article
         """
@@ -358,6 +354,28 @@ class ArticleView(HomeView):
                 'debug': settings.DEBUG,
                 'message': message,
                 'chart_collection': chart_collection}
+
+    def _get_template_path(self):
+        """
+        override with the specific org template
+        if available
+        """
+        template_path = self.__class__.template
+        org = self.article.org
+        template_dir = org.template_dir
+        if template_dir:
+            possible_path = os.path.join(template_dir, template_path)
+            print(possible_path)
+            if os.path.exists(possible_path):
+                return org.slug + "/templates/" + template_path
+        return template_path
+
+    def context_to_html(self, request, context):
+        html = render(request,
+                      self._get_template_path(),
+                      context=context
+                      )
+        return html
 
 
 class RedirectLink(HomeView):
