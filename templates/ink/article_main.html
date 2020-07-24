@@ -91,7 +91,7 @@
 			{% with s.prev_section as prev %}
 				{% if prev %}
 					<div class = "previous_section">
-					Previous Section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a>
+					Previous section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a>
 					</div>
 				{% endif %}
 			{% endwith %}
@@ -151,23 +151,24 @@
 			{% with s.next_section as next %}
 				{% if next %}
 					<div class = "next_section">
-					<h3>Next Section: <a href="{{next.nav_url}}">{{next.name}}</a></h3>
+					<p>Next section: <a href="{{next.nav_url}}">{{next.name}}</a></p>
 					</div>
 				{% endif %}
 			{% endwith %}
 		{% endif %}         
-	
+		
     {% endfor %} 
+	{% block footer %}
+		{% if article.bottom_iframe %}
+		<h1 id="related-research">Related Research</h1>
+		<iframestub></iframestub>
+		<noscript>
+		<iframe src="{{article.bottom_iframe}}" id="iframe_related" height=400 scrolling="no" ></iframe>
+		</noscript>
+		{% endif %}
+	{% endblock %}
 	
-	{% if article.bottom_iframe %}
-	<h1 id="related-research">Related Research</h1>
-	<iframestub></iframestub>
-	<noscript>
-	<iframe src="{{article.bottom_iframe}}" id="iframe_related" height=400 scrolling="no" ></iframe>
-	</noscript>
-
-
-	{% endif %}
+	
              {% with content.footnotes as notes %}
                 {% if notes and article.display_footnotes_at_foot %}       
                         <div class = "content-row dont-break-out">

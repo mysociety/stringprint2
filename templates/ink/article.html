@@ -48,12 +48,14 @@
 
 <meta name="theme-color" content="#ffffff" />
 
+{% block fonts %}
 {% if article.org.fonts %}
 	<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
     {% for f in article.org.display_fonts %}
         <link href='{{f}}' rel='stylesheet' type='text/css'>
     {% endfor %}
 {% endif %}
+{% endblock %}
 
 <meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
