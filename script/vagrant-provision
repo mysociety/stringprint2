@@ -1,0 +1,52 @@
+curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add
+echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+
+sudo apt-get update
+
+touch /etc/is_vagrant_vm
+cd /vagrant/stringprint
+
+#fix dpkg-preconfigure error
+export DEBIAN_FRONTEND=noninteractive
+
+# Install the packages
+echo "Installing packages"
+xargs sudo apt-get install -qq -y < script/config/packages
+echo "Install complete, running bootstrap script"
+
+#setup venv and packages
+script/bootstrap
+sudo chmod -R ugo+rwx /vagrant/venv
+
+cd /vagrant/
+# get and setup get chromedriver
+
+wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip
+mv chromedriver /usr/bin/chromedriver
+chown root:root /usr/bin/chromedriver
+chmod +x /usr/bin/chromedriver
+
+# install node for post processors
+curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+sudo apt-get install -y nodejs
+cd /home/vagrant/
+npm install -g postcss-cli autoprefixer
+
+#get dart sass
+wget https://github.com/sass/dart-sass/releases/download/1.26.8/dart-sass-1.26.8-linux-x64.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
+tar -xzf dart-sass-1.26.8-linux-x64.tar.gz
+mv dart-sass /usr/bin/dart-sass
+chown root:root /usr/bin/dart-sass
+chmod +x /usr/bin/dart-sass
+
+#get kindlegen
+wget https://kindlegen.s3.amazonaws.com/kindlegen_linux_2.6_i386_v2_9.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
+mkdir kindlegen
+tar -xzf kindlegen_linux_2.6_i386_v2_9.tar.gz -C kindlegen
+mv kindlegen /usr/bin/kindlegen
+chown root:root /usr/bin/kindlegen
+chmod +x /usr/bin/kindlegen
+
+cd /vagrant/stringprint
+script/server
