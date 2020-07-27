@@ -6,7 +6,6 @@ import django
 import shutil
 from cmd import Cmd
 import io
-import requests
 
 import fitz
 
@@ -29,18 +28,6 @@ from stringprint.functions import compress_static
 from stringprint.models import Article, Organisation, Asset
 from frontend.views import HomeView, ArticleSettingsView
 from charts import ChartCollection, Chart
-
-
-def upload_zip(url, slug, filepath, token):
-
-    filename = os.path.split(filepath)[1]
-    url = url + slug
-    headers = {'Content-Disposition': 'attachment; filename={0}'.format(filename),
-               'Content-type': 'application/zip',
-               'Authorization': 'Token {0}'.format(token)}
-    with open(filepath, 'rb') as filedata:
-        r = requests.put(url, data=filedata, headers=headers)
-    print(r.content)
 
 
 def fix_yaml(ya):
@@ -280,8 +267,17 @@ class SPPrompt(Cmd):
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         doc.load_from_yaml(self.doc_folder)
-        doc.run_preprocessor()
+        doc.run_command('preprocess')
         print("Finished pre-processing: {0}".format(doc.title))
+
+    @select_doc
+    def do_publish(self, inp):
+
+        doc, created = Article.objects.get_or_create(org=self.current_org,
+                                                     slug=self.current_doc)
+        doc.load_from_yaml(self.doc_folder)
+        doc.run_command('publish')
+        print("Finished publishing: {0}".format(doc.title))
 
     @select_doc
     def do_test(self, inp):
@@ -326,22 +322,6 @@ class SPPrompt(Cmd):
         zip_location = doc.render_to_zip(
             zip_destination, refresh_all=refresh_all)
         print("Zip created")
-
-    @select_doc
-    def do_uploadzip(self, inp):
-        token = self.current_org.token
-        upload_url = self.current_org.upload_url
-        slug = self.current_doc
-        origin_folder = self.current_org.storage_dir
-        path = os.path.join(origin_folder, slug)
-        zip_destination = os.path.join(path,
-                                       "_docs",
-                                       slug) + ".zip"
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
-        repo_slug = doc.repo_entry.split("/")[-1]
-        print("using {0} as slug".format(repo_slug))
-        upload_zip(upload_url, repo_slug, zip_destination, token)
 
     @select_doc
     def do_mergepdf(self, inp):

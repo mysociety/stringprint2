@@ -27,7 +27,7 @@ from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import now
 from dirsync import sync
 from django.contrib.staticfiles import finders
-
+from django.template import Template, Context
 
 from collections import OrderedDict
 from ruamel.yaml import YAML
@@ -41,7 +41,6 @@ from useful_inkleby.useful_django.models import FlexiBulkModel
 from charts.fields import ChartField
 from .tools.deepink import process_ink
 from charts import Chart
-from .functions import compress_static
 
 chrome_driver_path = settings.CHROME_DRIVER
 
@@ -98,29 +97,22 @@ class Organisation(models.Model):
         max_length=255, blank=True, null=True)  # for google analytics
     ga_cookies = models.BooleanField(default=True)
     publish_root = models.URLField(max_length=255, blank=True, null=True)
-    fonts = models.TextField(default="", blank=True)
     include_favicon = models.BooleanField(default=True)
-    stylesheet = models.CharField(
-        max_length=255, blank=True, null=True)
-    screenshot_stylesheet = models.CharField(
-        max_length=255, blank=True, null=True)
     icon = models.CharField(max_length=255, blank=True, null=True)
+    default_values = JsonBlockField(default={})
+    commands = JsonBlockField(default={})
+    extra_values = JsonBlockField(default={})
+
+    def __init__(self, *args, **kwargs):
+        """
+        make extra values directly accessible from the object
+        """
+        super().__init__(*args, **kwargs)
+        self.__dict__.update(self.extra_values)
 
     @property
     def storage_dir(self):
         return settings.ORGS[self.slug]["storage_dir"]
-
-    @property
-    def upload_url(self):
-        return settings.ORGS[self.slug]["upload_url"]
-
-    @property
-    def token(self):
-        token = settings.ORGS[self.slug]["token"]
-        if "%%" in token:
-            token = token[2:-2]
-            token = os.environ[token]
-        return token
 
     @property
     def publish_dir(self):
@@ -143,20 +135,20 @@ class Organisation(models.Model):
             relative_org_static = "orgs/{0}/".format(self.slug)
             return relative_org_static + self.icon
 
-    def org_scss(self):
+    def org_scss(self, filename="main.scss"):
         """
         is there a local scss file to use
         """
         scss_file = os.path.join(self.storage_dir,
                                  "_static",
                                  "scss",
-                                 "main.scss"
+                                 filename
                                  )
 
         scss_file_rel = os.path.join("orgs",
                                      self.slug,
                                      "scss",
-                                     "main.scss"
+                                     filename
                                      )
         if os.path.exists(scss_file):
             return scss_file_rel
@@ -165,19 +157,7 @@ class Organisation(models.Model):
         """
         is there a local scss file to use for screenshots
         """
-        scss_file = os.path.join(self.storage_dir,
-                                 "web",
-                                 "scss",
-                                 "screenshot.scss"
-                                 )
-
-        scss_file_rel = os.path.join("orgs",
-                                     self.slug,
-                                     "scss",
-                                     "screenshot.scss"
-                                     )
-        if os.path.exists(scss_file):
-            return scss_file_rel
+        return self.org_scss("screenshot.scss")
 
     def load_from_yaml(self):
         print(self.storage_dir)
@@ -186,21 +166,22 @@ class Organisation(models.Model):
         ignore = ["orglinks"]
         change = False
 
-        if "stylesheets" in data:
-            data["stylesheet"] = data["stylesheets"]["web"]
-            data["screenshot_stylesheet"] = data["stylesheets"]["screenshot"]
-            del data["stylesheets"]
-
-        if "fonts" in data:
-            current = self.fonts
-            data["fonts"] = "\n".join(data["fonts"])
+        for k in list(self.extra_values.keys()):
+            if k not in data:
+                del self.extra_values[k]
 
         for k, v in data.items():
             if k not in ignore:
-                current = getattr(self, k)
-                if current != v:
-                    setattr(self, k, v)
-                    change = True
+                if hasattr(self, k):
+                    current = getattr(self, k)
+                    if current != v:
+                        setattr(self, k, v)
+                        change = True
+                else:
+                    current = self.extra_values.get(k)
+                    if current != v:
+                        self.extra_values[k] = v
+                        change = True
 
         if change:
             self.save()
@@ -304,7 +285,6 @@ class Article(models.Model):
     subtitle = models.CharField(max_length=255, blank=True, null=True)
     short_title = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(default="")
-    preprocessor = models.TextField(default="")
     byline = models.CharField(max_length=255, blank=True, null=True)
     current_version = models.IntegerField(default=0, null=True)
     copyright = models.TextField(max_length=255, blank=True, null=True)
@@ -332,9 +312,16 @@ class Article(models.Model):
     display_notes = models.BooleanField(default=False)
     display_footnotes_at_foot = models.BooleanField(default=True)
     display_toc = models.BooleanField(default=False)
-    repo_entry = models.URLField(blank=True, default="")
-    bottom_iframe = models.URLField(blank=True, default="")
     include_citation = models.BooleanField(default=False)
+    extra_values = JsonBlockField(default={})
+    commands = JsonBlockField(default={})
+
+    def __init__(self, *args, **kwargs):
+        """
+        make extra values directly accessible from the object
+        """
+        super().__init__(*args, **kwargs)
+        self.__dict__.update(self.extra_values)
 
     @property
     def storage_dir(self):
@@ -342,7 +329,7 @@ class Article(models.Model):
 
     def org_related_links(self):
         items = []
-        if self.repo_entry:
+        if hasattr(self, "repo_entry") and self.repo_entry:
             items.append([self.repo_entry, "About this publication"])
         for link in self.org.org_links_ordered():
             items.append([link.link, link.name])
@@ -390,7 +377,11 @@ class Article(models.Model):
         Load config for the article from the stored file
         """
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
-        ignore = ["repo_slug", "header", "book_cover"]
+        ignore = ["header", "book_cover"]
+
+        for k in list(self.extra_values.keys()):
+            if k not in data:
+                del self.extra_values[k]
 
         # adapation for older files
         if "sections_over_pages" in data:
@@ -401,18 +392,17 @@ class Article(models.Model):
             data["pdf_file"] = data["pdf"]
             del data["pdf"]
 
+        for k, v in self.org.default_values.items():
+            if k not in data:
+                rendered_v = Template(v).render(Context({"article": data}))
+                data[k] = rendered_v
+
         for k, v in data.items():
             if k not in ignore:
-                current = getattr(self, k)
-                if current != v:
+                if hasattr(self, k):
                     setattr(self, k, v)
-
-        if "repo_slug" in data:
-            repo_slug = data["repo_slug"]
-            self.repo_entry = "https://research.mysociety.org/publications/{0}".format(
-                repo_slug)
-            self.bottom_iframe = "https://research.mysociety.org/embed/related:{0}".format(
-                repo_slug)
+                else:
+                    self.extra_values[k] = v
 
         if "header" in data:
             header = data["header"]
@@ -1182,20 +1172,46 @@ class Article(models.Model):
         else:
             return datetime.datetime.now().year
 
-    def run_preprocessor(self):
+    def run_command(self, command):
         """
-        script to run before importing document
+        Run commands around process
+
+        typically preprocess, publish
+
+        prefer article to org level commands
+        org level commands working directory is the top level
+        article level commands working directory is the article folder
+
+        python script.py {{article.slug}} - passes the slug
+
         """
-        if not self.preprocessor:
+        command_str = None
+        if command in self.org.commands:
+            command_str = self.org.commands[command]
+            working_directory = self.org.storage_dir
+        if command in self.commands:
+            command_str = self.commands[command]
+            working_directory = self.storage_dir
+
+        if not command_str:
+            print("No {0} command configured".format(command))
             return
 
-        commands = self.preprocessor.split(" ")
+        # prevent execution by restricting to listed fields
+        fields = self._meta.fields
+        lookup_dict = {x.name: getattr(self, x.name)
+                       for x in fields if x.name is not "org"}
+        lookup_dict.update(self.extra_values)
 
-        working_directory = self.storage_dir
+        c_context = Context({"article": lookup_dict})
 
-        print("Running preprocessor commands")
+        rendered_command = Template(command_str).render(c_context)
+
+        commands = rendered_command.split(" ")
+
+        print("Running {0} commands".format(command))
         subprocess.call(commands, cwd=working_directory)
-        print("Preprocessor complete")
+        print("{0} complete".format(command))
 
     def process(self):
         """
