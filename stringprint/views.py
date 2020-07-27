@@ -365,7 +365,6 @@ class ArticleView(HomeView):
         template_dir = org.template_dir
         if template_dir:
             possible_path = os.path.join(template_dir, template_path)
-            print(possible_path)
             if os.path.exists(possible_path):
                 return org.slug + "/templates/" + template_path
         return template_path
