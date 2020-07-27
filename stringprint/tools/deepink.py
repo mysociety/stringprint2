@@ -806,9 +806,11 @@ def get_classes(e):
 
 
 def get_content(e):
-    if isinstance(e, NavigableString):
+    good_to_extract = ['p', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'blockquote',
+                       'ol', 'table']
+
+    if isinstance(e, NavigableString) or e.name not in good_to_extract:
         return str(e)
-    classes = get_classes(e)
     if e.contents:
         return "".join([get_content(x) for x in e.contents])
     else:
@@ -834,17 +836,11 @@ def process_ink(version, content):
     for p in processors:
         processed = p(processed)
 
-    lines = BeautifulSoup(processed, features="html5lib").findAll({'p': True,
-                                                                   'ul': True,
-                                                                   'h1': True,
-                                                                   'h2': True,
-                                                                   'h3': True,
-                                                                   'h4': True,
-                                                                   'h5': True,
-                                                                   'blockquote': True,
-                                                                   'ul': True,
-                                                                   'ol': True,
-                                                                   'table': True})
+    good_to_extract = ['p', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'blockquote',
+                       'ol', 'table']
+
+    lines = BeautifulSoup(processed, features="html5lib").findAll(
+        {x: True for x in good_to_extract})
 
     order = 1
     s_order = 1
@@ -874,8 +870,7 @@ def process_ink(version, content):
             return ""
 
     def extract_p_if_first(s):
-        extract_ok = ["p", "blockquote"]
-        for e in extract_ok:
+        for e in good_to_extract:
             if s.name == e:
                 return get_content(s)
         return s.__unicode__()
