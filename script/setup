@@ -1,3 +1,4 @@
 #!/bin/sh
 # create or update database
 "$(dirname "$0")/manage" migrate
+"$(dirname "$0")/shell" listorgs
