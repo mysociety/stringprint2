@@ -4,51 +4,6 @@ require 'yaml'
 
 config_yaml = YAML::load(File.read("#{File.dirname(__FILE__)}/proj/conf/config.yaml"))
 
-def is_env_format(v)
-	if v.class == String
-		return v.slice(0,2) == "%%"
-	else
-		return false
-	end
-end
-
-def fix_format(v)
-	v.slice(2..-3)
-end
-
-#get variables that are environmental variables
-def get_env_vars(yml)
-	env_vars = Array.new
-	yml.each do |key, value|
-		if value.class == Hash
-			env_vars += get_env_vars(value)
-		else
-			if is_env_format(value)
-				env_vars << fix_format(value)
-			end
-		end
-	end
-	return env_vars
-end
-
-env_vars = get_env_vars(config_yaml)
-commands = Array.new
-
-#add line pulling in environmental variables
-env_vars.each do |e|
-	env_var_cmd = ""
-	if ENV[e]
-		value = ENV[e]
-		env_var_cmd = <<CMD
-echo "export #{e}=#{value}" | tee -a /home/vagrant/.profile
-CMD
-	end
-	commands.push(env_var_cmd)
-end
-
-script = commands.join("")
-
-
 Vagrant.configure(2) do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
@@ -89,7 +44,6 @@ Vagrant.configure(2) do |config|
 
   # Provision the vagrant box
 
-  config.vm.provision "shell", :inline => script
   config.vm.provision "shell", path: "#{File.dirname(__FILE__)}/script/vagrant-provision"
   
   # activate venv on ssh start
