@@ -9,7 +9,6 @@ import io
 import requests
 
 import fitz
-import tinify
 
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from PIL import Image
@@ -117,12 +116,7 @@ def create_hero(source, destination, base_width=1024):
     hsize = int((float(img.size[1]) * float(wpercent)))
     img = img.resize((base_width, hsize), Image.ANTIALIAS)
     height = img.size[1]
-    img.save(destination)
-    tinify.key = settings.TINY_PNG_KEY
-    tiny_destination = "{0}-tiny{1}".format(*os.path.splitext(destination))
-    print("shrinking")
-    source = tinify.from_file(destination)
-    source.to_file(tiny_destination)
+    img.save(destination, optimize=True, quality=95)
 
 
 def select_doc(func):
