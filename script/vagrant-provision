@@ -49,4 +49,5 @@ chown root:root /usr/bin/kindlegen
 chmod +x /usr/bin/kindlegen
 
 cd /vagrant/stringprint
+script/setup
 script/server
