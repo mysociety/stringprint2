@@ -18,7 +18,7 @@ Vagrant.configure(2) do |config|
     storage_dir = "/sp_" + key + "_storage"
     publish_dir = "/sp_" + key + "_publish"
     config.vm.synced_folder value["storage_dir"], storage_dir
-    config.vm.synced_folder value["publish_dir"], publish_dir
+    # config.vm.synced_folder value["publish_dir"], publish_dir
   end
 
   # Speed up DNS lookups
