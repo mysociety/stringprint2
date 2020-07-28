@@ -13,13 +13,12 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/xenial64"
 
-
   # connect links to all the relevant directories
   config_yaml["ORGS"].each do |key, value|
-	storage_dir = "/sp_" + key + "_storage"
-	publish_dir = "/sp_" + key + "_publish"
-	config.vm.synced_folder value["storage_dir"], storage_dir, :nfs => true
-	config.vm.synced_folder value["publish_dir"], publish_dir, :nfs => true
+    storage_dir = "/sp_" + key + "_storage"
+    publish_dir = "/sp_" + key + "_publish"
+    config.vm.synced_folder value["storage_dir"], storage_dir
+    config.vm.synced_folder value["publish_dir"], publish_dir
   end
 
   # Speed up DNS lookups
@@ -28,9 +27,9 @@ Vagrant.configure(2) do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "off"]
   end
 
-  # NFS requires a host-only network
+  # Use a host-only network
   # This also allows you to test via other devices (e.g. mobiles) on the same
-  # network
+  # network, or use NFS if you prefer.
   config.vm.network :private_network, ip: "10.11.12.13"
 
   # Django dev server
