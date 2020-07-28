@@ -21,7 +21,7 @@ sudo chmod -R ugo+rwx /vagrant/venv
 cd /vagrant/
 # get and setup get chromedriver
 
-wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
+wget -q https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
 unzip chromedriver_linux64.zip
 mv chromedriver /usr/bin/chromedriver
 chown root:root /usr/bin/chromedriver
@@ -34,14 +34,14 @@ cd /home/vagrant/
 npm install -g postcss-cli autoprefixer
 
 #get dart sass
-wget https://github.com/sass/dart-sass/releases/download/1.26.8/dart-sass-1.26.8-linux-x64.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
+wget -q https://github.com/sass/dart-sass/releases/download/1.26.8/dart-sass-1.26.8-linux-x64.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
 tar -xzf dart-sass-1.26.8-linux-x64.tar.gz
 mv dart-sass /usr/bin/dart-sass
 chown root:root /usr/bin/dart-sass
 chmod +x /usr/bin/dart-sass
 
 #get kindlegen
-wget https://kindlegen.s3.amazonaws.com/kindlegen_linux_2.6_i386_v2_9.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
+wget -q https://kindlegen.s3.amazonaws.com/kindlegen_linux_2.6_i386_v2_9.tar.gz --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0
 mkdir kindlegen
 tar -xzf kindlegen_linux_2.6_i386_v2_9.tar.gz -C kindlegen
 mv kindlegen /usr/bin/kindlegen
