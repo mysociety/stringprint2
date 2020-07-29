@@ -54,10 +54,17 @@ class Footnote(SerialObject):
 
     def __init__(self, content="", local_ref=""):
         self.num = self.__class__.note_count + 1
-        self.local_ref = local_ref
+        if "||" in local_ref:
+            self.local_ref, self.named_reference = local_ref.split("||")
+            self.named_reference = self.named_reference[:-1]
+            self.local_ref += "]"
+        else:
+            self.local_ref = local_ref
+            self.named_reference = None
+        print("local ref", self.local_ref)
         self.__class__.note_count += 1
         self.__class__.all.append(self)
-        self.named_reference = None
+
         self.content = ""
         self.set_content(content)
 
@@ -66,7 +73,6 @@ class Footnote(SerialObject):
             self.named_reference, self.content = content.split("||")
         else:
             self.content = content
-            self.named_reference = None
 
     def safe_content(self):
         return mark_safe(self.content)
@@ -608,7 +614,7 @@ class Graf(SerialObject):
         # process footnotes - can't use an iter because amending size as we go
         match = True
         while match:
-            match = re.search('\[\^[0-9\*]+\]', text)
+            match = re.search('\[\^.*?\]', text)
             if match:
                 q = match.group()
                 new_note = Footnote(local_ref=q)
