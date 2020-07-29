@@ -39,8 +39,7 @@ That sourcefile will contain a `vagrantfile` that will do the below automaticall
 - `vagrant up` in stringprint2, then open the shell and set the document to this document. 
 - `convertword` will convert the word document into a document.md and extract tables and images as assets. Examine and adjust the document.md
 - If you have pdf files, `pdfpng` will create an image version of the cover that can be referenced as the kindle book cover in settings.yaml (and creates a thumbnail for upload).
-- ‘mergepdf’ will create a pdf to upload.
-- If using the mySociety repo site, create a new ResearchItem and upload the pdf as an output now. Reference the url of the output and the slug in the relevant options in settings.yaml. 
+- `mergepdf` will create a pdf to upload from a `cover.pdf` and a `contents.pdf` as `doc-slug.pdf`.
 - `process` will import and process the document. 
 - Running script/server will create a local server: 127.0.0.1:8000 will then allow you to preview the new document. 
 
@@ -86,10 +85,10 @@ Shell commands:
 
 An source repositiory is meant to contain all documents being rendered for a single organisation. It expects the following structure. 
 
-`_conf/settings.yaml` - contains the org level settings and defaults
-`_docs` - contains all documents (in seperate folders) that belong to an organisation. 
-`_static` - optional, allows additional static files or scss files to be added. 
-`_templates` - optional, allows overriding or extending the default stringprint templates
+- `_conf/settings.yaml` - contains the org level settings and defaults
+- `_docs` - contains all documents (in seperate folders) that belong to an organisation. 
+- `_static` - optional, allows additional static files or scss files to be added. 
+- `_templates` - optional, allows overriding or extending the default stringprint templates
 
 
 `_conf/settings.yaml` should contain items like the below:
@@ -115,18 +114,18 @@ commands:
 ```
 Several properties are important, for instance, `publish_root` tells a document where it expects to be published, which is important for creating correctly formatted social cards). Others have default values or can be ignored. 
 
-`twitter` - setting a twitter account here will give access to analytics of uses of a link in twitter. 
-`ga_code` and `ga_cookies` - set the google analytics code and if it 
-`orglinks` - defines links that should be included in the 'org' dropdown in the top right. This can also be done in templating. 
-`icon` - The icon for the 'org' dropdown in the top right. This can also be done in templating. 
-`default_values` configures what are default values for articles, which may either be set values, or constructed from other properties of an article. 
+- `twitter` - setting a twitter account here will give access to analytics of uses of a link in twitter. 
+- `ga_code` and `ga_cookies` - set the google analytics code and if it 
+- `orglinks` - defines links that should be included in the 'org' dropdown in the top right. This can also be done in templating. 
+- `icon` - The icon for the 'org' dropdown in the top right. This can also be done in templating. 
+- `default_values` configures what are default values for articles, which may either be set values, or constructed from other properties of an article. 
 
 New variables can be arbitrarily entered, and these will be avaliable in the template as `{{article.org.variable_name}}`. 
 
 
 ## Document configuration
 
-a document folder is expected under `_docs`, where the folder name will be the slug. 
+A document folder is expected under `_docs`, where the folder name will be the slug. 
 
 The minimum required files are a settings.yaml and a source document, but this folder is also likely to include a header image, processing scripts, pdf versions or additional assets. 
 
@@ -154,37 +153,37 @@ commands:
 
 The following are accepted config options (which may also be specified through the org default values):
 
-`title` - main title of the document
-`short_title` - Several words for top left of nav bar. 
-`file_source` - source document (typically `document.md`)
-`publish_date` - `yyyy-mm-dd`
+- `title` - main title of the document
+- `short_title` - Several words for top left of nav bar. 
+- `file_source` - source document (typically `document.md`)
+- `publish_date` - `yyyy-mm-dd`
 
 Additional details:
 
-`subtitle` - subtitle for below the title. Optional, if there is a : or ? in the title, text after this will be assumed to be a subtitle.
-`description` - description added to social share. 
-`copyright` - copyright info. 
-`authors`  - credited authors. 
-`cite_as` - used when construction citation (may want to reverse John Smith to Smith, J)
-`byline` - used in main version, but not simpler formats (which use authors). 
+- `subtitle` - subtitle for below the title. Optional, if there is a : or ? in the title, text after this will be assumed to be a subtitle.
+- `description` - description added to social share. 
+- `copyright` - copyright info. 
+- `authors`  - credited authors. 
+- `cite_as` - used when construction citation (may want to reverse John Smith to Smith, J)
+- `byline` - used in main version, but not simpler formats (which use authors). 
 
 Display options:
 
-`multipage` - default false, true renders each section on a seperate page (
-`display_notes` - if notes/asides are displayed by default.
-`display_footnotes_at_foot` - if the footnotes are displayed at the end of a document, if using named footnotes, may not want to. 
-`display_toc` - display the table of contents when a page loads (default false)
+- `multipage` - default false, true renders each section on a seperate page (
+- `display_notes` - if notes/asides are displayed by default.
+- `display_footnotes_at_foot` - if the footnotes are displayed at the end of a document, if using named footnotes, may not want to. 
+- `display_toc` - display the table of contents when a page loads (default false)
 
 Format options:
 
-`pdf` - name of a pdf version in the document folder (will be copied into rendered folder)
-`pdf_location` - url of a PDF to link to elsewhere
-`kindle_location` - location of a kindle file elsewhere to replace local link (if for instance, avaliable on Amazon)
+- `pdf` - name of a pdf version in the document folder (will be copied into rendered folder)
+- `pdf_location` - url of a PDF to link to elsewhere
+- `kindle_location` - location of a kindle file elsewhere to replace local link (if for instance, avaliable on Amazon)
 
 Image options:
 
-`book_cover` - portrait image to use as front cover of kindle book (the `pdfpng` shell command will create one from `cover.pdf`)
-`header` - image to use as the main image of the document. The subproperty `size` is a score out of 12 for how much of the screen it should take up. 
+- `book_cover` - portrait image to use as front cover of kindle book (the `pdfpng` shell command will create one from `cover.pdf`)
+- `header` - image to use as the main image of the document. The subproperty `size` is a score out of 12 for how much of the screen it should take up. 
 
 
 ## Expected source format
@@ -300,20 +299,20 @@ For instance, the following adjusts the google fonts used and adds a new footer 
 
 Configured empty blocks are:
 
-`extra_head` - any extra settings/styles for the head of the page. 
-`footer` - at bottom of body. 
-`org_links` - configure org_links in template.
-`mobile_org_links` - configure org_links in template (mobile menu).
-`extra_js` - link to extra javscript file to be included in the compile. 
-`code` - add new JS code at the bottom of the page. 
+- `extra_head` - any extra settings/styles for the head of the page. 
+- `footer` - at bottom of body. 
+- `org_links` - configure org_links in template.
+- `mobile_org_links` - configure org_links in template (mobile menu).
+- `extra_js` - link to extra javscript file to be included in the compile. 
+- `code` - add new JS code at the bottom of the page. 
 
 Populated blocks (where you'll need to consult the original templates to adjust the contents) are:
 
-`fonts` - define google fonts
-`title` - Page title
-`subtitle` - Page subtitle
-`byline` - Author byline
-`other_formats` - links to the alternate formats of the documents
-`nav_buttons` - change the search, TOC and download buttons
-`nav` - replace the entire nav block
-`facebook` - replace the social sharing settings. 
+- `fonts` - define google fonts
+- `title` - Page title
+- `subtitle` - Page subtitle
+- `byline` - Author byline
+- `other_formats` - links to the alternate formats of the documents
+- `nav_buttons` - change the search, TOC and download buttons
+- `nav` - replace the entire nav block
+- `facebook` - replace the social sharing settings. 
