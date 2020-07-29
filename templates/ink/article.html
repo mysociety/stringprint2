@@ -80,12 +80,6 @@
 	{% endif %}
 {% endcompress %}
 
-
-{% comment %}
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-{% endcomment %}
-
-
 {% if article.display_notes %}
 	<style>
 		.extended-row, .extended{
@@ -223,8 +217,9 @@
 <body>
 
 
-
+{% block nav %}
 {% include "ink/article_nav.html" %}
+{% endblock %}
 <br><br>
 
 {% block body %}
@@ -260,6 +255,8 @@
     <script type="text/javascript" src="{% static 'vendor/misc/clipboard.js' %}"></script>
     <script type="text/javascript" src="{% static 'vendor/misc/modernizr-custom.js' %}"></script>
 	<script type="text/javascript" src="{% static 'js/stringprint.js' %}"></script>
+	{% block extra_js %}
+	{% endblock %}
  {% endcompress %}
 
 

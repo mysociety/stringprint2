@@ -7,8 +7,7 @@
 
   <div id="desktop-menu" class="collapse navbar-collapse">
     <ul class="navbar-nav mr-auto">
-	
-
+		{% block nav_buttons %}
 		<li id = "search-link" class="nav-item action-buttons search_link">
 		    <a class="nav-link search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a>
 		</li>
@@ -16,9 +15,9 @@
 		{% if article.pdf_url %}
 		<li id = "download-link" class="nav-item action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link nav-link" type="pdf" ><i class="icon-download"></i></a></li>
 		{% endif %}
+		{% endblock %}
         <li class="nav-item"><a class="nav-link" id ="menu-prev" href="#" name="Previous section" aria-label="Previous section"><i class="icon-angle-double-left"></i></a>
         </li>
-
 		{% with content.toc as toc %}
         {% for s in toc.level_1 %}
 			<li class="nav-item top-menu-item {% if s.order not in article.nav_default_range %}hide-item{% endif %}"
@@ -57,6 +56,8 @@
 			{% for link in links %}
 			<a class="dropdown-item" href="{{link.0}}">{{link.1}}</a>
 			{% endfor %}
+			{% block org_links %}
+			{% endblock %}
         </div>
 		</li>
 		{% endif %}
@@ -94,7 +95,10 @@
 		<li role="separator" class="divider"></li>
 		{% for link in article.org.org_links_ordered %}
 			<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{link.link}}">{{link.name}}</a></li>
+			
 		{% endfor %}
+		{% block mobile_org_links %}
+		{% endblock %}
         </ul>
 
 
