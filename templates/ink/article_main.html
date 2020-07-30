@@ -73,10 +73,22 @@
     {% block content %}
 	<main>
     <div class="content">  
+
     {% for s in content.display_sections %}
+	{% block previous_section %}
+	{% if article.multipage and s.active_section %}
+		{% with s.prev_section as prev %}
+			{% if prev %}
+				<div class = "previous_section">
+				Previous section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a>
+				</div>
+			{% endif %}
+		{% endwith %}
+	{% endif %}
+	{% endblock %}
 		{# iterate through sections #}
         {% if s.name %}
-			<section aria-labelledby="h.{{s.order}}">
+			<section aria-labelledby="h.{{s.order}}" id="section.{{s.anchor}}">
             <a class="anchor linkable" id="a{{s.order}}" name="{{s.anchor}}" first_graf="{{s.first_graf_id}}"></a> 
             <div id = "s{{s.order}}" prev = "s{{s.prev_if_single_page}}" class="content-row section-anchor header-text">
             {% with article.image_lookup|get_item:s.name as image %}
@@ -93,15 +105,6 @@
 		<a class="anchor" id="start" name="start"></a>     
 		<section aria-label="Introduction">
         {% endif %}
-	{% if article.multipage and s.active_section %}
-			{% with s.prev_section as prev %}
-				{% if prev %}
-					<div class = "previous_section">
-					Previous section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a>
-					</div>
-				{% endif %}
-			{% endwith %}
-		{% endif %}   
 		<div class = "section">
 		{% for g in s.get_grafs %}
 			{%if g.title %}
@@ -153,6 +156,7 @@
 		
 		</div>
 		</section>
+		{% block next_section %}
 		{% if article.multipage and s.active_section %}
 			{% with s.next_section as next %}
 				{% if next %}
@@ -161,7 +165,8 @@
 					</div>
 				{% endif %}
 			{% endwith %}
-		{% endif %}         
+		{% endif %}
+		{% endblock %}
 		
     {% endfor %} 
 	{% block footer %}

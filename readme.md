@@ -316,3 +316,6 @@ Populated blocks (where you'll need to consult the original templates to adjust 
 - `nav_buttons` - change the search, TOC and download buttons
 - `nav` - replace the entire nav block
 - `facebook` - replace the social sharing settings. 
+- `previous_section` - replace link to previous section (if multipage)
+- `next_section` - replace link to next section (if multipage)
+
