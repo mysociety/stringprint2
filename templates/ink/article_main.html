@@ -169,14 +169,8 @@
 		{% endblock %}
 		
     {% endfor %} 
+	
 	{% block footer %}
-		{% if article.bottom_iframe %}
-		<h1 id="related-research">Related Research</h1>
-		<iframestub></iframestub>
-		<noscript>
-		<iframe src="{{article.bottom_iframe}}" id="iframe_related" height=400 scrolling="no" ></iframe>
-		</noscript>
-		{% endif %}
 	{% endblock %}
 	
 	

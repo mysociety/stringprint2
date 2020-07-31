@@ -263,21 +263,6 @@
 
      <script type="text/javascript" src="{% static 'js/sweetalert2.all.min.js' %}" defer></script>
 
- 
-<script type="text/javascript" defer>
-    window.addEventListener('DOMContentLoaded', function() {
-	$('<iframe>').attr(
-	{
-	  "src": "{{article.bottom_iframe}}",
-	  "id": "iframe_related",
-	  "title":"Related publications",
-	  "height": 400,
-	  "scrolling": "no"
-	}).appendTo("iframestub");
-	});
-</script>
-
-
 
 
 {% block code %}
