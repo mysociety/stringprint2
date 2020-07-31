@@ -77,7 +77,7 @@ Shell commands:
 - `renderzip` - renders a zip file back to the document folder. 
 - `preprocess` - runs any preprocess scripts configured for the org or document
 - `publish` - runs any publish scripts configured for the org or document 
-  `command` - run artibary defined command x.  
+  `[command]` - run a defined commaand for that document or org.
 - `quit` - exits
 
 
@@ -253,7 +253,7 @@ While there is some javascript processing of the keys to find the best match, th
 
 Both org and doc config files can specify additional commands that transform the input or the output.
 
-The anticipated (but not required) commands are `preprocess` and `publish`. 
+The anticipated (but not required) commands are `preprocess` and `publish`. Any additional commands configured can be run in the same way on the shell. 
 
 This is assuming that documents will be passed from outside sources and need additional work to be acceptable to stringprint, and automating the process speeds up the work of revisions. Similarly, it assumes any automatable publication processs differs by org, and should not be in the core. 
 

@@ -263,7 +263,6 @@ class SPPrompt(Cmd):
 
     @select_doc
     def do_command(self, command):
-
         doc, created = Article.objects.get_or_create(org=self.current_org,
                                                      slug=self.current_doc)
         doc.load_from_yaml(self.doc_folder)
@@ -357,6 +356,19 @@ class SPPrompt(Cmd):
         hero_path = os.path.join(self.doc_folder, hero_location)
         destination = os.path.join(self.doc_folder, "hero.png")
         create_hero(hero_path, destination)
+
+    def default(self, line):
+        options = line.split(" ")
+        first = options[0]
+        if self.current_doc:
+            doc, created = Article.objects.get_or_create(org=self.current_org,
+                                                         slug=self.current_doc)
+        if first in self.current_org.commands or first in doc.commands:
+            doc.load_from_yaml(self.doc_folder)
+            doc.run_command(line)
+            print("Finished command {1}: {0}".format(doc.title, line))
+        else:
+            return super().default(line)
 
 
 if __name__ == "__main__":
