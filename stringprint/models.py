@@ -426,6 +426,7 @@ class Article(models.Model):
             file_name = data["book_cover"]
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(self.org.storage_dir,
+                                         "_docs",
                                          self.slug,
                                          file_name)
             self.get_book_cover(file_name)
