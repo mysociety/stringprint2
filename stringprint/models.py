@@ -806,6 +806,13 @@ class Article(models.Model):
                 os.path.join(destination, "l"),
                 ]
 
+        # discovery is there is a specific org directory to copy across
+        org_static_folder = os.path.join(self.org.storage_dir, "_static")
+        if os.path.exists(org_static_folder):
+            dirs.append(os.path.join(destination, "static", "orgs"))
+            dirs.append(os.path.join(
+                destination, "static", "orgs", self.org.slug))
+
         for d in dirs:
             if os.path.isdir(d) is False:
                 os.makedirs(d)
@@ -980,10 +987,10 @@ class Article(models.Model):
         pull in org based static directories
         """
 
-        org_directory = os.path.join(self.org.storage_dir, "static")
+        org_directory = os.path.join(self.org.storage_dir, "_static")
 
         if os.path.exists(org_directory):
-            d = os.path.join(destination, "static")
+            d = os.path.join(destination, "static", "orgs", "mysociety")
             sync(org_directory, d, "sync")
 
         """
