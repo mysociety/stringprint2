@@ -61,7 +61,6 @@ class Footnote(SerialObject):
         else:
             self.local_ref = local_ref
             self.named_reference = None
-        print("local ref", self.local_ref)
         self.__class__.note_count += 1
         self.__class__.all.append(self)
 
