@@ -73,7 +73,7 @@ Shell commands:
 - `convertword` - creates document.md from (assumed to be) the only docx document in the document folder and separates tables and images into assets folder. Optional ‘demote’ keyword will lower all header - levels (string print assumes section headers are H2). 
 - `mergepdf` - merges cover.pdf and contents.pdf (ignoring front page) into a single pdf for upload. 
 - `pdfpng` - creates an image version of cover.pdf and a thumbnail version for upload. 
-- `render` - renders the document out to the render folder location (requires the org publish_dir setting to be configured)
+- `render` - renders the document out to the render folder location (if the org publish_dir setting is not configured, defaults to `'_publish` in the source directory).
 - `renderzip` - renders a zip file back to the document folder. 
 - `preprocess` - runs any preprocess scripts configured for the org or document
 - `publish` - runs any publish scripts configured for the org or document 

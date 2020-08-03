@@ -116,7 +116,8 @@ class Organisation(models.Model):
 
     @property
     def publish_dir(self):
-        return settings.ORGS[self.slug]["publish_dir"]
+        alt_path = os.path.join(self.storage_dir, "_publish")
+        return settings.ORGS[self.slug].get("publish_dir", alt_path)
 
     @property
     def template_dir(self):

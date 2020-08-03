@@ -12,8 +12,10 @@ with open(os.path.join(BASE_DIR, 'proj', 'conf', 'config.yaml')) as fi:
 is_vagrant = os.path.exists("/etc/is_vagrant_vm")
 if is_vagrant:
     for k, v in config["ORGS"].items():
-        v["storage_dir"] = "/sp_" + k + "_storage"
-        v["publish_dir"] = "/sp_" + k + "_publish"
+        if "storage_dir" in v:
+            v["storage_dir"] = "/sp_" + k + "_storage"
+        if "publish_dir" in v:
+            v["publish_dir"] = "/sp_" + k + "_publish"
 
 # import config settings into module
 for k, v in config.items():
