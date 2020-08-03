@@ -990,7 +990,7 @@ class Article(models.Model):
         org_directory = os.path.join(self.org.storage_dir, "_static")
 
         if os.path.exists(org_directory):
-            d = os.path.join(destination, "static", "orgs", "mysociety")
+            d = os.path.join(destination, "static", "orgs", self.org.slug)
             sync(org_directory, d, "sync")
 
         """
