@@ -183,8 +183,7 @@ class Organisation(models.Model):
                         self.extra_values[k] = v
                         change = True
 
-        if change:
-            self.save()
+        self.save()
 
         if "orglinks" in data:
             self.org_links.all().delete()
@@ -376,6 +375,7 @@ class Article(models.Model):
         """
         Load config for the article from the stored file
         """
+        print("loading yaml")
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
         ignore = ["header", "book_cover"]
 
@@ -394,6 +394,7 @@ class Article(models.Model):
 
         for k, v in self.org.default_values.items():
             if k not in data:
+                print("adding {0} value".format(k))
                 rendered_v = Template(v).render(Context({"article": data}))
                 data[k] = rendered_v
 
