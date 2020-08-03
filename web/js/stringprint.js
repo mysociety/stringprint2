@@ -51,7 +51,7 @@ function changeSelected(id,title,nohash){
 		
         while (text_top < button_top){
 			font_size = font_size - 2
-			if (font_size == 6){
+			if (font_size == 4){
 				break
 			};
 			$("#mobile-title").css("font-size", font_size + "pt");
