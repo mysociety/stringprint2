@@ -317,10 +317,11 @@ class ArticleView(HomeView):
             a.making_screenshot = True
             a.multipage = False
 
+        display_first_section = False
         if a.multipage:
             if section_slug == "":
-                section_slug = a.first_section_name
-                slugs = [section_slug]
+                display_first_section = True
+                slugs = []
             else:
                 slugs = [section_slug]
         else:
@@ -331,7 +332,7 @@ class ArticleView(HomeView):
         """
 
         para = "full"
-        c = a.display_content(slugs)
+        c = a.display_content(slugs, display_first_section)
         message = ""
 
         for s in c.sections:

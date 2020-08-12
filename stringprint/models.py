@@ -1251,13 +1251,14 @@ class Article(models.Model):
             v = q[0]
         return v
 
-    def display_content(self, slugs=[]):
+    def display_content(self, slugs=[], display_first_section=False):
         """
         initialize the content for rendering
         """
         content = self.content()
         content.article = self
-        content.load_sections(slugs)
+        content.load_sections(
+            slugs, display_first_section=display_first_section)
 
         return content
 
@@ -1564,7 +1565,7 @@ class Version(models.Model):
         v.load_sections(slugs)
         return v
 
-    def load_sections(self, slugs):
+    def load_sections(self, slugs, display_first_section=False):
         """
         construct a self.sections connected to the content
         """
@@ -1575,6 +1576,11 @@ class Version(models.Model):
                 s.active_section = True
             else:
                 s.active_section = False
+            if display_first_section:
+                if s.order == 1:
+                    s.active_section = True
+                else:
+                    s.active_section = False
 
     def used_assets(self):
         """

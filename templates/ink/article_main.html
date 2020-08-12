@@ -78,6 +78,9 @@
 		{# iterate through sections #}
         {% if s.name %}
 			<section aria-labelledby="h.{{s.order}}" id="section.{{s.anchor}}">
+			{% if article.multipage %}
+				<a class="anchor" id="start" name="start"></a>     
+			{% endif %}
             <a class="anchor linkable" id="a{{s.order}}" name="{{s.anchor}}" first_graf="{{s.first_graf_id}}"></a> 
             <div id = "s{{s.order}}" prev = "s{{s.prev_if_single_page}}" class="content-row section-anchor header-text">
             {% with article.image_lookup|get_item:s.name as image %}

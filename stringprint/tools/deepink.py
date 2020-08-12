@@ -173,31 +173,41 @@ class Section(SerialObject):
         link to this section (either as anchor or link to new page).
         """
         article = self._version.article
+        anchor = self.anchor()
         if hasattr(article, "baking") and article.baking:
             """
             disregard url structure when dealing with baking
             """
             if article.multipage:
-                if include_anchor:
-                    return self.anchor() + ".html" + "#" + self.anchor()
+                if self.order == 1:
+                    # if first page in a multipage article
+                    if include_anchor:
+                        return "#" + self.anchor()
+                    else:
+                        return ""
                 else:
-                    return self.anchor() + ".html"
+                    if include_anchor:
+                        return anchor + ".html" + "#" + anchor
+                    else:
+                        return anchor + ".html"
             else:
                 if article.search:
-                    return "index.html#" + self.anchor()
+                    return "index.html#" + anchor
                 else:
-                    return "#" + self.anchor()
+                    return "#" + anchor
         else:
             if article.multipage:
+                if self.order == 1:
+                    anchor = ""
                 if include_anchor:
-                    return article.url(self.anchor()) + "#" + self.anchor()
+                    return article.url(anchor) + "#" + anchor
                 else:
-                    return article.url(self.anchor())
+                    return article.url(anchor)
             else:
                 if article.search:
-                    return "index#" + self.anchor()
+                    return "index#" + anchor
                 else:
-                    return "#" + self.anchor()
+                    return "#" + anchor
 
     def prev_id(self):
         return self.order - 1
