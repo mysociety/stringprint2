@@ -32,6 +32,8 @@ class NamespaceAwareLoader(Loader):
             if namespace:
                 if namespace.lower() == template_name[:len(namespace)].lower():
                     adjusted_template_name = template_name[len(namespace) + 1:]
+                else:
+                    adjusted_template_name = namespace + adjusted_template_name
             try:
                 name = safe_join(template_dir, adjusted_template_name)
             except SuspiciousFileOperation:
