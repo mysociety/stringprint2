@@ -337,7 +337,7 @@ class Section(SerialObject):
 
     def anchor(self):
         """
-        returns an identifiable marker for this paragraph
+        returns an identifiable marker for this section
         from name
         """
         if self.name == "":
@@ -346,9 +346,17 @@ class Section(SerialObject):
         def depuntuate(s):
             return re.sub(r'[^\w\s]', '', s)
 
-        new = depuntuate(self.name).replace(" ", "-").strip().lower()
+        if hasattr(self, 'anchor_title') and self.anchor_title:
+            title = self.anchor_title
+        else:
+            title = self.name
+
+        title = " ".join(title.split())
+        new = depuntuate(title).replace(" ", "-").strip().lower()
         if self.anchor_offset:
             new += "_" + self.anchor_offset
+        new = new.encode('ascii', 'ignore').decode('utf-8')
+
         return new
 
     class Meta:
@@ -381,6 +389,7 @@ class Graf(SerialObject):
         self.real_order = 0
         self.asset = None
         self.type = ""
+        self.anchor_title = ""
         self.anchor_offset = ""
         self.blockquote = False
         self.key = ""
@@ -400,8 +409,14 @@ class Graf(SerialObject):
         self.position_key = 0
         self.__dict__.update(kwargs)
 
+    def get_element_tag(self):
+        if self.asset and self.h_name == "p":
+            return "div"
+        else:
+            return self.h_name
+
     def escape_text(self):
-        txt = self.plain_txt.encode('ascii', 'xmlcharrefreplace')
+        txt = self.plain_txt.encode('ascii', 'ignore')
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
         return txt.decode('utf-8')
 
@@ -588,9 +603,11 @@ class Graf(SerialObject):
             self.type = Graf.EXTENDED_START
 
         """ extract and add spans to all double quotes"""
+        text = text.replace('=""', "%EMPTYHTMLTAG%")
         for q in re.findall('""([^"]*?)""', text):
             text = text.replace(
                 '""' + q + '""', '<span class="quote">"' + q + '"</span>')
+        text = text.replace("%EMPTYHTMLTAG%", '=""')
 
         """ extract any tags """
         for q in re.findall('\[tag[^\)]*?]', text):
@@ -686,35 +703,6 @@ class Graf(SerialObject):
                         url += "#tag." + tag
                         text = text.replace('#tag.{0}'.format(tag), url)
 
-        # make first sentence bold for screenshotting
-        making_screenshot = False
-        if hasattr(self._section._version.article, "making_screenshot"):
-            making_screenshot = getattr(
-                self._section._version.article, "making_screenshot")
-
-        making_screenshot = False  # highlight the first sentence, currently off
-
-        if making_screenshot:
-            beg = 50
-            if len(text) < beg:
-                beg = 0
-            try:
-                end_of_sentence = text.index(".")
-            except Exception:
-                end_of_sentence = None
-            if not end_of_sentence:
-                try:
-                    end_of_sentence = text.index(",", beg)
-                except Exception:
-                    end_of_sentence = None
-            if end_of_sentence and end_of_sentence > len(text) - 5:
-                end_of_sentence = None
-
-            if end_of_sentence:
-                text = '<span class="first-sentence">' + \
-                    text[:end_of_sentence + 1] + "</span>" + \
-                    text[end_of_sentence + 1:]
-
         return mark_safe(text)
 
     def display_text(self):
@@ -772,11 +760,22 @@ class Graf(SerialObject):
             return False
 
     def anchor(self):
-
+        """
+        is there a named anchor for this graf
+        """
         def depuntuate(s):
             return re.sub(r'[^\w\s]', '', s)
 
-        new = depuntuate(self.title).replace(" ", "-").strip().lower()
+        if hasattr(self, 'anchor_title') and self.anchor_title:
+            title = self.anchor_title
+        else:
+            title = self.title
+
+        for s in string.whitespace:
+            title = title.replace(s, " ")
+
+        new = depuntuate(title).replace(" ", "-").strip().lower()
+        new = new.replace("%C2%A0", " ")
         if self.anchor_offset:
             new += "_" + self.anchor_offset
         return new
@@ -891,17 +890,21 @@ def process_ink(version, content):
         return s.__unicode__()
 
     header_level = 0
+    current_h1_title = "start"
     for x, p in enumerate(lines):
         # doesn't give us double entries for <p> contained within these
         if p.text != "" and p.parent.name not in ["blockquote", "li"]:
             if p.name in ["h2", "h3", "h4"]:
                 if section_title:
                     # if multiple headers straight after each other
+                    anchor_title = current_h1_title + "_" + section_title
+                    print("creating anchor title:{0}".format(anchor_title))
                     ng = Graf(title=section_title,
                               order=order,
                               header_level=header_level,
                               parent_id=s.order,
-                              anchor_offset=get_anchor_offset(section_title))
+                              anchor_title=anchor_title,
+                              anchor_offset=get_anchor_offset(anchor_title))
                     order += 1
                     s.grafs.append(ng)
                 section_title = p.text  # assigns title to next graf we find
@@ -915,6 +918,7 @@ def process_ink(version, content):
                 s = Section(order=s_order,
                             name=p.text,
                             anchor_offset=get_anchor_offset(p.text))
+                current_h1_title = p.text
                 last_title = None
             elif "[catchup:" in p.text.lower():
                 # extract catch up information and append it to last uploaded
@@ -941,6 +945,10 @@ def process_ink(version, content):
                     else:
                         plain_txt = p.text
                         html = extract_p_if_first(p)
+                    if section_title:
+                        anchor_title = current_h1_title + " " + section_title
+                    else:
+                        anchor_title = ""
                     ng = Graf(title=section_title,
                               plain_txt=plain_txt,
                               html=html,
@@ -950,7 +958,8 @@ def process_ink(version, content):
                               header_level=header_level,
                               parent_id=s.order,
                               catch_up=catchup,
-                              anchor_offset=get_anchor_offset(section_title))
+                              anchor_title=anchor_title,
+                              anchor_offset=get_anchor_offset(anchor_title))
 
                     catchup = ""
                     if section_title:

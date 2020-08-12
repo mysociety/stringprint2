@@ -1682,13 +1682,16 @@ class Version(models.Model):
             def final_level_range(self):
                 return range(0, self.final_level())
 
-            def final_level_range_left_open(self):
+            def final_level_range_left_open(self, offset=1):
                 item = 0
                 for i in self.items[::-1]:
                     if i.level in [1, 2]:
                         item = i.level
                         break
-                return range(0, item - 1)
+                return range(0, item - offset)
+
+            def final_level_range_left_open_minus_one(self):
+                return self.final_level_range_left_open(2)
 
             def add(self, **kwargs):
                 item = Link(**kwargs)

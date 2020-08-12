@@ -4,12 +4,14 @@ from django.utils.safestring import mark_safe
 from stringprint.models import Asset
 register = template.Library()
 
+
 @register.filter("range")
 def range_f(v):
     if v < 0:
-        return range(v,0)
+        return range(v, 0)
     else:
-        return range(0,v)
+        return range(0, v)
+
 
 @register.filter
 def empty_if_none(v):
@@ -74,11 +76,21 @@ def display_asset_caption(article, asset_id):
 
 
 @register.filter
+def display_asset_text(article, asset_id):
+
+    asset = [x for x in article.cached_assets if x.id == asset_id]
+    if asset:
+        return asset[0].render(basic=True, kindle=False)
+    else:
+        return None
+
+
+@register.filter
 def display_asset_kindle(article, asset_id):
 
     asset = [x for x in article.cached_assets if x.id == asset_id]
     if asset:
-        return asset[0].render(basic=True)
+        return asset[0].render(basic=True, kindle=True)
     else:
         return None
 

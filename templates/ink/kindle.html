@@ -9,11 +9,10 @@
 </head>
 <body>
 
-<h2>{{article.title}}</h2>
-<h3>{{article.authors}}</h3>
+<h1>{{article.title}}</h1>
+<p>{{article.authors}}</p>
 
 <div id="toc">
-	<h3>
             <ul>
             {% if content.sections.0.name == "" %}
             {% endif %}
@@ -22,7 +21,7 @@
 			{% for s in toc.top_two_levels %}
 				{% with s.future_level_difference as fl %}
 					<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
-					{% if fl > 0 %}
+					{% if fl > 0 and s.level < 2 %}
 						<ul>
 					{% elif fl == 0 %}
 						</li>
@@ -33,23 +32,27 @@
 					{% endif %}
 				{% endwith %}
 			{% endfor %}
-			{% for i in toc.final_level_range_left_open %}
-			</ul>
-			{% endfor %}
+			{% if content.footnotes %}
+				{% for i in toc.final_level_range_left_open_minus_one %}
+				</ul>
+				{% endfor %}
+			{% else %}
+				{% for i in toc.final_level_range_left_open %}
+				</ul>
+				{% endfor %}
+			{% endif %}
 			{% endwith %}
 			
             {% if content.footnotes %}
             <li><a href="#refs">Notes</a></li>
             {% endif %}
             </ul>
-	</h3>
-
 </div>
 <mbp:pagebreak />
 {% for s in content.sections %}
     <mbp:section />
     {%if s.name %}
-        <H2 id="{{s.anchor}}">{{s.name|safe}}</h2>
+        <H1 id="{{s.anchor}}">{{s.name|safe}}</h1>
     {% else %}
         {% if forloop.counter == 1 %}
             <h2 id="start">{{article.short_title|safe}}</a></h2>
@@ -57,19 +60,19 @@
     {% endif %}
     {% for g in s.get_kindle_grafs %}
         {%if g.title %}
-            <H3 id="{{g.anchor}}">{{g.title|safe}}</h3>
+        <H{{g.header_level}} id="{{g.anchor}}">{{g.title|safe}}</h{{g.header_level}}>
         {% endif %}
         {% if g.tag %}
             <a name="tag.{{g.tag}}"></a> 
         {% endif %}
         {% if g.is_extended_start %}<hr>{% endif %}
         {% if g.blockquote %}<blockquote>{% endif %}
-        <p>
+        <{{g.get_element_tag}} id = "p{{g.order}}">
         {% if g.asset %}{{article|display_asset_kindle:g.asset}}{% else %}{% if txt_mode == "kindle" %}{{g.display_kindle}}{% else %}{{g.display_text}}{% endif %}{% endif %}
         {% if g.expand_link.0 == "expand" and article.display_notes == False %}
          <a name="notes-{{g.expand_link.1}}-link" href="#notes-{{g.expand_link.1}}">(Notes)</a>
         {% endif %}
-        </p>
+        </{{g.get_element_tag}}>
         
         {% if g.blockquote %}</blockquote>{% endif %}
         {% if g.is_extended_end %}<hr>{% endif %}
