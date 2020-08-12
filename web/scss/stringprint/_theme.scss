@@ -113,12 +113,16 @@ ul,ol
   font-size:14pt;
 }
 
-.previous_section
+.section_change
 {
   text-align:center;
   font-style:italic;
   padding-top:0;
   padding-bottom:10px;
+}
+
+.section_change > p{
+  text-align:center;
 }
 
 .blockquote
@@ -234,7 +238,7 @@ h3::after
   text-align:center;
 }
 
-#related-research::after,.next_section::after
+#related-research::after
 {
   content:'';
   display:block;

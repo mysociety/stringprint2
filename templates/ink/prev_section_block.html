@@ -1,0 +1,14 @@
+	{% block previous_section %}
+	{% if article.multipage and s.active_section %}
+		{% with s.prev_section as prev %}
+			{% if prev %}
+				<div class = "section_change previous_section">
+				<p>Previous section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a></p>
+				<p>
+				(<a href="#index">Contents</a>)
+				</p>
+				</div>
+			{% endif %}
+		{% endwith %}
+	{% endif %}
+	{% endblock %}
