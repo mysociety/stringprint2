@@ -2214,7 +2214,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
             self.content = raw
         self.save()
 
-    def render_image(self, basic=False, chart_alt=False):
+    def render_image(self, basic=False, chart_alt=False, kindle=False):
         """
         get image ready for render
         """
@@ -2227,9 +2227,11 @@ class Asset(FlexiBulkModel, HeaderMixin):
         url = settings.MEDIA_URL + self.get_image_name(1200)
         if settings.MEDIA_URL not in url and url[0] == "/":
             url = url[1:]
+
         if hasattr(self.article, "baking") and self.article.baking:
             url = self.article.production_url + url
-
+        if kindle and url[0] == "/":
+            url = url[1:]
         if self.alt_text:
             at = self.alt_text
         else:
@@ -2243,7 +2245,8 @@ class Asset(FlexiBulkModel, HeaderMixin):
         else:
             template = 'charts//responsive_image.html'
 
-        context = {"asset": self,
+        context = {"kindle": kindle,
+                   "asset": self,
                    "source": url,
                    "alt": escape(at),
                    "title": escape(self.caption),
@@ -2255,11 +2258,11 @@ class Asset(FlexiBulkModel, HeaderMixin):
     def render_code(self):
         return mark_safe(self.code_content)
 
-    def render(self, basic=False):
+    def render(self, basic=False, kindle=False):
         if self.type == Asset.RAW_HTML:
             return mark_safe(self.content)
         if self.type == Asset.IMAGE:
-            return self.render_image(basic=basic, chart_alt=False)
+            return self.render_image(basic=basic, chart_alt=False, kindle=kindle)
         if self.type == Asset.CHART:
             if self.chart.chart_type == "table_chart":
                 if basic:
