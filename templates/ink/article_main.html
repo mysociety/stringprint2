@@ -6,13 +6,13 @@
 <div class="background_image">
 {% block title_image %}
 
-<div class = "container container-fluid image-container" >
-{% with article.title_image as tl %}
-    {% if tl %}
-        {% header_image tl article.title %}
-    {% endif %}
-{% endwith %}
-</div>
+	<div class = "container container-fluid image-container" >
+	{% with article.title_image as tl %}
+		{% if tl %}
+			{% header_image tl article.title %}
+		{% endif %}
+	{% endwith %}
+	</div>
 {% endblock %}
 {% block title %}
 <div class="container">
@@ -47,7 +47,7 @@
 			{% endblock %}
 		
                 <H1 id="toc">Contents</h1>
-                <div class="toc_content">
+                <div class="toc_content content_row">
 				<ul>
 				{% with content.toc as toc %}
                 {% for s in content.toc %}
@@ -89,7 +89,9 @@
                         {% header_image image s.name %}
                     </div>
                 {% else %}
+					{% block section_title_name %}
                     <H1 id = "h.{{s.order}}">{{s.name}}</h1>
+					{% endblock %}
                 {% endif %}
             {% endwith %}
             </div>
@@ -107,6 +109,7 @@
 				<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
 				<h{{g.header_level}}>{{g.title|safe}}</h{{g.header_level}}>
 			</div>
+			
 			{% endif %}
 			<a class="noscript-anchor" name = "{{g.combo_key}}"></a>
 			{{g.anchor_code}}
@@ -157,6 +160,7 @@
 		
     {% endfor %} 
 	
+
 	{% block footer %}
 	{% endblock %}
 	
