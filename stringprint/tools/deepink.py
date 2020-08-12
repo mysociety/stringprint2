@@ -291,7 +291,18 @@ class Section(SerialObject):
         last_title = None
         prev_block_is_block = False
         expanded_block = None
+        has_titles = False
+        for p in temp_grafs:
+            if p.title:
+                has_titles = True
+            break
         for x, p in enumerate(temp_grafs):
+            p.is_first_title = False
+            p.is_last_graf = False
+            p.section_has_titles = has_titles
+            if x == len(temp_grafs) - 1:
+                p.is_last_graf = True
+
             if x + 1 < len(temp_grafs) - 1:
                 n = temp_grafs[x + 1]
                 next_block_type = n.type
@@ -308,13 +319,16 @@ class Section(SerialObject):
             p.expand_link = [p.end_expand_link(
                 next_block_type=next_block_type), next_id]
             if p.title:
+                if last_title is None:
+                    p.is_first_title = True
                 last_title = p
                 p.last_title_order = self.order
-            elif last_title == None:
+            elif last_title is None:
                 p.last_title_order = 0
             else:
                 p.last_title_order = last_title.order
             prev_block_is_block = p.blockquote
+
             # combine all expanded grafs into one super block
             if p.type == Graf.EXTENDED_START:
                 expanded_block = p
