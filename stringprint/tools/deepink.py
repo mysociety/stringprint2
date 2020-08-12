@@ -128,8 +128,13 @@ class Section(SerialObject):
         self.anchor_offset = ""
         self.visible = True
         self.nav = []
+        self.header_asset = None
         self.__dict__.update(kwargs)
         self._version = None  # set during display
+
+    def get_header_asset(self):
+        if self.header_asset:
+            return self._article.assets.get(id=self.header_asset)
 
     def first_graf_id(self):
         if self.grafs:
@@ -145,7 +150,7 @@ class Section(SerialObject):
         """
         which assets are in this section
         """
-        return [g.asset for g in self.grafs if g.asset]
+        return [g.asset for g in self.grafs if g.asset] + [self.header_asset]
 
     def next_section(self):
         """
@@ -569,7 +574,7 @@ class Graf(SerialObject):
                     if f.content == "" and f.local_ref == ref:
                         f.set_content(note)
 
-    def process(self, prev_type="", article=None):
+    def process(self, prev_type="", article=None, section=None):
 
         def depuntuate(s):
             return re.sub(r'[^\w\s]', '', s)
@@ -636,6 +641,18 @@ class Graf(SerialObject):
         """ extract any page_tags """
         for q in re.findall('\[page[^\)]*?]', text):
             self.page_tag = q.replace("[page:", "").replace("]", "")
+            text = text.replace(q, "")
+
+        """ extract and replace header-assets """
+        for q in re.findall('\[header-asset:[^\)]*]', text):
+            asset = q.replace("[header-asset:", "").replace("]", "")
+            real_asset = article.article.assets.filter(slug=asset)
+            print("found header asset {0}".format(asset))
+            if real_asset.exists():
+                obj = real_asset[0]
+                obj.active = True
+                obj.save()
+                section.header_asset = obj.id
             text = text.replace(q, "")
 
         """ extract and replace assets """
@@ -978,7 +995,7 @@ def process_ink(version, content):
                     catchup = ""
                     if section_title:
                         last_title = ng
-                    ng.process(last_type, version)
+                    ng.process(last_type, version, s)
                     if ng.type:
                         order += 1
                         last_type = ng.type

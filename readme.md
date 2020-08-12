@@ -200,6 +200,8 @@ To do a named footnote (Harvard style), add the extra words to the reference wit
 
 Images and tables are expected to be seperated into the `assets` folder of a document and referenced by `[asset:image-asset-1]`.  If using the inbuilt `convertword` function this will be done automatically. 
 
+Using `[header-asset:image-asset-1]` will intergrate with the section-anchor for that section. There can only be one section-anchor per section. 
+
 The source file will accept html and carry through classes to the final version. Elements that will be carried across are: `p`, `ul`,`ol`, `h1`, `h2`, `h3`, `h4`, `h5`, `blockquote`, `table`.
 
 ### Assets

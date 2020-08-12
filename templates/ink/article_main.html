@@ -94,11 +94,15 @@
 					{% endblock %}
                 {% endif %}
             {% endwith %}
+		{% if s.header_asset %}
+			{{article|display_asset:s.header_asset}}
+		{% endif %}			
             </div>
 		{% else %}
-		<a class="anchor" id="start" name="start"></a>     
-		<section aria-label="Introduction">
+			<a class="anchor" id="start" name="start"></a>     
+			<section aria-label="Introduction">
         {% endif %}
+
 		{% block prev_section_block_link %}
 			{% include "ink/prev_section_block.html" %}
 		{% endblock%}
