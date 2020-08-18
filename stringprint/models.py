@@ -666,7 +666,7 @@ class Article(models.Model):
             v = self.production_url
             if v[-1] != "/":
                 v += "/"
-            v += "l/{0}".format(paragraph.combo_key())
+            v += "l/{0}.html".format(paragraph.combo_key())
             return v
         else:
             return reverse('redirect_link', args=(self.slug,
