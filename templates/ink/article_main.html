@@ -46,8 +46,9 @@
 			{% block search_results %}
 			{% endblock %}
 		
-                <H1 id="toc">Contents</h1>
+
                 <div class="toc_content content_row">
+                <H1 id="toc">Contents</h1>
 				<ul>
 				{% with content.toc as toc %}
                 {% for s in content.toc %}
@@ -94,15 +95,18 @@
 					{% endblock %}
                 {% endif %}
             {% endwith %}
-		{% if s.header_asset %}
-			{{article|display_asset:s.header_asset}}
-		{% endif %}			
+		
             </div>
 		{% else %}
 			<a class="anchor" id="start" name="start"></a>     
 			<section aria-label="Introduction">
         {% endif %}
-
+		
+		{% if s.header_asset %}
+		<div style="margin-top:20px">
+			{{article|display_asset:s.header_asset}}
+			</div>
+		{% endif %}	
 		{% block prev_section_block_link %}
 			{% include "ink/prev_section_block.html" %}
 		{% endblock%}
