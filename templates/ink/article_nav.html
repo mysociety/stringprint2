@@ -82,7 +82,7 @@
 		{% if article.pdf_url %}
 		<li data-toggle="collapse" data-target="#navbarSupportedContent"><a class="nav-link alt_link"  href="{{article.pdf_url}}" type="pdf">Download PDF</a></li>
 		{% endif %}
-		<li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="search">Search</a></li>
+		<li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="{{article.search_url}}">Search</a></li>
 		<li role="separator" class="divider"></li>
 		{% with content.toc as toc %}
         {% for s in toc.level_1 %}
