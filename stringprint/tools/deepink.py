@@ -187,9 +187,9 @@ class Section(SerialObject):
                 if self.order == 1:
                     # if first page in a multipage article
                     if include_anchor:
-                        return "#" + self.anchor()
+                        return "./#" + self.anchor()
                     else:
-                        return ""
+                        return "./"
                 else:
                     if include_anchor:
                         return anchor + ".html" + "#" + anchor
