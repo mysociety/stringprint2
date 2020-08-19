@@ -915,9 +915,10 @@ def process_ink(version, content):
             return ""
 
     def extract_p_if_first(s):
-        for e in good_to_extract:
-            if s.name == e:
-                return get_content(s)
+        if s.name != "blockquote":
+            for e in good_to_extract:
+                if s.name == e:
+                    return get_content(s)
         return s.__unicode__()
 
     header_level = 0
