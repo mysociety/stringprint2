@@ -17,6 +17,9 @@ def svg_safe(input_css, *args, **kwargs):
     does not allow whitespace to be removed where svg is contained
     in the css
     """
+
+    input_css = input_css.replace("/%%static%%", "../..")
+
     replace_str = "!!TEMPSPACE!!"
 
     line_safe = []
