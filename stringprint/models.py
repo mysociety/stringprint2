@@ -1700,9 +1700,21 @@ class Version(models.Model):
                 self.items.append(item)
 
             def top_two_levels(self):
+                items = []
                 for i in self.items:
                     if i.level in [1, 2]:
-                        yield i
+                        items.append(i)
+
+                for l in range(0, len(items)):
+                    current = items[l]
+                    current_level = current.level
+                    if l < len(items) - 1:
+                        next = items[l + 1]
+                        next_level = next.level
+                    else:
+                        next_level = 0
+                    current.reduced_diff = next_level - current_level
+                    yield current
 
             def __iter__(self):
                 for i in self.items:

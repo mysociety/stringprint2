@@ -51,25 +51,20 @@
                 <H1 id="toc">Contents</h1>
 				<ul>
 				{% with content.toc as toc %}
-                {% for s in content.toc %}
-					{% with s.future_level_difference as fl %}
-						<li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
-						{% if fl > 0 %}
-							<ul>
-						{% elif fl == 0 %}
-							</li>
-						{% else %}
-						{% for i in fl|range %}
-						</ul></li>
-						{% endfor %}
-						{% endif %}
-					{% endwith %}
-                {% endfor %}
-				{% for i in toc.final_level_range %}
-                </ul>
+				{% for s in toc.top_two_levels %}
+					<li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
+					{% if s.reduced_diff == 1 %}
+						<ul>
+					{% elif s.reduced_diff == 0 %}
+						</li>
+					{% elif s.reduced_diff == -1 %}
+						</li></ul></li>
+					{% elif s.reduced_diff == -2 %}
+						</li></ul></li></ul>
+					{% endif %}
 				{% endfor %}
-				</div>
 				{% endwith %}
+				</div> 
         </div> 
     {% block content %}
 	<main>
