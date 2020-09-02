@@ -16,8 +16,8 @@
 {% endblock %}
 {% block title %}
 <div class="container">
-	<a class="anchor" id="a0" name="top"></a>   
-      <div class="title-header-text header-text text-center">
+	<a class="anchor" id="a0" name="top"></a>
+      <div class="title-header-text header-text text-center {% if article.multipage and not first_multi_page %}multi-page-header{% endif%}">
         <p class="article_title h1{% if article.title_image.size == -1 %} background_title{% endif %}" id="article_title">{{article.split_title}}</p>
 		{% block subtitle %}
 		{% if article.split_subtitle %}

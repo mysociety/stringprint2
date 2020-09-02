@@ -354,6 +354,8 @@ class ArticleView(HomeView):
                 'content': c,
                 'debug': settings.DEBUG,
                 'message': message,
+                'first_multi_page': display_first_section,
+                'section_slug': section_slug,
                 'chart_collection': chart_collection}
 
     def _get_template_path(self):
