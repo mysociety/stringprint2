@@ -33,6 +33,7 @@ from collections import OrderedDict
 from ruamel.yaml import YAML
 from selenium import webdriver, common
 from webptools import webplib as webp
+import markdown
 
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
@@ -580,8 +581,10 @@ class Article(models.Model):
             f = Asset(article=self,
                       slug=a["slug"],
                       type=a["content_type"],
-                      alt_text=a["caption"],
-                      caption=a["caption"],
+                      alt_text=a.get("alt_text", a.get("caption", "")),
+                      caption=a.get("caption", ""),
+                      content=markdown.markdown(
+                          a.get("longdesc", "").replace("\n", "\n\n")),
                       no_header=no_header,
                       )
             file_name = "{0}.{1}".format(a["slug"], a["type"])
@@ -1036,6 +1039,10 @@ class Article(models.Model):
 
         book = mkepub.Book(title=self.title, authors=self.authors.split(","))
 
+        book.set_stylesheet(""".asset-long-desc{
+                            display: None;
+                            }""")
+
         if self.book_cover:
             with open(self.book_cover.path, 'rb') as file:
                 book.set_cover(file.read())
@@ -1045,7 +1052,7 @@ class Article(models.Model):
         for s in self.content().sections:
             anchor = s.anchor()
             args = (self.slug, s.anchor())
-            path = self.slug + "/epub/" + s.anchor()
+            path = self.slug + "/epub/" + anchor
             request = RequestFactory().get(path)
             content = EbookChapterView.as_view(decorators=False)(
                 request, *args).content
@@ -2318,9 +2325,9 @@ class Asset(FlexiBulkModel, HeaderMixin):
     def save(self, *args, **kwargs):
         if self.image:
             self.type = Asset.IMAGE
-        if self.chart:
+        elif self.chart:
             self.type = Asset.CHART
-        if self.content:
+        elif self.content:
             self.type = Asset.RAW_HTML
         if self.content is None and self.type == Asset.RAW_HTML:
             self.get_text_from_file()

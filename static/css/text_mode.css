@@ -5,3 +5,11 @@ span.quote {
 blockquote {
     font-style: italic; 
 }
+
+.asset-long-desc{
+	display: None;
+}
+
+.bold {
+	font-weight:bold;
+}

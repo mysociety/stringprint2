@@ -1,7 +1,14 @@
 
+{% load extra_tags %}
+
 <div style="width:50%">
-        <img class="center-block" src="{{source}}" alt="{{alt}}"  title="{{title}}"></img>
+        <img class="center-block" src="{{source}}" alt="{{asset.alt_text|empty_if_none}}" longdesc="#desc_{{asset.image.name|slugify}}" title="{{title}}"></img>
 {% if caption %}
     <p class="asset-caption">{{caption}}</p>
+{% endif %}
+{% if asset.content %}
+	<div id = "desc_{{asset.image.name|slugify}}" class = "asset-long-desc">
+	{{asset.content|safe}}
+    <div>
 {% endif %}
 </div>

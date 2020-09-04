@@ -8,9 +8,14 @@
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
             {% endfor %}
             <!--[if IE 9]></video><![endif]-->
-            <a href="{{asset.image.url}}"> <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{caption|empty_if_none}}" style="margin:0 auto;"></a>
+            <a href="{{asset.image.url}}"> <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{asset.alt_text|empty_if_none}}" {% if asset.content %} longdesc="#desc_{{asset.image.name|slugify}}" {% endif%} style="margin:0 auto;"></a>
         </picture>
 </div>
 {% if caption.strip %}
     <p class="asset-caption">Image: {{caption}}</p>
+{% endif %}
+{% if asset.content %}
+	<div id = "desc_{{asset.image.name|slugify}}" class = "asset-long-desc">
+	{{asset.content|safe}}
+    <div>
 {% endif %}

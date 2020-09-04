@@ -6,7 +6,27 @@
 	<meta charset="utf-8" />
 	<title>{{article.title}}</title>
 <link href="{% static 'css/kindle.css' %}" rel="stylesheet"  type='text/css'>
+
+<style>
+span.quote {
+    font-style: italic; 
+}
+
+blockquote {
+    font-style: italic; 
+}
+
+.asset-long-desc{
+	display: None;
+}
+
+.bold {
+	font-weight:bold;
+}
+</style>
+
 </head>
+
 <body>
 
 <h1>{{article.title}}</h1>
@@ -31,16 +51,6 @@
 				{% endif %}
 			{% endfor %}
 			{% endwith %}
-
-			{% if content.footnotes %}
-				{% for i in toc.final_level_range_left_open_minus_one %}
-				</ul>
-				{% endfor %}
-			{% else %}
-				{% for i in toc.final_level_range_left_open %}
-				</ul>
-				{% endfor %}
-			{% endif %}
 			
             {% if content.footnotes %}
             <li><a href="#refs">Notes</a></li>
