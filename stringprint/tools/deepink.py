@@ -351,7 +351,7 @@ class Section(SerialObject):
                 expanded_block = None
             else:
                 self.stored_grafs.append(p)
-                if p.visible:
+                if p.visible or p.title:
                     yield p
 
     def anchor(self):
@@ -534,7 +534,7 @@ class Graf(SerialObject):
         return this and any child paragraphs (in extended sections)
         """
         for x in [self] + self.extra_grafs:
-            if x.html:
+            if x.html or x.title:
                 yield x
 
     def long_combo_key(self):
@@ -929,11 +929,12 @@ def process_ink(version, content):
             if p.name in ["h2", "h3", "h4"]:
                 if section_title:
                     # if multiple headers straight after each other
-                    anchor_title = current_h1_title + "_" + section_title
+                    anchor_title = current_h1_title + " " + section_title
                     print("creating anchor title:{0}".format(anchor_title))
                     ng = Graf(title=section_title,
                               order=order,
                               header_level=header_level,
+                              h_name=p.name,
                               parent_id=s.order,
                               anchor_title=anchor_title,
                               anchor_offset=get_anchor_offset(anchor_title))
