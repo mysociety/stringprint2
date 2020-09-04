@@ -837,6 +837,14 @@ class Article(models.Model):
             dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
             shutil.copyfile(source_file, dest_file)
 
+        extra_files = self.extra_values.get('copy_files', [])
+        for f in extra_files:
+            source_file = os.path.join(
+                self.org.storage_dir, "_docs", self.slug, f)
+            dest_file = os.path.join(destination, f)
+            print("copying {0}".format(f))
+            shutil.copyfile(source_file, dest_file)
+
         """
         generate paragraph images
         """

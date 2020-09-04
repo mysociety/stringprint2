@@ -149,6 +149,8 @@ header:
   size: 6
 commands:
   preprocess: python convert.py
+copy_files:
+  - extra_pdf.pdf
 ```
 
 The following are accepted config options (which may also be specified through the org default values):
@@ -179,6 +181,7 @@ Format options:
 - `pdf` - name of a pdf version in the document folder (will be copied into rendered folder)
 - `pdf_location` - url of a PDF to link to elsewhere
 - `kindle_location` - location of a kindle file elsewhere to replace local link (if for instance, avaliable on Amazon)
+- `copy_files` - additional files to be copied from the source folder to the rendered directory/zip.
 
 Image options:
 
