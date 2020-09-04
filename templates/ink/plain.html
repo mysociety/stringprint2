@@ -9,10 +9,13 @@
 </head>
 <body>
 
+<header>
 <h1>{{article.title}}</h1>
 <p>{{article.authors}}</p>
+</header>
 
 <div id="toc">
+			<nav>
             <ul>
             {% if content.sections.0.name == "" %}
             <li><a href="#intro">Introduction</a>
@@ -51,9 +54,12 @@
             <li><a href="#onlineaccess">Online Access</a></li>
             {% endif %}
             </ul>
+			</nav>
 
 </div>
+<main>
 {% for s in content.sections %}
+	<section>
     {%if s.name %}
         <H1 id="{{s.anchor}}">{{s.name|safe}}</h1>
     {% else %}
@@ -81,6 +87,7 @@
         {% if g.is_extended_end %}<hr>{% endif %}
     
     {% endfor %}
+	</section>
 {% endfor %}
          {% with content.footnotes as notes %}
             {% if notes %}
@@ -113,5 +120,6 @@
 
             {% endif %}
         {% endwith %}
+</main>
 </body>
 </html>
