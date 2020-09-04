@@ -19,19 +19,19 @@
 			
 			{% with content.toc as toc %}
 			{% for s in toc.top_two_levels %}
-				{% with s.future_level_difference as fl %}
-					<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
-					{% if fl > 0 and s.level < 2 %}
-						<ul>
-					{% elif fl == 0 %}
-						</li>
-					{% else %}
-					{% for i in fl|range %}
-					</ul></li>
-					{% endfor %}
-					{% endif %}
-				{% endwith %}
+				<li><a href="#{{s.anchor}}">{{s.name|safe}}</a>
+				{% if s.reduced_diff == 1 %}
+					<ul>
+				{% elif s.reduced_diff == 0 %}
+					</li>
+				{% elif s.reduced_diff == -1 %}
+					</li></ul></li>
+				{% elif s.reduced_diff == -2 %}
+					</li></ul></li>
+				{% endif %}
 			{% endfor %}
+			{% endwith %}
+
 			{% if content.footnotes %}
 				{% for i in toc.final_level_range_left_open_minus_one %}
 				</ul>
@@ -41,7 +41,6 @@
 				</ul>
 				{% endfor %}
 			{% endif %}
-			{% endwith %}
 			
             {% if content.footnotes %}
             <li><a href="#refs">Notes</a></li>
