@@ -1534,6 +1534,17 @@ class Version(models.Model):
             self.raw = raw
             self.save()
 
+    def section_link_lookup(self):
+        """
+        creates a lookup for tags to order
+        """
+        di = {}
+        for s in self.sections:
+            di[s.anchor()] = s
+            for g in s.grafs:
+                di[g.anchor] = s
+        return di
+
     def tag_lookup(self):
         """
         creates a lookup for tags to order

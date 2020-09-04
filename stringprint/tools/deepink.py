@@ -17,6 +17,7 @@ import string
 
 
 tag_re_statement = re.compile('"#tag.(.*?)"')
+internal_links_re_statement = re.compile('"#(.*?)"')
 
 
 class RandomAssignment(object):
@@ -718,7 +719,6 @@ class Graf(SerialObject):
         """
         version = self._section._version
         if version.article.multipage:
-
             tags = tag_re_statement.findall(text)
             if tags:
                 tag_lookup = version.tag_lookup()
@@ -733,6 +733,15 @@ class Graf(SerialObject):
                                                1].nav_url(include_anchor=False)
                         url += "#tag." + tag
                         text = text.replace('#tag.{0}'.format(tag), url)
+            internal_links = internal_links_re_statement.findall(text)
+            if internal_links:
+                sections = version.section_link_lookup()
+                for link in internal_links:
+                    if link in sections:
+                        s = sections[link]
+                        url = s.nav_url(include_anchor=False)
+                        url += "#" + link
+                        text = text.replace("#" + link, url)
 
         return mark_safe(text)
 

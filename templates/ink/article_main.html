@@ -118,6 +118,9 @@
 				</div>
 			{% endif %}
 			<a class="noscript-anchor" name = "{{g.combo_key}}"></a>
+			{% if g.tag %}
+			<a class="noscript-anchor" name = "tag.{{g.tag}}"></a>
+			{% endif %}
 			{{g.anchor_code}}
 			<div class = "content-row {{g.classes}}" id = "r{{g.order}}">
 					{% if g.start_tag %}
