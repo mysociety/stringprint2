@@ -8,7 +8,7 @@
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
             {% endfor %}
             <!--[if IE 9]></video><![endif]-->
-            <a href="{{asset.image.url}}"> <img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{asset.alt_text|empty_if_none}}" {% if asset.content %} longdesc="#desc_{{asset.image.name|slugify}}" {% endif%} style="margin:0 auto;"></a>
+            {% if header == False %}<a href="{{asset.image.url}}">{% endif %}<img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{asset.alt_text|empty_if_none}}" {% if asset.content %} longdesc="#desc_{{asset.image.name|slugify}}" {% endif%} style="margin:0 auto;">{% if header == False %}</a>{% endif %}
         </picture>
 </div>
 {% if caption.strip %}

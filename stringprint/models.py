@@ -2261,7 +2261,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
             self.content = raw
         self.save()
 
-    def render_image(self, basic=False, chart_alt=False, kindle=False):
+    def render_image(self, basic=False, chart_alt=False, kindle=False, header=False):
         """
         get image ready for render
         """
@@ -2297,7 +2297,8 @@ class Asset(FlexiBulkModel, HeaderMixin):
                    "source": url,
                    "alt": escape(at),
                    "title": escape(self.caption),
-                   "caption": self.caption}
+                   "caption": self.caption,
+                   "header": header}
 
         rendered = render_to_string(template, context)
         return mark_safe(rendered)
@@ -2305,11 +2306,11 @@ class Asset(FlexiBulkModel, HeaderMixin):
     def render_code(self):
         return mark_safe(self.code_content)
 
-    def render(self, basic=False, kindle=False):
+    def render(self, basic=False, kindle=False, header=False):
         if self.type == Asset.RAW_HTML:
             return mark_safe(self.content)
         if self.type == Asset.IMAGE:
-            return self.render_image(basic=basic, chart_alt=False, kindle=kindle)
+            return self.render_image(basic=basic, chart_alt=False, kindle=kindle, header=header)
         if self.type == Asset.CHART:
             if self.chart.chart_type == "table_chart":
                 if basic:

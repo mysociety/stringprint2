@@ -67,6 +67,21 @@ def display_asset(article, asset_id):
 
 
 @register.filter
+def display_header_asset(article, asset_id):
+
+    if hasattr(article, "render_basic_assets"):
+        basic = True
+    else:
+        basic = False
+
+    asset = [x for x in article.cached_assets if x.id == asset_id]
+    if asset:
+        return asset[0].render(basic=basic, header=True)
+    else:
+        return None
+
+
+@register.filter
 def display_asset_caption(article, asset_id):
     asset = [x for x in article.cached_assets if x.id == asset_id]
     if asset:
