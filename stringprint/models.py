@@ -2224,6 +2224,24 @@ class Asset(FlexiBulkModel, HeaderMixin):
     active = models.BooleanField(default=False)
     extra_values = JsonBlockField(default={})
 
+    def search_name(self):
+        txt = ""
+        if self.caption:
+            txt = self.caption
+        elif self.alt_text:
+            txt = self.alt_text
+        txt = txt.encode('ascii', 'ignore')
+        txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
+        return txt.decode('utf-8')
+
+    def escape_text(self):
+        txt = self.content
+        txt = txt.replace("<p>", "")
+        txt = txt.replace("</p>", "")
+        txt = txt.encode('ascii', 'ignore')
+        txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
+        return txt.decode('utf-8')
+
     def get_chart_image(self):
         """
         loads the chart in selenium so we can fetch the image version

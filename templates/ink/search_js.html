@@ -4,7 +4,11 @@
 var tipuesearch = {"pages": [
      {% for s in content.sections %}
      {% for g in s.search_grafs %}
+	 {% if g.asset %}
+     {"title": "{% if g.asset.search_name %}{{g.asset.search_name}}{% else %}{{g.current_title}}{% endif %}", "text": "{{g.asset.escape_text}}", "tags": "", "url": "{{g.nav_url}}"},	 
+	 {% endif %}
      {"title": "{% if g.current_title %}{{g.current_title}}{% else %}Intro{% endif %}", "text": "{{g.escape_text}}", "tags": "", "url": "{{g.nav_url}}"}{% if forloop.last == True and forloop.parentloop.last == True %}{%else%},{% endif %}
      {% endfor %}
+	 
      {% endfor %}
 ]};

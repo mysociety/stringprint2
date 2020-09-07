@@ -151,7 +151,12 @@ class Section(SerialObject):
         """
         which assets are in this section
         """
-        return [g.asset for g in self.grafs if g.asset] + [self.header_asset]
+
+        assets = [g.asset for g in self.grafs if g.asset]
+        if self.header_asset:
+            assets.append(self.header_asset)
+
+        return assets
 
     def next_section(self):
         """
@@ -240,11 +245,17 @@ class Section(SerialObject):
         return [x for x in self.grafs if x.title]
 
     def search_grafs(self):
+
+        assets = self._version.article.assets.all()
+        assets = {x.id: x for x in assets}
+
         last_title = self.name
         for g in self.get_grafs():
             if g.title:
                 last_title = g.title
             g.current_title = last_title
+            if g.asset:
+                g.asset = assets[g.asset]
             if g.visible:
                 yield g
 

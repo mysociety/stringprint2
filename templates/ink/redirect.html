@@ -11,20 +11,31 @@
     <meta property="og:title" content="Excerpt from: {{article.title}}"/>
     <meta property="og:description" content="{{article.description}}" />
     <meta property="og:url" content="{{graf.social_cite_link}}" />
+	
+	{% if asset_image %}
+	<meta property="og:image" content="{{SITE_ROOT}}{{asset_image}}" />
+	{% else %}
     <meta property="og:image" content="{{SITE_ROOT}}{{graf.paragraph_image_url}}" />
+	{% endif %}
 
     <meta name="twitter:card" content="summary_large_image">
     {% if article.org.twitter %}<meta name="twitter:site" content="@{{article.org.twitter}}">{% endif %}
     <meta name="twitter:title" content="Excerpt from: {{article.title}}">
     <meta name="twitter:description" content="{{article.description}}">
-    <meta name="twitter:image" content="{{SITE_ROOT}}{{graf.paragraph_image_url}}">
-    <meta name="twitter:image:alt" content="{{graf.display_bare}}">
+	{% if asset_image %}
+	<meta property="twitter:image" content="{{SITE_ROOT}}{{asset_image}}" />
+	{% else %}
+    <meta property="twitter:image" content="{{SITE_ROOT}}{{graf.paragraph_image_url}}" />
+	{% endif %}
+    <meta name="twitter:image:alt" content="{{alt}}">
 {% else %}
     <meta property="og:site_name" content="{{ss.share_site_name}}"/>
     <meta property="og:title" content="Excerpt from: {{article.title}}"/>
     <meta property="og:description" content="{{article.description}}" />
     <meta property="og:url" content="{{graf.social_cite_link}}" />
     <meta property="og:image" content="{{ss.share_image}}" />
+
+
 
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="{{ss.share_site_name}}">

@@ -16,7 +16,7 @@ from django.dispatch import receiver
 from compressor.signals import post_compress
 
 
-from .models import Article
+from .models import Article, Asset
 from useful_inkleby.useful_django.views import ComboView
 
 
@@ -342,11 +342,17 @@ class ArticleView(HomeView):
                 break
 
         """
-        prepare assets for charts
+        prepare assets for charts and images
         """
-        asset_slugs = c.used_assets()
+        titles_and_images = list(a.headers_and_images())
+        if a.multipage:
+            asset_ids = a.active_section.used_assets()
+        else:
+            asset_ids = c.used_assets()
+        a.cached_titles_and_images = [
+            x for x in titles_and_images if x.is_title or x.id in asset_ids]
         a.cached_assets = [x for x in a.assets.filter(
-            active=True) if x.id in asset_slugs]
+            active=True) if x.id in asset_ids]
         chart_assets = [x.chart for x in a.cached_assets if x.chart]
         chart_collection = ChartCollection(chart_assets)
 
@@ -406,6 +412,14 @@ class RedirectLink(HomeView):
         graf._article = self.article
         self.paragraph_tag = None
         self.graf = graf
+        self.alt = graf.display_bare()
+        self.asset_image = None
+        if graf.asset:
+            self.asset = Asset.objects.get(id=graf.asset)
+            self.asset_image = self.asset.get_share_image()
+            asset_caption = self.asset.search_name()
+            if asset_caption:
+                self.alt = asset_caption
 
     def view(self, request, article_slug, paragraph_code):
 
@@ -414,4 +428,6 @@ class RedirectLink(HomeView):
         return {"article": self.article,
                 'content': self.content,
                 'graf': self.graf,
+                'alt': self.alt,
+                'asset_image': self.asset_image,
                 'paragraph_tag': self.paragraph_tag}
