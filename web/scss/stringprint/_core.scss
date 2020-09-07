@@ -1,3 +1,13 @@
+html, body
+{
+    height: 100%;
+}
+
+.mobile-menu-list{
+   max-height:400px;
+   overflow-y: scroll;
+}
+
 body {
 	overflow-x: hidden;
 }

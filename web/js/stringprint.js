@@ -670,6 +670,10 @@ $("a.dropdown-toggle").attr('href','javascript:void(0)');
 $('.mobile-menu-list>li>a').on('click', function(){
     $('.navbar-collapse').collapse('hide');
 });
+
+$('body').on('click', function(){
+    $('.navbar-collapse').collapse('hide');
+});
   
 var dragging = false;
 
