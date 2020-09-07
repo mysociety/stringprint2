@@ -603,10 +603,16 @@ class Article(models.Model):
                                          content_type='image/png')
                 f.image = suf
                 django_file.close()
-                f.size = 4
+                f.size = a.get("size", 4)
                 if process_images:
+                    f.extra_values = {}
                     f.create_responsive(ignore_first=True)
                     f.create_tiny()
+
+                if len(f.extra_values) == 0:
+                    f.get_ratio()
+                    f.get_average_color()
+                    f.header_image_res()
             if "table" in a["content_type"]:
                 f.chart = Chart(chart_type="table_chart",
                                 file_name=file_path)
@@ -713,7 +719,7 @@ class Article(models.Model):
             setattr(ni, k, v)
 
         ni.save()
-        if created is True or refresh is True:
+        if created is True or refresh is True or len(ni.extra_values) == 0:
             fi = get_file(file_location)
             ni.image.save(internal_name,
                           fi,
@@ -730,8 +736,13 @@ class Article(models.Model):
                                        save=True)
                 fi.close()
             # ni.trigger_create_responsive()
+            ni.extra_values = {}
             ni.create_responsive()
             ni.create_tiny()
+            ni.get_ratio()
+            ni.get_average_color()
+            ni.header_image_res()
+            ni.save()
         return ni
 
     def code_assets(self):
@@ -1333,13 +1344,15 @@ class HeaderMixin(object):
     converts images to various responsive sizes
     """
 
-    def get_image_name(self, resolution):
+    def get_image_name(self, resolution, assume_tiny=False):
         """
         returns big or small image depending if we've tinified
         """
         tiny = self.get_tiny_responsive_image_name(resolution)
         normal = self.get_responsive_image_name(resolution)
         options = [tiny, normal]
+        if assume_tiny:
+            return tiny
         for o in options:
             path = os.path.join(settings.MEDIA_ROOT, o)
             if os.path.exists(path):
@@ -1373,27 +1386,32 @@ class HeaderMixin(object):
         return name + "_{0}_tiny".format(resolution) + ext
 
     def header_image_res(self):
-        if not hasattr(self, "_cached_imageres"):
-            self._cached_imageres = [x for x in self._header_image_res()]
-        return self._cached_imageres
+        return [x for x in self._header_image_res()]
 
     def get_ratio(self):
-        file_path = os.path.join(
-            settings.MEDIA_ROOT, self.get_image_name(1440))
-        image = Image.open(file_path)
-        o_width, o_height = image.size
-        image.close()
-        ratio = (float(o_height) / float(o_width))
+        ratio = self.extra_values.get("ratio", None)
+        if not ratio:
+            file_path = os.path.join(
+                settings.MEDIA_ROOT, self.get_image_name(1440))
+            image = Image.open(file_path)
+            o_width, o_height = image.size
+            image.close()
+            ratio = (float(o_height) / float(o_width))
+            self.extra_values["ratio"] = ratio
         return ratio
 
     def get_average_color(self):
-        file_path = os.path.join(
-            settings.MEDIA_ROOT, self.get_image_name(1440))
-        image = Image.open(file_path)
-        q = image.quantize(colors=2, method=2)
-        color = q.getpalette()[:3]
-        image.close()
-        return '#{:02x}{:02x}{:02x}'.format(*color)
+        color = self.extra_values.get("color", None)
+        if not color:
+            file_path = os.path.join(
+                settings.MEDIA_ROOT, self.get_image_name(1440))
+            image = Image.open(file_path)
+            q = image.quantize(colors=2, method=2)
+            color = q.getpalette()[:3]
+            image.close()
+            color = '#{:02x}{:02x}{:02x}'.format(*color)
+            self.extra_values["color"] = color
+        return color
 
     def _header_image_res(self):
         """
@@ -1401,17 +1419,26 @@ class HeaderMixin(object):
         tell template about different resolutions
         """
         previous_width = 0
+        ratios = self.extra_values.get("sizes", {})
+        self.extra_values["sizes"] = ratios
+        print("loading image resolution", self.image)
         for width in [768, 992, 1200, 1440, 1920]:
-            image_name = settings.MEDIA_URL + self.get_image_name(width)
-            not_tiny_name = settings.MEDIA_URL + \
+            image_name = settings.MEDIA_URL + \
+                self.get_image_name(width, assume_tiny=True)
+            not_tiny_url = settings.MEDIA_URL + \
                 self.get_responsive_image_name(width)
             file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(width))
-            image = Image.open(file_path)
-            o_width, o_height = image.size
-            image.close()
-            webp_name = os.path.splitext(not_tiny_name)[0] + ".webp"
+                settings.MEDIA_ROOT, self.get_image_name(width, assume_tiny=True))
+            if str(width) in ratios:
+                o_width, o_height = ratios[str(width)]
+            else:
+                image = Image.open(file_path)
+                o_width, o_height = image.size
+                ratios[width] = [o_width, o_height]
+                image.close()
+            webp_name = os.path.splitext(not_tiny_url)[0] + ".webp"
             ratio = int((float(o_height) / float(o_width)) * 100)
+            self.extra_values["sizes"][width] = [o_width, o_height]
             yield image_name, webp_name, previous_width, width, o_width, o_height, ratio
             previous_width = width
 
@@ -1530,6 +1557,7 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
     size = models.IntegerField(default=0)
     queue_responsive = models.BooleanField(default=False)
     queue_tiny = models.BooleanField(default=False)
+    extra_values = JsonBlockField(default={})
 
 
 class Version(models.Model):
@@ -2194,6 +2222,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
     code_content = models.TextField(null=True)
     no_header = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
+    extra_values = JsonBlockField(default={})
 
     def get_chart_image(self):
         """
