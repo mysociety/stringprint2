@@ -55,6 +55,7 @@ class Footnote(SerialObject):
 
     def __init__(self, content="", local_ref=""):
         self.num = self.__class__.note_count + 1
+        self.section_num = self.num
         if "||" in local_ref:
             self.local_ref, self.named_reference = local_ref.split("||")
             self.named_reference = self.named_reference[:-1]
@@ -78,7 +79,7 @@ class Footnote(SerialObject):
         return mark_safe(self.content)
 
     def format(self, order):
-        ref_format = '<sup><a name="ref{0}" href="#" \
+        ref_format = '<sup><a name="ref{2}" href="#" \
                 class = "expand-footnotes" id="{1}">{0}</a></sup>'
         named_format = '<a name="ref{2}" href="#" \
                 class = "expand-footnotes" id="{1}">{0}</a>'
@@ -88,7 +89,7 @@ class Footnote(SerialObject):
                                        order,
                                        self.num)
         else:
-            return ref_format.format(self.num, order)
+            return ref_format.format(self.section_num, order, self.num)
 
     def format_kindle(self):
         ref_format = '<a epub:type="noteref" href="#footnote-{0}" \
@@ -96,10 +97,10 @@ class Footnote(SerialObject):
         named_format = '<a epub:type="noteref" href="#footnote-{0}" \
                         id="footnote-{0}-ref">{1}</a>'
         if self.named_reference:
-            return named_format.format(self.num,
+            return named_format.format(self.section_num,
                                        self.named_reference)
         else:
-            return ref_format.format(self.num)
+            return ref_format.format(self.section_num)
 
     def kindle_content(self):
         text = self.content
@@ -265,14 +266,14 @@ class Section(SerialObject):
     def get_kindle_grafs(self):
         self.kindle_extras = []
         if self._article.display_notes:
-            for g in self.get_grafs():
+            for g in self.get_grafs(change_footnotes=False):
                 all = [x for x in g.self_and_extras()]
                 if len(all) > 1:
                     all[-1].type = Graf.EXTENDED_END
                 for a in all:
                     yield a
         else:
-            for g in self.get_grafs():
+            for g in self.get_grafs(change_footnotes=False):
                 if g.type in [Graf.EXTENDED_START, Graf.EXTENDED_COMPLETE]:
                     self.kindle_extras.append(g)
                 else:
@@ -289,9 +290,13 @@ class Section(SerialObject):
                 return len(grafs)
         return False
 
-    def get_grafs(self, just_titles=False):
+    def get_grafs(self, just_titles=False, change_footnotes=True):
 
         if hasattr(self, "stored_grafs"):
+            if self._version.article.multipage and change_footnotes is False:
+                for t in self.stored_grafs:
+                    for f in t.footnotes:
+                        f.section_num = f.num
             for g in self.stored_grafs:
                 yield g
             return
@@ -305,6 +310,14 @@ class Section(SerialObject):
             temp_grafs = self.grafs_with_titles()
         else:
             temp_grafs = self.grafs
+
+        if self._version.article.multipage and change_footnotes:
+            count = 1
+            for t in temp_grafs:
+                for f in t.footnotes:
+                    f.section_num = count
+                    count += 1
+
         last_title = None
         prev_block_is_block = False
         expanded_block = None

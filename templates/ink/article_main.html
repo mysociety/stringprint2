@@ -150,7 +150,7 @@
 						<div id = "f{{p.order}}" class = "footnotes">
 						<p>Notes (<a href="" class="hide-footnotes">hide</a>):</p>
 							{% for f in p.footnotes %}
-								<p id="ref{{f.num}}">{{f.num}}: {{f.safe_content}} </p>
+								<p id="ref{{f.num}}">{{f.section_num}}: {{f.safe_content}} </p>
 							{% endfor %}
 						</div>
 						{% endif %}
@@ -185,7 +185,7 @@
                                     <h1 id="endnotes">Footnotes</h3>
                                     <div class="footnote_list">
                                     {% for f in notes %}
-                                        <p><a href="#ref{{f.num}}">{{f.num}}</a> {{f.safe_content}} </p>       
+                                        <p><a href="#ref{{f.num}}">{{f.section_num}}</a> {{f.safe_content}} </p>       
                                     {% endfor %}
                                     </div>
                         </div>
