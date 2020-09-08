@@ -1,6 +1,6 @@
 {% load extra_tags %}
 
-<div class="header-pos">
+<div class="header-pos {% if header %}header-asset{%else%}image-asset{% endif %} asset-{{asset.slug}}">
         <picture>
             <!--[if IE 9]><video style="display: none;"><![endif]-->
             {% for source, source_webp, previous_size, size, width, height, ratio in asset.header_image_res %}
@@ -17,5 +17,5 @@
 {% if asset.content %}
 	<div id = "desc_{{asset.image.name|slugify}}" class = "asset-long-desc">
 	{{asset.content|safe}}
-    <div>
+    </div>
 {% endif %}
