@@ -412,18 +412,20 @@ class RedirectLink(HomeView):
         graf._article = self.article
         self.paragraph_tag = None
         self.graf = graf
-        self.alt = graf.display_bare()
-        self.asset_image = None
-        if graf.asset:
-            self.asset = Asset.objects.get(id=graf.asset)
-            self.asset_image = self.asset.get_share_image()
-            asset_caption = self.asset.search_name()
-            if asset_caption:
-                self.alt = asset_caption
 
     def view(self, request, article_slug, paragraph_code):
 
         self.load_article(request, article_slug, paragraph_code)
+        self.alt = self.graf.display_bare()
+        self.asset_image = None
+        if self.graf.asset:
+            asset = Asset.objects.get(id=self.graf.asset)
+            if asset.image:
+                self.asset = asset
+                self.asset_image = self.asset.get_share_image()
+                asset_caption = self.asset.search_name()
+                if asset_caption:
+                    self.alt = asset_caption
 
         return {"article": self.article,
                 'content': self.content,
