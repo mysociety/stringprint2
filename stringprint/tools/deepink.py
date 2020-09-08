@@ -104,7 +104,7 @@ class Footnote(SerialObject):
     def kindle_content(self):
         text = self.content
         links = BeautifulSoup(text, features="html5lib").findAll({'a': True})
-
+        text = text.replace("&", "&amp;")
         if len(links) > 1:
             for l in links:
                 new_text = "{0} ({1})"
@@ -781,6 +781,8 @@ class Graf(SerialObject):
 
         footnotes = self.footnotes
         footnote_lookup = {x.num: x for x in footnotes}
+
+        text = text.replace("&", "&amp;")
 
         for l in refs:
             ref_no = int(l.text)
