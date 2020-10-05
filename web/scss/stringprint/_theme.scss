@@ -238,14 +238,7 @@ h3::after
   text-align:center;
 }
 
-#related-research::after
-{
-  content:'';
-  display:block;
-  height:1px;
-  width:50%;
-  margin-top:20px;
-  text-indent:-9999px;
-  border-top:1px solid $divider-color;
-  margin-bottom:20px;
+
+.footnote-num::after {
+	  content:': ';
 }
