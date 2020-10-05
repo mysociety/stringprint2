@@ -121,6 +121,7 @@ def select_doc(func):
             func(self, pass_down)
         # apply to all
         elif "all" in inp:
+            print("running for all")
             for slug in self.loaded_docs():
                 self.do_setdoc(slug)
                 func(self, pass_down)
@@ -166,7 +167,7 @@ class SPPrompt(Cmd):
         prompt.print_status()
 
     def loaded_docs(self):
-        dir = self.current_org.storage_dir
+        dir = os.path.join(self.current_org.storage_dir, "_docs")
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
         x = 0
         for f in os.listdir(dir):
