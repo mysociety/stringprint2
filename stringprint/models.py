@@ -1786,11 +1786,19 @@ class Version(models.Model):
                         yield s
 
         toc = Toc()
+
+        stand_in_introduction = "Introduction"
+
+        for s in self.sections:
+            if s.name == stand_in_introduction:
+                stand_in_introduction = "Summary"
+                break
+
         for s in self.sections:
             if s.has_grafs():
                 name = s.name
                 if s.order == 1 and not name:
-                    name = "Introduction"
+                    name = stand_in_introduction
                 if name:
                     toc.add(name=name,
                             anchor=s.anchor(),
