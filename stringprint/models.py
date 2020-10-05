@@ -934,7 +934,7 @@ class Article(models.Model):
                     if self.graf:
                         self.graf._article = article
                     else:
-                        "old tag: rendering {0}".format(k)
+                        print("old tag: rendering {0}".format(k))
                     self.paragraph_tag = shorter_link
 
             args = ("blah", "blah")
