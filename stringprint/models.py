@@ -340,14 +340,17 @@ class Article(models.Model):
         """
         return title - but try and split if possible
         """
+        title = self.title
+        title = title.replace("-", "&#8209;")
+
         if self.subtitle:
-            return self.title
-        if ":" in self.title:
-            return self.title.split(":")[0].strip() + ":"
-        elif "?" in self.title:
-            return self.title.split("?")[0].strip() + "?"
+            return title
+        if ":" in title:
+            return title.split(":")[0].strip() + ":"
+        elif "?" in title:
+            return title.split("?")[0].strip() + "?"
         else:
-            return self.title
+            return title
 
     def split_subtitle(self):
         """
