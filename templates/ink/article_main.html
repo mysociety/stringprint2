@@ -4,6 +4,8 @@
 
 {% block body %}
 <div class="background_image">
+<div class="container">
+{% block title_and_image %}
 {% block title_image %}
 
 	<div class = "container container-fluid image-container" >
@@ -15,7 +17,6 @@
 	</div>
 {% endblock %}
 {% block title %}
-<div class="container">
 	<a class="anchor" id="a0" name="top"></a>
       <div class="title-header-text header-text text-center {% if article.multipage and not first_multi_page %}multi-page-header{% endif%}">
         <p class="article_title h1{% if article.title_image.size == -1 %} background_title{% endif %}" id="article_title">{{article.split_title}}</p>
@@ -38,6 +39,11 @@
       {% endblock %}
       </div>
 {% endblock %}
+
+
+
+{% endblock %}
+
 	{% block search %}
 	{% endblock %}
         <a class="anchor" id="index" name="index"></a> 
