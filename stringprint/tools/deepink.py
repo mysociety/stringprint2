@@ -774,7 +774,7 @@ class Graf(SerialObject):
 
     def display_bare(self):
         text = self.html
-        text = BeautifulSoup(text).text
+        text = BeautifulSoup(text, features="html5lib").text
         if len(text) > 420:
             text = text[:417] + "..."
         return text
