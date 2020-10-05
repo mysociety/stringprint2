@@ -1471,9 +1471,6 @@ class HeaderMixin(object):
 
         tinify.key = settings.TINY_PNG_KEY
 
-        if settings.TINYIFY is False:
-            return None
-
         if hasattr(self, "image_vertical") and self.image_vertical:
             images = ((self.image_vertical, [768]),
                       (self.image, [992, 1200, 1440, 1920]),
@@ -1524,8 +1521,10 @@ class HeaderMixin(object):
                 pos += 1
                 # if display is being scaled down, reduce size of image
                 new_width = width
-                if (pos > 1 or ignore_first == False) and self.size != -1:
+                if (pos > 1 or ignore_first is False) and self.size != -1:
                     new_width = (new_width / 12) * self.size
+                    if new_width == 960:  # minor adaption so can appear full screen
+                        new_width = 970
                     print("resizing to {0}".format(new_width))
                 new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
@@ -1543,7 +1542,9 @@ class HeaderMixin(object):
                 if os.path.exists(webp_name):
                     print("deleting")
                     os.remove(webp_name)
-                webp.cwebp(new_name, webp_name, "-q 80")
+                print("creating webp")
+                webp.cwebp(i_file.path, webp_name,
+                           "-lossless -q 100 -resize {0} {1}".format(new_width, new_height))
 
 
 class HeaderImage(FlexiBulkModel, HeaderMixin):
