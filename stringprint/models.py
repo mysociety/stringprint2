@@ -873,6 +873,7 @@ class Article(models.Model):
         """
 
         current_article = self
+        current_article.__dict__.update(self.extra_values)
 
         class BakeArticleView(ArticleView):
             share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
