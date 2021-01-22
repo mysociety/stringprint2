@@ -44,7 +44,7 @@ chmod +x /usr/bin/dart-sass
 
 mkdir kindlegen
 tar -xzf /vagrant/stringprint/_dependencies/kindlegen_linux_2.6_i386_v2_9.tar.gz -C kindlegen
-mv kindlegen /usr/bin/kindlegen
+mv kindlegen /usr/bin
 chown root:root /usr/bin/kindlegen
 chmod +x /usr/bin/kindlegen
 cd /vagrant/stringprint

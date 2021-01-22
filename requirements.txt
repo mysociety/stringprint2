@@ -7,7 +7,7 @@ csscompressor==0.9.4
 django-autoslug==1.9.3
 django-markitup==3.0.0
 django-pipeline==1.6.11
-git+https://github.com/mysociety/django-pipeline-csscompressor#egg=django_pipeline_csscompressor-master
+git+https://github.com/mysociety/django-pipeline-csscompressor#egg=django_pipeline_csscompressor
 futures==3.0.5
 libsass==0.12.3
 olefile==0.44
