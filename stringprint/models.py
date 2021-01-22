@@ -397,6 +397,9 @@ class Article(models.Model):
             data["pdf_file"] = data["pdf"]
             del data["pdf"]
 
+        if "pdf_file" not in data and self.pdf_file:
+            self.pdf_file = ""
+
         for k, v in self.org.default_values.items():
             if k not in data:
                 print("adding {0} value".format(k))
