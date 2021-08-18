@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import mammoth
-import re
-import os
-import io
-import html2markdown
-
-from collections import OrderedDict
-from ruamel.yaml import YAML
-
-
-from bs4 import BeautifulSoup
-from useful_inkleby.files import QuickText, QuickGrid
 import base64
+import io
+import os
+import re
+import warnings
+from collections import OrderedDict
+
+import html2markdown
+import mammoth
+from bs4 import BeautifulSoup
+from ruamel.yaml import YAML
+from useful_inkleby.files import QuickGrid, QuickText
 
 regex = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -164,6 +163,8 @@ def mammoth_adjust(qt, demote=True):
     footnote_count = 0
     prev = None
 
+    extra_map = {}
+
     for line in qt:
         new_asset = None
         l_line = line.lower().strip()
@@ -176,21 +177,31 @@ def mammoth_adjust(qt, demote=True):
             ignore_before_h1 = False
         if "data:" in line and "base64" in line:
             asset_count += 1
+            found = False
             for i in image_finders:
                 search = i.search(line)
                 if not search:
                     continue
+                found = True
                 image_type, content, caption = search.groups()
+                if len(caption) < 5:
+                    caption = None
                 slug = "word-asset-{0}".format(asset_count)
                 di = {"content_type": "image",
                       "type": image_type,
                       "content": content,
                       "caption": caption,
                       "slug": slug}
-                print("asset found")
+                print("asset found {0}".format(asset_count))
+                print(di["slug"])
                 qt.assets.append(di)
                 new_asset = "[asset:{0}]".format(slug)
+                print(new_asset)
                 line.update(new_asset)
+                extra_map[line] = new_asset
+                break
+            if not found:
+                warnings.warn("Couldn't extract asset for line beginning {0}".format(line[:20]))
 
         toc = toc_find.search(line)
         if l_line and l_line[0] == "_" and l_line[-1] == "_":
@@ -235,6 +246,11 @@ def mammoth_adjust(qt, demote=True):
         qt.text = qt.text.replace("\n\n\n", "\n\n")
 
     qt.text = qt.text.replace("\n", "\r\n")
+    for k, v in extra_map.items():
+        qt.text = qt.text.replace(k, v)
+
+    qt.text = qt.text.replace(">[asset:", "[asset:")
+    qt.text = qt.text.replace(">_Table", "_Table")
 
 
 def fix_header(line):
@@ -256,16 +272,22 @@ def remove_supports(t):
     return t
 
 
-def markdown_table_contents(x):
+def markdown_table_contents(x, multi_line = False):
     """
     extracts table row contents and converts to markdown
     """
     contents = x.contents
+    html = ""
     if contents:
-        html = html2markdown.convert(str(contents[0]))
-        html = html.replace("&nbsp;", " ")
-        html = html.replace("&amp;", " ")
-        html = html.strip()
+        for c in contents:
+            nhtml = html2markdown.convert(str(c))
+            nhtml = nhtml.replace("&nbsp;", " ")
+            nhtml = nhtml.replace("&amp;", " ")
+            nhtml = nhtml.strip()
+            if multi_line is False:
+                return nhtml
+            else:
+                html += nhtml + "\n\n"
         return html
     else:
         return ""
@@ -283,9 +305,12 @@ def get_tables(html):
         table_count += 1
         slug = slug_format.format(table_count)
         table_data = []
+        markdown_header = []
         for n, row in enumerate(table.find_all("tr")):
             if n == 0:  # header:
                 table_data.append([td.get_text()
+                                   for td in row.find_all("td")])
+                markdown_header.append([markdown_table_contents(td, multi_line=True)
                                    for td in row.find_all("td")])
             else:
                 table_data.append([markdown_table_contents(td)
@@ -300,6 +325,11 @@ def get_tables(html):
               "slug": slug}
 
         if len(qg.data) == 0:
+            if len(qg.header) == 1:
+                replacement = "[[\n" + "\n".join(markdown_header[0]) + "\n]]"
+                table_html = str(table).replace(
+                    "<tbody>", "").replace("</tbody>", "")
+                new_html = new_html.replace(table_html, replacement)
             if len(qg.header) == 2:
                 replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)
                 table_html = str(table).replace(
@@ -410,9 +440,3 @@ def convert_word(source, dest, demote=False):
     extract_assets(q)
     q.save(dest)
     print("done")
-
-
-if __name__ == "__main__":
-    f = r"E:\Users\Alex\Dropbox\mysociety\projects\sp_involve\test-valley-report"
-    convert_word(os.path.join(
-        f, "Romsey Citizens' Assembly Report December 2019.docx"), os.path.join(f, "document.md"))

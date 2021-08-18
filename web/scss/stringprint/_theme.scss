@@ -130,9 +130,9 @@ ul,ol
   background-color:$blockquote-main-color;
   border-left:10px solid $blockquote-border-color;
   quotes:\201C\201D\2018\2019;
-  font-style:italic;
-  margin:5px 0 10px;
-  padding:5px 10px 10px 5px;
+  font-style:normal;
+  margin: 0px 0px 0px 0px;
+  padding:5px 10px 1px 5px;
 }
 
 span.quote

@@ -384,7 +384,8 @@ class Article(models.Model):
         data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
         ignore = ["header", "book_cover"]
 
-        for k in list(self.extra_values.keys()):
+        existing_keys = list(self.extra_values.keys())
+        for k in existing_keys:
             if k not in data:
                 del self.extra_values[k]
 
@@ -408,9 +409,10 @@ class Article(models.Model):
 
         for k, v in data.items():
             if k not in ignore:
-                if hasattr(self, k):
+                if hasattr(self, k) and k not in existing_keys:
                     setattr(self, k, v)
                 else:
+                    print(k, v)
                     self.extra_values[k] = v
 
         if "header" in data:
@@ -614,7 +616,7 @@ class Article(models.Model):
                     f.extra_values = {}
                     f.create_responsive(ignore_first=True)
                     f.create_tiny()
-
+                    
                 if len(f.extra_values) == 0:
                     f.get_ratio()
                     f.get_average_color()

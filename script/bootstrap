@@ -16,7 +16,7 @@ then
 fi
 source $virtualenv_activate
 
-curl -L -s https://bootstrap.pypa.io/3.5/get-pip.py | python3
+curl -L -s https://bootstrap.pypa.io/pip/3.5/get-pip.py | python3
 
 pip3 install --requirement requirements.txt
 
