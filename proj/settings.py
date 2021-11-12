@@ -198,7 +198,7 @@ normal_scss = os.path.join(PROJECT_PATH, "web", "scss")
 STATIC_PRECOMPILER_COMPILERS = (
     ('stringprint.compiler.CustomSCSS', {
         # ""
-        "executable": "/usr/bin/dart-sass/sass",
+        "executable": "/usr/bin/sass",
         "sourcemap_enabled": False,
         "compass_enabled": False,
         "precision": 2,

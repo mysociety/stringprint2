@@ -265,6 +265,7 @@ class Chrome(object):
         options = webdriver.ChromeOptions()
         options.add_argument("headless")
         options.add_argument("hide-scrollbars")
+        options.add_argument("--no-sandbox")
         cls.driver = webdriver.Chrome(executable_path=chrome_driver_path,
                                       options=options)
         return cls.driver
@@ -1245,7 +1246,7 @@ class Article(models.Model):
         # prevent execution by restricting to listed fields
         fields = self._meta.fields
         lookup_dict = {x.name: getattr(self, x.name)
-                       for x in fields if x.name is not "org"}
+                       for x in fields if x.name != "org"}
         lookup_dict.update(self.extra_values)
 
         c_context = Context({"article": lookup_dict})
