@@ -17,7 +17,6 @@ _env/
 .project
 .metadata
 .gradle
-bin/
 tmp/
 target/
 *.tmp

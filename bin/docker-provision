@@ -1,0 +1,23 @@
+curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add
+echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+
+apt-get update
+
+
+#fix dpkg-preconfigure error
+export DEBIAN_FRONTEND=noninteractive
+
+# Install the packages
+echo "Installing packages"
+xargs apt-get install -qq -y < /install/packages
+
+cd /install/
+# get and setup get chromedriver
+
+VERSION=$( curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$( google-chrome --version | awk '{print $NF}' | cut -d. -f1,2,3 ) )
+wget -q https://chromedriver.storage.googleapis.com/${VERSION}/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip
+mv chromedriver /usr/bin/chromedriver
+chown root:root /usr/bin/chromedriver
+chmod +x /usr/bin/chromedriver
+rm -f chromedriver_linux64.zip
