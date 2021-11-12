@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+from pathlib import Path
 import sys
 import django
 import shutil
 from cmd import Cmd
 import io
-
+from datetime import datetime
 import fitz
 
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -28,7 +29,6 @@ from stringprint.functions import compress_static
 from stringprint.models import Article, Organisation, Asset
 from frontend.views import HomeView, ArticleSettingsView
 from charts import ChartCollection, Chart
-
 
 def fix_yaml(ya):
     if type(ya) == list:
@@ -135,6 +135,10 @@ def select_doc(func):
 
 class SPPrompt(Cmd):
 
+    def get_valid_doc_folders(self):
+        root = Path(self.current_org.storage_dir, "_docs")
+        return [x for x in root.iterdir() if (x / "settings.yaml").exists()]
+
     def print_status(self):
         if self.current_org:
             print("Current org: {0}".format(self.current_org.name))
@@ -156,7 +160,7 @@ class SPPrompt(Cmd):
         self.do_listdocs("")
         self.do_setdoc("1")
 
-    def do_setdoc(self, slug):
+    def do_setdoc(self, slug, silent=False):
         slug = self.dir_lookup.get(slug, slug)
         doc_folder = os.path.join(self.current_org.storage_dir, "_docs", slug)
         config_file = os.path.join(doc_folder, "settings.yaml")
@@ -164,7 +168,8 @@ class SPPrompt(Cmd):
             print("No valid folder at: {0}".format(doc_folder))
             return
         self.current_doc = slug
-        prompt.print_status()
+        if silent is False:
+            prompt.print_status()
 
     def loaded_docs(self):
         dir = os.path.join(self.current_org.storage_dir, "_docs")
@@ -228,6 +233,45 @@ class SPPrompt(Cmd):
     def do_listorgs(self, inp):
         for o in Organisation.objects.all():
             print(o.slug)
+
+    def do_publish_updated(self, inp):
+        
+        for f in self.get_valid_doc_folders():
+            self.do_setdoc(f.name, silent=True)
+            needs_update = self.do_check_for_update(inp)
+            if needs_update:
+                print(f"Republishing {f.name}")
+                #self.do_load()
+                #self.do_process()
+                #self.do_renderzip("refresh")
+                #self.do_publish()
+
+    def do_check_for_update(self, inp=""):
+        """
+        if document file or settings has been updated since last upload
+        return true
+        """
+        import subprocess
+        doc_folder = Path(self.doc_folder)
+        root = doc_folder.parent.parent
+        upload_time_file = (doc_folder / "upload_time.txt")
+
+        if upload_time_file.exists():
+            txt_date = upload_time_file.open().read()
+            upload_time = datetime.fromisoformat(txt_date)
+        else:
+            return False
+        
+        settings_file = doc_folder / "settings.yaml"
+        data = get_yaml(settings_file)
+        doc_file = doc_folder / data["file_source"]
+
+        cmd = f"git log -1 --format=%ct -- {str(settings_file.relative_to(root))} {str(doc_file.relative_to(root))}"
+        p = subprocess.check_output([cmd],shell=True)
+        if p:
+            last_commit = datetime.fromtimestamp(float(p))
+            return last_commit > upload_time
+        return False
 
     @select_doc
     def do_convertword(self, demote=None):
