@@ -9,6 +9,5 @@ SECRET_KEY: 'MEANT_FOR_LOCAL_USE_BUT_CHANGE_IF_CONVERTED_TO_LIVE_APP'
 TINY_PNG_KEY: ""
 
 ORGS:
-  default_org_name: 
-    storage_dir:
-    publish_dir:
+  default:
+    storage_dir: /app
