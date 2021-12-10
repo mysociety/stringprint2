@@ -10,4 +10,4 @@ TINY_PNG_KEY: ""
 
 ORGS:
   default:
-    storage_dir: /app
+    storage_dir: /workspaces/stringprint_document_source

@@ -1520,6 +1520,7 @@ class HeaderMixin(object):
                       )
 
         pos = 0
+        web_p_files = []
         for i_file, res in images:
             print("creating responsive versions")
             image = Image.open(i_file)
@@ -1546,12 +1547,14 @@ class HeaderMixin(object):
                     os.remove(new_name)
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
-                if os.path.exists(webp_name):
+                web_p_files.append([i_file.path, webp_name, new_width, new_height])
+            for source_name, dest, new_width, new_height in web_p_files:
+                if os.path.exists(dest):
                     print("deleting")
-                    os.remove(webp_name)
+                    os.remove(dest)
                 print("creating webp")
-                webp.cwebp(i_file.path, webp_name,
-                           "-lossless -q 100 -resize {0} {1}".format(new_width, new_height))
+                webp.cwebp(source_name, dest,
+                           f"-lossless -q 100 -resize {new_width} {new_height}")
 
 
 class HeaderImage(FlexiBulkModel, HeaderMixin):
