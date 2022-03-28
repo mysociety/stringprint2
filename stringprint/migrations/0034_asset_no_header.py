@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0033_asset_size'),
+        ("stringprint", "0033_asset_size"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='asset',
-            name='no_header',
+            model_name="asset",
+            name="no_header",
             field=models.BooleanField(default=False),
         ),
     ]

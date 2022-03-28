@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Deep Ink Processor
 classes and object
-'''
+"""
 import markdown
 import math
 import base64
@@ -85,9 +85,7 @@ class Footnote(SerialObject):
                 class = "expand-footnotes" id="{1}">{0}</a>'
 
         if self.named_reference:
-            return named_format.format(self.named_reference,
-                                       order,
-                                       self.num)
+            return named_format.format(self.named_reference, order, self.num)
         else:
             return ref_format.format(self.section_num, order, self.num)
 
@@ -97,14 +95,13 @@ class Footnote(SerialObject):
         named_format = '<a epub:type="noteref" href="#footnote-{0}" \
                         id="footnote-{0}-ref">{1}</a>'
         if self.named_reference:
-            return named_format.format(self.section_num,
-                                       self.named_reference)
+            return named_format.format(self.section_num, self.named_reference)
         else:
             return ref_format.format(self.section_num)
 
     def kindle_content(self):
         text = self.content
-        links = BeautifulSoup(text, features="html5lib").findAll({'a': True})
+        links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
         text = text.replace("&", "&amp;")
         if len(links) > 1:
             for l in links:
@@ -112,15 +109,15 @@ class Footnote(SerialObject):
                 text = text.replace(str(l), new_text)
         elif len(links) > 0:
             l = links[0]
-            href = l['href']
-            text = text.replace(str(l), l.text) + \
-                ' link: <a href="{0}">{0}</a>'.format(href)
+            href = l["href"]
+            text = text.replace(str(l), l.text) + ' link: <a href="{0}">{0}</a>'.format(
+                href
+            )
 
         return mark_safe(text)
 
 
 class Section(SerialObject):
-
     def __init__(self, *args, **kwargs):
         self.id = 0
         self.name = ""
@@ -346,8 +343,10 @@ class Section(SerialObject):
             p._section = self
             p.start_tag = p.block_start(prev_block=prev_block_is_block)
             p.end_tag = p.block_end(next_block=next_block_is_block)
-            p.expand_link = [p.end_expand_link(
-                next_block_type=next_block_type), next_id]
+            p.expand_link = [
+                p.end_expand_link(next_block_type=next_block_type),
+                next_id,
+            ]
             if p.title:
                 if last_title is None:
                     p.is_first_title = True
@@ -367,7 +366,8 @@ class Section(SerialObject):
             elif p.type == Graf.EXTENDED_END:
                 if not expanded_block:
                     raise ValueError(
-                        "paragraph end without start: {0}".format(p.plain_txt))
+                        "paragraph end without start: {0}".format(p.plain_txt)
+                    )
                 expanded_block.extra_grafs.append(p)
                 expanded_block.end_tag = p.end_tag
                 self.stored_grafs.append(expanded_block)
@@ -388,9 +388,9 @@ class Section(SerialObject):
             return "start"
 
         def depuntuate(s):
-            return re.sub(r'[^\w\s]', '', s)
+            return re.sub(r"[^\w\s]", "", s)
 
-        if hasattr(self, 'anchor_title') and self.anchor_title:
+        if hasattr(self, "anchor_title") and self.anchor_title:
             title = self.anchor_title
         else:
             title = self.name
@@ -399,12 +399,12 @@ class Section(SerialObject):
         new = depuntuate(title).replace(" ", "-").strip().lower()
         if self.anchor_offset:
             new += "_" + self.anchor_offset
-        new = new.encode('ascii', 'ignore').decode('utf-8')
+        new = new.encode("ascii", "ignore").decode("utf-8")
 
         return new
 
     class Meta:
-        ordering = ['order']
+        ordering = ["order"]
 
 
 class Graf(SerialObject):
@@ -420,7 +420,7 @@ class Graf(SerialObject):
         (EXTENDED_START, "Extended Start"),
         (EXTENDED_MIDDLE, "Extended Middle"),
         (EXTENDED_END, "Extended End"),
-        (EXTENDED_COMPLETE, "Extended Complete")
+        (EXTENDED_COMPLETE, "Extended Complete"),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -460,9 +460,9 @@ class Graf(SerialObject):
             return self.h_name
 
     def escape_text(self):
-        txt = self.plain_txt.encode('ascii', 'ignore')
+        txt = self.plain_txt.encode("ascii", "ignore")
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
-        return txt.decode('utf-8')
+        return txt.decode("utf-8")
 
     def paragraph_image_url(self):
         return "/media/paragraphs/{0}.png".format(self.combo_key())
@@ -488,17 +488,17 @@ class Graf(SerialObject):
 
     def opacity_visible(self):
         """
-        Called by template. 
+        Called by template.
         if visiblity has an opacity class - inject it
         """
         if self.visible != True:
-            if 'opacity' in self.visible:
+            if "opacity" in self.visible:
                 return self.visible
         return ""
 
     def classes(self):
         """
-        Called by template. 
+        Called by template.
         classes to inject into row object
         """
         if self.start_tag == "StartNotes":
@@ -510,22 +510,22 @@ class Graf(SerialObject):
         """
         produces the code used to anchor the magic_cite system
         """
-        properties = {"class": "anchor",
-                      "name": self.order,
-                      "position_key": self.position_key,
-                      "key": self.key,
-                      "start_key": self.start_key,
-                      "end_key": self.end_key,
-                      "parent": self._section.order,
-                      "last_title": self.last_title_order,
-                      "letter_key": self.letter_key,
-                      "tag": self.tag,
-                      "para_tag": self.para_tag,
-                      "page_tag": self.page_tag,
-                      }
+        properties = {
+            "class": "anchor",
+            "name": self.order,
+            "position_key": self.position_key,
+            "key": self.key,
+            "start_key": self.start_key,
+            "end_key": self.end_key,
+            "parent": self._section.order,
+            "last_title": self.last_title_order,
+            "letter_key": self.letter_key,
+            "tag": self.tag,
+            "para_tag": self.para_tag,
+            "page_tag": self.page_tag,
+        }
 
-        lines = ['{0} = "{1}"'.format(x, y)
-                 for x, y in properties.items() if y]
+        lines = ['{0} = "{1}"'.format(x, y) for x, y in properties.items() if y]
         code = "<a {0}></a>".format(" ".join(lines))
         return mark_safe(code)
 
@@ -566,43 +566,48 @@ class Graf(SerialObject):
         """
         key for this paragrah - including letter starts
         """
-        return ".".join([str(self.parent_id),
-                         str(self.position_key),
-                         self.key,
-                         self.start_key,
-                         self.end_key,
-                         self.letter_key,
-                         self.letter_seq
-                         ])
+        return ".".join(
+            [
+                str(self.parent_id),
+                str(self.position_key),
+                self.key,
+                self.start_key,
+                self.end_key,
+                self.letter_key,
+                self.letter_seq,
+            ]
+        )
 
     def combo_key(self):
         """
         key for this paragrah
         """
-        return ".".join([str(self.parent_id),
-                         str(self.position_key),
-                         self.key,
-                         self.start_key,
-                         self.end_key,
-                         self.letter_key,
-                         ])
+        return ".".join(
+            [
+                str(self.parent_id),
+                str(self.position_key),
+                self.key,
+                self.start_key,
+                self.end_key,
+                self.letter_key,
+            ]
+        )
 
     def connect_to_footnote(self, text):
 
         for l in text.split("\n"):
-            ref = re.search('\[\^[0-9\*]+\]\:', l)
+            ref = re.search("\[\^[0-9\*]+\]\:", l)
             if ref:
                 ref = ref.group()[:-1]
-                note = l[l.find(":") + 1:].strip()
+                note = l[l.find(":") + 1 :].strip()
 
                 for f in Footnote.all:
                     if f.content == "" and f.local_ref == ref:
                         f.set_content(note)
 
     def process(self, prev_type="", article=None, section=None):
-
         def depuntuate(s):
-            return re.sub(r'[^\w\s]', '', s)
+            return re.sub(r"[^\w\s]", "", s)
 
         def make_hash(txt):
             hasher = hashlib.sha1(depuntuate(txt).encode("utf-8"))
@@ -610,7 +615,8 @@ class Graf(SerialObject):
 
         start_letters = [x[0].lower() for x in self.plain_txt.split(" ") if x]
         start_letters = "".join(
-            [x for x in start_letters if x in string.ascii_lowercase])
+            [x for x in start_letters if x in string.ascii_lowercase]
+        )
 
         self.key = make_hash(self.plain_txt)
         # based on first letters (allows typo fixes)
@@ -628,7 +634,7 @@ class Graf(SerialObject):
 
         if self.h_name == "blockquote":
             self.blockquote = True
-        if re.search('\[\^[0-9\*]+\]\:', text):
+        if re.search("\[\^[0-9\*]+\]\:", text):
             self.connect_to_footnote(text)
             self.html = ""
             self.type = None
@@ -636,8 +642,11 @@ class Graf(SerialObject):
         if text[:2] == "[[" and text[-2:] == "]]":
             text = text.replace("[[", "").replace("]]", "")
             self.type = Graf.EXTENDED_COMPLETE
-        if text[:2] != "[[" and text[-2:] != "]]" and prev_type in [Graf.EXTENDED_START,
-                                                                    Graf.EXTENDED_MIDDLE]:
+        if (
+            text[:2] != "[["
+            and text[-2:] != "]]"
+            and prev_type in [Graf.EXTENDED_START, Graf.EXTENDED_MIDDLE]
+        ):
             self.type = Graf.EXTENDED_MIDDLE
         if text[:2] != "[[" and text[-2:] == "]]":
             text = text.replace("[[", "").replace("]]", "")
@@ -650,26 +659,27 @@ class Graf(SerialObject):
         text = text.replace('=""', "%EMPTYHTMLTAG%")
         for q in re.findall('""([^"]*?)""', text):
             text = text.replace(
-                '""' + q + '""', '<span class="quote">"' + q + '"</span>')
+                '""' + q + '""', '<span class="quote">"' + q + '"</span>'
+            )
         text = text.replace("%EMPTYHTMLTAG%", '=""')
 
         """ extract any tags """
-        for q in re.findall('\[tag[^\)]*?]', text):
+        for q in re.findall("\[tag[^\)]*?]", text):
             self.tag = q.replace("[tag:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract any para_tags """
-        for q in re.findall('\[para[^\)]*?]', text):
+        for q in re.findall("\[para[^\)]*?]", text):
             self.para_tag = q.replace("[para:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract any page_tags """
-        for q in re.findall('\[page[^\)]*?]', text):
+        for q in re.findall("\[page[^\)]*?]", text):
             self.page_tag = q.replace("[page:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract and replace header-assets """
-        for q in re.findall('\[header-asset:[^\)]*]', text):
+        for q in re.findall("\[header-asset:[^\)]*]", text):
             asset = q.replace("[header-asset:", "").replace("]", "")
             real_asset = article.article.assets.filter(slug=asset)
             print("found header asset {0}".format(asset))
@@ -681,7 +691,7 @@ class Graf(SerialObject):
             text = text.replace(q, "")
 
         """ extract and replace assets """
-        for q in re.findall('\[asset:[^\)]*]', text):
+        for q in re.findall("\[asset:[^\)]*]", text):
             asset = q.replace("[asset:", "").replace("]", "")
             real_asset = article.article.assets.filter(slug=asset)
             if real_asset.exists():
@@ -696,12 +706,12 @@ class Graf(SerialObject):
         # process footnotes - can't use an iter because amending size as we go
         match = True
         while match:
-            match = re.search('\[\^.*?\]', text)
+            match = re.search("\[\^.*?\]", text)
             if match:
                 q = match.group()
                 new_note = Footnote(local_ref=q)
-                ref_html = '<footref>{0}</footref>'.format(new_note.num)
-                text = text[:match.start()] + ref_html + text[match.end():]
+                ref_html = "<footref>{0}</footref>".format(new_note.num)
+                text = text[: match.start()] + ref_html + text[match.end() :]
                 self.footnotes.append(new_note)
 
         self.html = text
@@ -727,7 +737,7 @@ class Graf(SerialObject):
         render for display
         """
         text = self.html
-        refs = BeautifulSoup(text, "html.parser").findAll({'footref': True})
+        refs = BeautifulSoup(text, "html.parser").findAll({"footref": True})
 
         footnotes = self.footnotes
         footnote_lookup = {x.num: x for x in footnotes}
@@ -753,10 +763,9 @@ class Graf(SerialObject):
                         order = None
                     print(order)
                     if order:
-                        url = version.sections[order -
-                                               1].nav_url(include_anchor=False)
+                        url = version.sections[order - 1].nav_url(include_anchor=False)
                         url += "#tag." + tag
-                        text = text.replace('#tag.{0}'.format(tag), url)
+                        text = text.replace("#tag.{0}".format(tag), url)
             internal_links = internal_links_re_statement.findall(text)
             if internal_links:
                 sections = version.section_link_lookup()
@@ -782,15 +791,14 @@ class Graf(SerialObject):
     def display_kindle(self, remove_links=True):
 
         text = self.html
-        links = BeautifulSoup(text, features="html5lib").findAll({'a': True})
+        links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
 
         if remove_links:
             for l in links:
-                if "href" in l and "#tag." not in l['href']:
+                if "href" in l and "#tag." not in l["href"]:
                     text = text.replace(str(l), l.text)
 
-        refs = BeautifulSoup(text, features="html5lib").findAll(
-            {'footref': True})
+        refs = BeautifulSoup(text, features="html5lib").findAll({"footref": True})
 
         footnotes = self.footnotes
         footnote_lookup = {x.num: x for x in footnotes}
@@ -829,10 +837,11 @@ class Graf(SerialObject):
         """
         is there a named anchor for this graf
         """
-        def depuntuate(s):
-            return re.sub(r'[^\w\s]', '', s)
 
-        if hasattr(self, 'anchor_title') and self.anchor_title:
+        def depuntuate(s):
+            return re.sub(r"[^\w\s]", "", s)
+
+        if hasattr(self, "anchor_title") and self.anchor_title:
             title = self.anchor_title
         else:
             title = self.title
@@ -850,12 +859,18 @@ class Graf(SerialObject):
 def quote_fix(content):
     if not content:
         return content
-    return content.replace("“", '"').replace("”", '"').replace("’", "'").replace("’", "'").replace("’", "'")
+    return (
+        content.replace("“", '"')
+        .replace("”", '"')
+        .replace("’", "'")
+        .replace("’", "'")
+        .replace("’", "'")
+    )
 
 
 def move_extended_close(content):
     """
-    moves ]] onto next line to escape difficulties. 
+    moves ]] onto next line to escape difficulties.
     """
     final = []
     for l in content.split("\n"):
@@ -880,14 +895,24 @@ def return_footnote_refs(content):
 
 
 def get_classes(e):
-    if e.has_attr('class'):
-        return e.attrs['class']
+    if e.has_attr("class"):
+        return e.attrs["class"]
     return []
 
 
 def get_content(e):
-    good_to_extract = ['p', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'blockquote',
-                       'ol', 'table']
+    good_to_extract = [
+        "p",
+        "ul",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "blockquote",
+        "ol",
+        "table",
+    ]
 
     if isinstance(e, NavigableString) or e.name not in good_to_extract:
         return str(e)
@@ -901,11 +926,13 @@ def process_ink(version, content):
 
     Footnote.note_count = 0
 
-    processors = [quote_fix,
-                  move_extended_close,
-                  hide_footnote_refs,
-                  markdown.markdown,
-                  return_footnote_refs]
+    processors = [
+        quote_fix,
+        move_extended_close,
+        hide_footnote_refs,
+        markdown.markdown,
+        return_footnote_refs,
+    ]
 
     """
     #these are set back to active later if used
@@ -916,11 +943,22 @@ def process_ink(version, content):
     for p in processors:
         processed = p(processed)
 
-    good_to_extract = ['p', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'blockquote',
-                       'ol', 'table']
+    good_to_extract = [
+        "p",
+        "ul",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "blockquote",
+        "ol",
+        "table",
+    ]
 
     lines = BeautifulSoup(processed, features="html5lib").findAll(
-        {x: True for x in good_to_extract})
+        {x: True for x in good_to_extract}
+    )
 
     order = 1
     s_order = 1
@@ -966,13 +1004,15 @@ def process_ink(version, content):
                     # if multiple headers straight after each other
                     anchor_title = current_h1_title + " " + section_title
                     print("creating anchor title:{0}".format(anchor_title))
-                    ng = Graf(title=section_title,
-                              order=order,
-                              header_level=header_level,
-                              h_name=p.name,
-                              parent_id=s.order,
-                              anchor_title=anchor_title,
-                              anchor_offset=get_anchor_offset(anchor_title))
+                    ng = Graf(
+                        title=section_title,
+                        order=order,
+                        header_level=header_level,
+                        h_name=p.name,
+                        parent_id=s.order,
+                        anchor_title=anchor_title,
+                        anchor_offset=get_anchor_offset(anchor_title),
+                    )
                     order += 1
                     s.grafs.append(ng)
                 section_title = p.text  # assigns title to next graf we find
@@ -983,9 +1023,9 @@ def process_ink(version, content):
                     s.save_process()
                     version.sections.append(s)
                     s_order += 1
-                s = Section(order=s_order,
-                            name=p.text,
-                            anchor_offset=get_anchor_offset(p.text))
+                s = Section(
+                    order=s_order, name=p.text, anchor_offset=get_anchor_offset(p.text)
+                )
                 current_h1_title = p.text
                 last_title = None
             elif "[catchup:" in p.text.lower():
@@ -1017,17 +1057,19 @@ def process_ink(version, content):
                         anchor_title = current_h1_title + " " + section_title
                     else:
                         anchor_title = ""
-                    ng = Graf(title=section_title,
-                              plain_txt=plain_txt,
-                              html=html,
-                              h_name=p.name,
-                              custom_classes=get_classes(p),
-                              order=order,
-                              header_level=header_level,
-                              parent_id=s.order,
-                              catch_up=catchup,
-                              anchor_title=anchor_title,
-                              anchor_offset=get_anchor_offset(anchor_title))
+                    ng = Graf(
+                        title=section_title,
+                        plain_txt=plain_txt,
+                        html=html,
+                        h_name=p.name,
+                        custom_classes=get_classes(p),
+                        order=order,
+                        header_level=header_level,
+                        parent_id=s.order,
+                        catch_up=catchup,
+                        anchor_title=anchor_title,
+                        anchor_offset=get_anchor_offset(anchor_title),
+                    )
 
                     catchup = ""
                     if section_title:

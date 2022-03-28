@@ -8,11 +8,11 @@ def compress_static(additional=[]):
     """
     compress selected static files
     """
-    files = ["js//agietan.js",
-             "css//stringprint-core.css",
-             "css//stringprint-default.css"
-             "js//clipboard.js"
-             ]
+    files = [
+        "js//agietan.js",
+        "css//stringprint-core.css",
+        "css//stringprint-default.css" "js//clipboard.js",
+    ]
 
     static_dirs = settings.STATICFILES_DIRS
 
@@ -31,5 +31,5 @@ def compress_static(additional=[]):
                 elif tail == ".css":
                     minified = css_compress(js_file.read())
             new_path = os.path.join(s, new_name)
-            with open(new_path, 'w') as js_file:
+            with open(new_path, "w") as js_file:
                 js_file.write(minified)

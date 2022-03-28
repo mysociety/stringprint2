@@ -7,13 +7,13 @@ import useful_inkleby.useful_django.fields.serial
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0039_auto_20200727_0838'),
+        ("stringprint", "0039_auto_20200727_0838"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='organisation',
-            name='default_values',
+            model_name="organisation",
+            name="default_values",
             field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default={}),
         ),
     ]

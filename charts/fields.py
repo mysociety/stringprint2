@@ -5,16 +5,16 @@ from .display import Chart
 
 class ChartField(models.TextField):
     """
-    store a collection of generic objects in a jsonblock. 
+    store a collection of generic objects in a jsonblock.
     Useful for when you have a hierarchy of classes that are only accessed
-    from the one object. 
+    from the one object.
     """
 
     def __init__(self, *args, **kwargs):
         self.chart_type = None
         if "chart_type" in kwargs:
             self.chart_type = kwargs["chart_type"]
-            del kwargs['chart_type']
+            del kwargs["chart_type"]
         super(ChartField, self).__init__(*args, **kwargs)
 
     def from_db_value(self, value, expression, connection):

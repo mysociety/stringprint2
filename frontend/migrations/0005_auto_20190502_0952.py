@@ -6,22 +6,22 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('frontend', '0004_tokensetting'),
+        ("frontend", "0004_tokensetting"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='download',
-            name='article',
+            model_name="download",
+            name="article",
         ),
         migrations.DeleteModel(
-            name='TokenSetting',
+            name="TokenSetting",
         ),
         migrations.AlterModelOptions(
-            name='usersettings',
-            options={'verbose_name_plural': 'User Settings'},
+            name="usersettings",
+            options={"verbose_name_plural": "User Settings"},
         ),
         migrations.DeleteModel(
-            name='Download',
+            name="Download",
         ),
     ]

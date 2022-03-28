@@ -30,21 +30,21 @@ def svg_safe(input_css, *args, **kwargs):
     input_css = "\n".join(line_safe)
     ns = cssmin(input_css, *args, **kwargs)
     ns = ns.replace(replace_str, " ")
-    return (ns)
+    return ns
 
 
 class SVGSafeMinify(rCSSMinFilter):
-    callback = 'stringprint.compiler.svg_safe'
+    callback = "stringprint.compiler.svg_safe"
 
 
 class CustomSCSS(SCSS):
-    '''
+    """
     dart-sass doesn't use the same source map parameter
     this overrides that
 
     Also adds the autoprefixer post-processsor that
-    bootstrap requires 
-    '''
+    bootstrap requires
+    """
 
     def compile_file(self, source_path):
         full_source_path = self.get_full_source_path(source_path)
@@ -55,10 +55,12 @@ class CustomSCSS(SCSS):
             "--no-source-map",
         ] + self.get_extra_args()
 
-        args.extend([
-            self.get_full_source_path(source_path),
-            full_output_path,
-        ])
+        args.extend(
+            [
+                self.get_full_source_path(source_path),
+                full_output_path,
+            ]
+        )
 
         full_output_dirname = os.path.dirname(full_output_path)
         if not os.path.exists(full_output_dirname):
@@ -67,8 +69,9 @@ class CustomSCSS(SCSS):
         # `cwd` is a directory containing `source_path`.
         # Ex: source_path = '1/2/3', full_source_path = '/abc/1/2/3' -> cwd =
         # '/abc'
-        cwd = os.path.normpath(os.path.join(
-            full_source_path, *([".."] * len(source_path.split("/")))))
+        cwd = os.path.normpath(
+            os.path.join(full_source_path, *([".."] * len(source_path.split("/"))))
+        )
         return_code, out, errors = utils.run_command(args, None, cwd=cwd)
 
         if return_code:
@@ -79,18 +82,20 @@ class CustomSCSS(SCSS):
         url_converter.convert_urls(full_output_path, source_path)
 
         if self.is_sourcemap_enabled:
-            utils.fix_sourcemap(full_output_path + ".map",
-                                source_path, full_output_path)
+            utils.fix_sourcemap(
+                full_output_path + ".map", source_path, full_output_path
+            )
 
         # postprocess using autoprefixer
-        post_process = ["npx",
-                        "postcss",
-                        full_output_path,
-                        "--use",
-                        "autoprefixer",
-                        "--replace"]
+        post_process = [
+            "npx",
+            "postcss",
+            full_output_path,
+            "--use",
+            "autoprefixer",
+            "--replace",
+        ]
 
-        return_code, out, errors = utils.run_command(
-            post_process, None, cwd=cwd)
+        return_code, out, errors = utils.run_command(post_process, None, cwd=cwd)
 
         return self.get_output_path(source_path)

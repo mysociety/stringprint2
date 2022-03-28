@@ -30,6 +30,7 @@ from stringprint.models import Article, Organisation, Asset
 from frontend.views import HomeView, ArticleSettingsView
 from charts import ChartCollection, Chart
 
+
 def fix_yaml(ya):
     if type(ya) == list:
         items = [fix_yaml(x) for x in ya]
@@ -46,7 +47,7 @@ def get_yaml(yaml_file):
     yaml = YAML(typ="safe")
     with open(yaml_file, "rb") as doc:
         data = yaml.load(doc)
-    #data = fix_yaml(data)
+    # data = fix_yaml(data)
     return data
 
 
@@ -76,7 +77,7 @@ def merge_pdfs(front, contents, output):
     pdf_reader = PdfFileReader(contents)
     for page in range(1, pdf_reader.getNumPages()):
         pdf_writer.addPage(pdf_reader.getPage(page))
-    with open(output, 'wb') as fh:
+    with open(output, "wb") as fh:
         pdf_writer.write(fh)
 
 
@@ -89,7 +90,7 @@ def pdf_page_to_png(source_pdf, destination):
 
 def create_thumbnail(source, destination, base_width=110):
     img = Image.open(source)
-    wpercent = (base_width / float(img.size[0]))
+    wpercent = base_width / float(img.size[0])
     hsize = int((float(img.size[1]) * float(wpercent)))
     img = img.resize((base_width, hsize), Image.ANTIALIAS)
     img.save(destination)
@@ -99,7 +100,7 @@ def create_hero(source, destination, base_width=1024):
     print("resizing hero image")
     target_height = 680
     img = Image.open(source)
-    wpercent = (base_width / float(img.size[0]))
+    wpercent = base_width / float(img.size[0])
     hsize = int((float(img.size[1]) * float(wpercent)))
     img = img.resize((base_width, hsize), Image.ANTIALIAS)
     height = img.size[1]
@@ -107,7 +108,6 @@ def create_hero(source, destination, base_width=1024):
 
 
 def select_doc(func):
-
     def inner(self, inp):
 
         protected_terms = ["--refresh"]
@@ -130,11 +130,11 @@ def select_doc(func):
             for i in inp:
                 self.do_setdoc(i)
                 func(self, pass_down)
+
     return inner
 
 
 class SPPrompt(Cmd):
-
     def get_valid_doc_folders(self):
         root = Path(self.current_org.storage_dir, "_docs")
         return [x for x in root.iterdir() if (x / "settings.yaml").exists()]
@@ -235,16 +235,16 @@ class SPPrompt(Cmd):
             print(o.slug)
 
     def do_publish_updated(self, inp):
-        
+
         for f in self.get_valid_doc_folders():
             self.do_setdoc(f.name, silent=True)
             needs_update = self.do_check_for_update(inp)
             if needs_update:
                 print(f"Republishing {f.name}")
-                #self.do_load()
-                #self.do_process()
-                #self.do_renderzip("refresh")
-                #self.do_publish()
+                # self.do_load()
+                # self.do_process()
+                # self.do_renderzip("refresh")
+                # self.do_publish()
 
     def do_check_for_update(self, inp=""):
         """
@@ -252,22 +252,23 @@ class SPPrompt(Cmd):
         return true
         """
         import subprocess
+
         doc_folder = Path(self.doc_folder)
         root = doc_folder.parent.parent
-        upload_time_file = (doc_folder / "upload_time.txt")
+        upload_time_file = doc_folder / "upload_time.txt"
 
         if upload_time_file.exists():
             txt_date = upload_time_file.open().read()
             upload_time = datetime.fromisoformat(txt_date)
         else:
             return False
-        
+
         settings_file = doc_folder / "settings.yaml"
         data = get_yaml(settings_file)
         doc_file = doc_folder / data["file_source"]
 
         cmd = f"git log -1 --format=%ct -- {str(settings_file.relative_to(root))} {str(doc_file.relative_to(root))}"
-        p = subprocess.check_output([cmd],shell=True)
+        p = subprocess.check_output([cmd], shell=True)
         if p:
             last_commit = datetime.fromtimestamp(float(p))
             return last_commit > upload_time
@@ -297,19 +298,20 @@ class SPPrompt(Cmd):
             refresh_header = True
         else:
             refresh_header = False
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.load_from_yaml(self.doc_folder, refresh_header)
-        doc.import_assets(os.path.join(
-            self.doc_folder, "assets"), refresh_header)
+        doc.import_assets(os.path.join(self.doc_folder, "assets"), refresh_header)
         doc.load_from_file()
         doc.process()
         print("Finished Processing: {0}".format(doc.title))
 
     @select_doc
     def do_command(self, command):
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.load_from_yaml(self.doc_folder)
         doc.run_command(command)
         print("Finished command {1}: {0}".format(doc.title, command))
@@ -317,19 +319,21 @@ class SPPrompt(Cmd):
     @select_doc
     def do_preprocess(self, inp):
 
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.load_from_yaml(self.doc_folder)
-        doc.run_command('preprocess')
+        doc.run_command("preprocess")
         print("Finished pre-processing: {0}".format(doc.title))
 
     @select_doc
     def do_publish(self, inp):
 
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.load_from_yaml(self.doc_folder)
-        doc.run_command('publish')
+        doc.run_command("publish")
         print("Finished publishing: {0}".format(doc.title))
 
     @select_doc
@@ -348,8 +352,9 @@ class SPPrompt(Cmd):
         slug = self.current_doc
         bake_folder = self.current_org.publish_dir
         path = os.path.join(bake_folder, slug)
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.render(path, refresh_all=refresh_all)
 
     @select_doc
@@ -358,8 +363,9 @@ class SPPrompt(Cmd):
         slug = self.current_doc
         bake_folder = self.current_org.publish_dir
         path = os.path.join(bake_folder, slug)
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.create_ebook(path)
 
     @select_doc
@@ -368,8 +374,9 @@ class SPPrompt(Cmd):
         slug = self.current_doc
         bake_folder = self.current_org.publish_dir
         path = os.path.join(bake_folder, slug)
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
         doc.create_kindle(path)
 
     @select_doc
@@ -378,12 +385,11 @@ class SPPrompt(Cmd):
         slug = self.current_doc
         origin_folder = self.current_org.storage_dir
         path = os.path.join(origin_folder, "_docs", slug)
-        zip_destination = os.path.join(path,
-                                       slug)
-        doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                     slug=self.current_doc)
-        zip_location = doc.render_to_zip(
-            zip_destination, refresh_all=refresh_all)
+        zip_destination = os.path.join(path, slug)
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
+        zip_location = doc.render_to_zip(zip_destination, refresh_all=refresh_all)
         print("Zip created")
 
     @select_doc
@@ -416,8 +422,9 @@ class SPPrompt(Cmd):
         options = line.split(" ")
         first = options[0]
         if self.current_doc:
-            doc, created = Article.objects.get_or_create(org=self.current_org,
-                                                         slug=self.current_doc)
+            doc, created = Article.objects.get_or_create(
+                org=self.current_org, slug=self.current_doc
+            )
         if first in self.current_org.commands or first in doc.commands:
             doc.load_from_yaml(self.doc_folder)
             doc.run_command(line)

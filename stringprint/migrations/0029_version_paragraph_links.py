@@ -7,13 +7,15 @@ import useful_inkleby.useful_django.fields.serial
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0028_auto_20191001_1856'),
+        ("stringprint", "0028_auto_20191001_1856"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='version',
-            name='paragraph_links',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(blank=True, null=True),
+            model_name="version",
+            name="paragraph_links",
+            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(
+                blank=True, null=True
+            ),
         ),
     ]

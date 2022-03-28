@@ -6,20 +6,20 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0030_organisation_ga_cookies'),
+        ("stringprint", "0030_organisation_ga_cookies"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='multisection',
-            name='version',
+            model_name="multisection",
+            name="version",
         ),
         migrations.RenameField(
-            model_name='article',
-            old_name='sections_over_pages',
-            new_name='multipage',
+            model_name="article",
+            old_name="sections_over_pages",
+            new_name="multipage",
         ),
         migrations.DeleteModel(
-            name='MultiSection',
+            name="MultiSection",
         ),
     ]

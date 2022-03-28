@@ -7,27 +7,26 @@ def register_for_serial(cls):
     """
     decorator that allows classes to be serialsed into jsonblocks
     """
-    
-    
+
     BasicSerial.classes[cls.__name__] = cls
     return cls
-    
+
 
 class BasicSerial(object):
     """
     very basic recursive object serialiser
     """
+
     allowed = [str, str, int, float]
     classes = {}
 
     @classmethod
-    def loads(cls,obj):
+    def loads(cls, obj):
         di = json.loads(obj)
         return cls.restore_object(di)
-    
-     
-    @classmethod   
-    def dumps(cls,obj):
+
+    @classmethod
+    def dumps(cls, obj):
         di = cls.convert_object(obj)
         return json.dumps(di)
 
@@ -36,10 +35,10 @@ class BasicSerial(object):
         """
         convert all objects to dictionaries - otherwise preserve structure
         """
-        
+
         if obj == None:
             return obj
-        
+
         for a in cls.allowed:
             if isinstance(obj, a):
                 return obj
@@ -52,8 +51,10 @@ class BasicSerial(object):
 
         # all other objects
 
-        return {"_type": obj.__class__.__name__,
-                "_content": cls.convert_object(obj.__dict__)}
+        return {
+            "_type": obj.__class__.__name__,
+            "_content": cls.convert_object(obj.__dict__),
+        }
 
     @classmethod
     def restore_object(cls, obj):
@@ -76,12 +77,13 @@ class BasicSerial(object):
             try:
                 # object restoration
                 t = obj["_type"]
-                
+
                 model = cls.classes[t]
 
                 ins = model.__new__(model)
-                ins.__dict__.update({x: cls.restore_object(y)
-                                     for x, y in obj["_content"].items()})
+                ins.__dict__.update(
+                    {x: cls.restore_object(y) for x, y in obj["_content"].items()}
+                )
 
                 return ins
             except KeyError:

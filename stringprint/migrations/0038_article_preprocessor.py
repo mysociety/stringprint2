@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0037_article_subtitle'),
+        ("stringprint", "0037_article_subtitle"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
-            name='preprocessor',
-            field=models.TextField(default=''),
+            model_name="article",
+            name="preprocessor",
+            field=models.TextField(default=""),
         ),
     ]

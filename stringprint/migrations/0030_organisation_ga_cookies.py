@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0029_version_paragraph_links'),
+        ("stringprint", "0029_version_paragraph_links"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='organisation',
-            name='ga_cookies',
+            model_name="organisation",
+            name="ga_cookies",
             field=models.BooleanField(default=True),
         ),
     ]

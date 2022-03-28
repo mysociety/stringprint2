@@ -1,8 +1,8 @@
-'''
+"""
 Created on Jul 29, 2016
 
 @author: Alex
-'''
+"""
 import json
 from useful_inkleby.files import QuickGrid
 from django.utils.safestring import mark_safe
@@ -13,11 +13,10 @@ from django.template.loader import get_template
 
 
 def id_generator(size=6, chars=string.ascii_uppercase):
-    return ''.join(random.choice(chars) for _ in range(size))
+    return "".join(random.choice(chars) for _ in range(size))
 
 
 class ChartCollection(object):
-
     def __init__(self, charts):
         self.charts = charts
         self.packages = set([x.__class__.package_name for x in self.charts])
@@ -26,13 +25,12 @@ class ChartCollection(object):
         return mark_safe(json.dumps(list(self.packages)))
 
     def render_code(self):
-        c = Context({'collection': self})
+        c = Context({"collection": self})
         template = get_template("charts//set_code.html")
         return mark_safe(template.render(c))
 
 
 class Column(object):
-
     def __init__(self, name="", type="string", format=""):
         self.name = name
         self.type = type
@@ -79,7 +77,6 @@ class Column(object):
 
 
 class BaseChart(object):
-
     def __init__(self, name="", file_name=""):
         self.name = name
         self.columns = []
@@ -90,8 +87,8 @@ class BaseChart(object):
 
     def compile_options(self):
         options = {
-                    "title": self.name,
-                   }
+            "title": self.name,
+        }
 
         return options
 
@@ -119,10 +116,9 @@ class BaseChart(object):
                     col_type = "string"
 
             if col_name.lower() == "year":
-                col_type = 'string'
+                col_type = "string"
 
-            self.add_column(name=col_name,
-                            type=col_type)
+            self.add_column(name=col_name, type=col_type)
 
         self.rows = qg.data
         return self
@@ -136,7 +132,7 @@ class BaseChart(object):
         self.rows.append(row)
 
     def render_code(self):
-        c = Context({'chart': self})
+        c = Context({"chart": self})
         template = get_template(self.__class__.code_template)
         return mark_safe(template.render(c))
 
@@ -150,7 +146,6 @@ class BaseChart(object):
 
 
 class LineChartOptions(object):
-
     def __init__(self):
         pass
 
@@ -163,10 +158,11 @@ class GoogleLineChart(BaseChart):
     def compile_options(self):
         base = super(GoogleLineChart, self).compile_options()
 
-        options = {"curveType": 'function',
-                   "legend": {"position": "bottom"},
-                   "smoothLine": True,
-                   }
+        options = {
+            "curveType": "function",
+            "legend": {"position": "bottom"},
+            "smoothLine": True,
+        }
 
         options.update(base)
 

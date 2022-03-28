@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0032_article_include_citation'),
+        ("stringprint", "0032_article_include_citation"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='asset',
-            name='size',
+            model_name="asset",
+            name="size",
             field=models.IntegerField(default=0),
         ),
     ]

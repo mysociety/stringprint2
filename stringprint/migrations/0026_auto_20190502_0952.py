@@ -7,32 +7,47 @@ import stringprint.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0025_auto_20190424_1555'),
+        ("stringprint", "0025_auto_20190424_1555"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='article',
-            name='source_file',
+            model_name="article",
+            name="source_file",
         ),
         migrations.AlterField(
-            model_name='asset',
-            name='image',
-            field=models.ImageField(blank=True, null=True, storage=stringprint.models.OverwriteStorage(), upload_to=''),
+            model_name="asset",
+            name="image",
+            field=models.ImageField(
+                blank=True,
+                null=True,
+                storage=stringprint.models.OverwriteStorage(),
+                upload_to="",
+            ),
         ),
         migrations.AlterField(
-            model_name='asset',
-            name='image_chart',
-            field=models.ImageField(blank=True, null=True, storage=stringprint.models.OverwriteStorage(), upload_to=''),
+            model_name="asset",
+            name="image_chart",
+            field=models.ImageField(
+                blank=True,
+                null=True,
+                storage=stringprint.models.OverwriteStorage(),
+                upload_to="",
+            ),
         ),
         migrations.AlterField(
-            model_name='headerimage',
-            name='image',
-            field=models.ImageField(blank=True, null=True, storage=stringprint.models.OverwriteStorage(), upload_to=''),
+            model_name="headerimage",
+            name="image",
+            field=models.ImageField(
+                blank=True,
+                null=True,
+                storage=stringprint.models.OverwriteStorage(),
+                upload_to="",
+            ),
         ),
         migrations.AlterField(
-            model_name='organisation',
-            name='icon',
+            model_name="organisation",
+            name="icon",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
     ]

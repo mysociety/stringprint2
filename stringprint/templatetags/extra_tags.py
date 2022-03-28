@@ -2,6 +2,7 @@ from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from stringprint.models import Asset
+
 register = template.Library()
 
 
@@ -128,9 +129,9 @@ def divide(value, arg):
         return None
 
 
-@register.inclusion_tag('ink//header_image.html')
+@register.inclusion_tag("ink//header_image.html")
 def header_image(image_obj, alt_text=""):
-    return {"image": image_obj, 'alt_text': alt_text}
+    return {"image": image_obj, "alt_text": alt_text}
 
 
 @register.filter("url")
@@ -149,7 +150,7 @@ def e_int(obj):
     if obj == "":
         obj = 0
     num = int(obj)
-    return"{:,}".format(num)
+    return "{:,}".format(num)
 
 
 @register.filter
@@ -191,11 +192,12 @@ def evenchunks(l, n):
         l = list(l)
 
     import math
+
     n = int(math.floor(len(l) / float(n))) + 10
     print(len(l))
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
-        yield l[i:i + n]
+        yield l[i : i + n]
 
 
 @register.filter
@@ -232,12 +234,13 @@ def evenquerychunks(l, n):
     l = list(l)
 
     import math
+
     n = int(math.floor(len(l) / float(n))) + 1
     print(len(l))
     """Yield successive n-sized chunks from l."""
     results = []
     for i in range(0, len(l), n):
-        results.append(l[i:i + n])
+        results.append(l[i : i + n])
 
     return results
 
@@ -249,7 +252,7 @@ def chunks(l, n):
     """
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
-        yield l[i:i + n]
+        yield l[i : i + n]
 
 
 @register.filter

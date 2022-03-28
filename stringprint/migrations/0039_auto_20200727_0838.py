@@ -7,52 +7,52 @@ import useful_inkleby.useful_django.fields.serial
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0038_article_preprocessor'),
+        ("stringprint", "0038_article_preprocessor"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='article',
-            name='bottom_iframe',
+            model_name="article",
+            name="bottom_iframe",
         ),
         migrations.RemoveField(
-            model_name='article',
-            name='preprocessor',
+            model_name="article",
+            name="preprocessor",
         ),
         migrations.RemoveField(
-            model_name='article',
-            name='repo_entry',
+            model_name="article",
+            name="repo_entry",
         ),
         migrations.RemoveField(
-            model_name='organisation',
-            name='fonts',
+            model_name="organisation",
+            name="fonts",
         ),
         migrations.RemoveField(
-            model_name='organisation',
-            name='screenshot_stylesheet',
+            model_name="organisation",
+            name="screenshot_stylesheet",
         ),
         migrations.RemoveField(
-            model_name='organisation',
-            name='stylesheet',
+            model_name="organisation",
+            name="stylesheet",
         ),
         migrations.AddField(
-            model_name='article',
-            name='commands',
+            model_name="article",
+            name="commands",
             field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default={}),
         ),
         migrations.AddField(
-            model_name='article',
-            name='extra_values',
+            model_name="article",
+            name="extra_values",
             field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default={}),
         ),
         migrations.AddField(
-            model_name='organisation',
-            name='commands',
+            model_name="organisation",
+            name="commands",
             field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default={}),
         ),
         migrations.AddField(
-            model_name='organisation',
-            name='extra_values',
+            model_name="organisation",
+            name="extra_values",
             field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default={}),
         ),
     ]

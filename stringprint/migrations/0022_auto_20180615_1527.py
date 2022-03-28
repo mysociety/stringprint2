@@ -9,23 +9,29 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0021_article_display_footnotes_at_foot'),
+        ("stringprint", "0021_article_display_footnotes_at_foot"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
-            name='bottom_iframe',
-            field=models.URLField(blank=True, default=b''),
+            model_name="article",
+            name="bottom_iframe",
+            field=models.URLField(blank=True, default=b""),
         ),
         migrations.AddField(
-            model_name='article',
-            name='repo_entry',
-            field=models.URLField(blank=True, default=b''),
+            model_name="article",
+            name="repo_entry",
+            field=models.URLField(blank=True, default=b""),
         ),
         migrations.AlterField(
-            model_name='article',
-            name='org',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='articles', to='stringprint.Organisation'),
+            model_name="article",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="articles",
+                to="stringprint.Organisation",
+            ),
         ),
     ]

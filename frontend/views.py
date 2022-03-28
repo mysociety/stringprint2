@@ -1,4 +1,9 @@
-from useful_inkleby.useful_django.views import ComboView, RedirectException, prelogic, postlogic
+from useful_inkleby.useful_django.views import (
+    ComboView,
+    RedirectException,
+    prelogic,
+    postlogic,
+)
 from . import forms as ff
 import os
 from stringprint.models import Article, Organisation
@@ -65,8 +70,9 @@ class GroupedPage(Page):
 
 def get_admin_user():
     if User.objects.filter(username="admin").exists() is False:
-        User.objects.create_superuser('admin', password='admin',
-                                      email="local@127.0.0.1")
+        User.objects.create_superuser(
+            "admin", password="admin", email="local@127.0.0.1"
+        )
     return User.objects.get(username="admin")
 
 
@@ -90,13 +96,14 @@ class LoggedInView(ComboView):
         self.org = UserSettings.get_org(self.request.user)
 
     def access_denied_no_auth(self, request):
-        raise RedirectException(reverse('login'))
+        raise RedirectException(reverse("login"))
 
 
 class ArticleEditBase(ComboView):
     """
     article based editing views
     """
+
     args = ["article_id"]
 
     @prelogic
@@ -115,7 +122,7 @@ class ArticleEditBase(ComboView):
 
 class ArticleHeadersView(ArticleEditBase, LoggedInView):
     template = "frontend//doc_headers.html"
-    url_patterns = [r'^document/(.*)/headers']
+    url_patterns = [r"^document/(.*)/headers"]
     url_name = "article.headers"
 
     def logic(self):
@@ -141,7 +148,7 @@ class ArticleHeadersView(ArticleEditBase, LoggedInView):
 
 class ArticleEditView(ArticleEditBase, LoggedInView):
     template = "frontend//doc_edit.html"
-    url_patterns = [r'^document/(.*)/edit']
+    url_patterns = [r"^document/(.*)/edit"]
     url_name = "article.edit"
 
     def logic(self):
@@ -149,7 +156,7 @@ class ArticleEditView(ArticleEditBase, LoggedInView):
         edit the text of the document
         """
         if self.request.POST:
-            new_text = self.request.POST['new_text']
+            new_text = self.request.POST["new_text"]
             html_2_markdown = html2text.HTML2Text()
             new_text = html_2_markdown.handle(new_text)
             c = self.article.content()
@@ -166,7 +173,7 @@ class ArticleEditView(ArticleEditBase, LoggedInView):
 
 class ArticlePublishView(ArticleEditBase, LoggedInView):
     template = "frontend//doc_publish.html"
-    url_patterns = [r'^document/(.*)/publish']
+    url_patterns = [r"^document/(.*)/publish"]
     url_name = "article.publish"
     form = ff.ArticlePublishForm
 
@@ -185,8 +192,8 @@ class ArticlePublishView(ArticleEditBase, LoggedInView):
         if self.request.POST:
             form = self.form(self.request.POST, setting_url=default_url)
             if form.is_valid():
-                self.article.production_url = form.cleaned_data['publish_url']
-                self.article.publish_date = form.cleaned_data['publish_date']
+                self.article.production_url = form.cleaned_data["publish_url"]
+                self.article.publish_date = form.cleaned_data["publish_date"]
                 self.article.save()
 
                 if self.article.publish_tokens != -999:
@@ -204,24 +211,28 @@ class ArticlePublishView(ArticleEditBase, LoggedInView):
                     self.message = "danger|You need more tokens."
 
         else:
-            form = self.form(initial={'publish_url': self.article.production_url,
-                                      'publish_date': default_date},
-                             setting_url=default_url)
+            form = self.form(
+                initial={
+                    "publish_url": self.article.production_url,
+                    "publish_date": default_date,
+                },
+                setting_url=default_url,
+            )
 
         self.form = form
         self.submit_text = "Publish"
 
         if self.settings.tokens == 0 and self.article.publish_tokens == 0:
-            url = reverse('tokens')
-            url = '<a href="{0}">{1}</a>'.format(url,
-                                                 "Click here to get tokens.")
+            url = reverse("tokens")
+            url = '<a href="{0}">{1}</a>'.format(url, "Click here to get tokens.")
             self.message = "danger|You need more tokens to render this document. " + url
 
         """
         what is currently happening?
         """
         self.downloads = self.article.downloads.all().order_by(
-            '-time_requested', '-time_completed')
+            "-time_requested", "-time_completed"
+        )
         if self.downloads.exists() and self.downloads[0].time_completed == None:
             self.refresh = True
             self.message = "Your document is currently rendering. This page will refresh when it is finished."
@@ -232,7 +243,7 @@ class ArticlePublishView(ArticleEditBase, LoggedInView):
 class ArticleSettingsView(ArticleEditBase, LoggedInView):
 
     template = "frontend//document_settings.html"
-    url_patterns = [r'^document/([0-9]*)/settings/']
+    url_patterns = [r"^document/([0-9]*)/settings/"]
     url_name = "article.settings"
     form = ff.ArticleEditForm
 
@@ -252,7 +263,7 @@ class ArticleSettingsView(ArticleEditBase, LoggedInView):
 
 class OrgSettingsView(LoggedInView):
     template = "frontend//org_amend.html"
-    url_patterns = [r'^org/settings']
+    url_patterns = [r"^org/settings"]
     url_name = "org.settings"
     form = ff.OrgAmendForm
 
@@ -280,7 +291,7 @@ class OrgSettingsView(LoggedInView):
 class RegisterView(ComboView):
 
     template = "registration//register.html"
-    url_patterns = [r'^register/']
+    url_patterns = [r"^register/"]
     url_name = "register"
 
     def view(self, request):
@@ -289,15 +300,16 @@ class RegisterView(ComboView):
             form = ff.RegisterForm(request.POST)
             if form.is_valid():
                 cd = form.cleaned_data
-                user = User.objects.create_user(username=cd['email'],
-                                                email=cd['email'],
-                                                password=cd['password'],
-                                                first_name=cd['first_name'],
-                                                last_name=cd['last_name'])
-                norg = Organisation(name=cd['org_name'])
+                user = User.objects.create_user(
+                    username=cd["email"],
+                    email=cd["email"],
+                    password=cd["password"],
+                    first_name=cd["first_name"],
+                    last_name=cd["last_name"],
+                )
+                norg = Organisation(name=cd["org_name"])
                 norg.save()
-                user = authenticate(username=cd['email'],
-                                    password=cd['password'])
+                user = authenticate(username=cd["email"], password=cd["password"])
                 # create the user settings we need
                 UserSettings.join(user, norg)
                 login(request, user)
@@ -305,20 +317,20 @@ class RegisterView(ComboView):
         else:
             form = ff.RegisterForm()
 
-        return {'form': form,
-                'title': "Register",
-                }
+        return {
+            "form": form,
+            "title": "Register",
+        }
 
 
 class NewDocView(LoggedInView):
 
     template = "frontend//new_doc.html"
-    url_patterns = [r'^document/new']
+    url_patterns = [r"^document/new"]
     url_name = "document.new"
 
     @prelogic
     def new_doc_form_logic(self):
-
         def short_title(v):
             if ":" in v:
                 v1 = v.split(":")[0]
@@ -338,21 +350,22 @@ class NewDocView(LoggedInView):
             new_document_form = form(request.POST)
             if new_document_form.is_valid():
                 cd = new_document_form.cleaned_data
-                root = slugify(cd['title'])
-                short = short_title(cd['title'])
+                root = slugify(cd["title"])
+                short = short_title(cd["title"])
                 slug = root
                 count = 1
                 while Article.objects.filter(slug=slug, org=org).exists():
                     slug = root + "_" + str(count)
                     count += 1
-                a = Article(title=cd['title'],
-                            short_title=short,
-                            slug=slug,
-                            org=org,
-                            )
+                a = Article(
+                    title=cd["title"],
+                    short_title=short,
+                    slug=slug,
+                    org=org,
+                )
                 a.save()
-                if 'file' in request.FILES:
-                    a.source_file.save(root + ".docx", request.FILES['file'])
+                if "file" in request.FILES:
+                    a.source_file.save(root + ".docx", request.FILES["file"])
                     print("triggering import")
                     a.trigger_source_import()
                     a.save()
@@ -366,7 +379,7 @@ class NewDocView(LoggedInView):
 class ReuploadFormView(ArticleEditBase, LoggedInView):
 
     template = "frontend//doc_reupload.html"
-    url_patterns = [r'^document/([0-9]*)/reupload']
+    url_patterns = [r"^document/([0-9]*)/reupload"]
     url_name = "document.reupload"
 
     @prelogic
@@ -376,14 +389,16 @@ class ReuploadFormView(ArticleEditBase, LoggedInView):
         if request.POST:
             new_document_form = form(request.POST)
             if new_document_form.is_valid():
-                if 'file' in request.FILES:
+                if "file" in request.FILES:
                     self.article.source_file.save(
-                        self.article.slug + ".docx", request.FILES['file'])
+                        self.article.slug + ".docx", request.FILES["file"]
+                    )
                     print("triggering import")
                     self.article.trigger_source_import()
                     self.article.save()
                     raise RedirectException(
-                        reverse("article.settings", args=(self.article.id,)))
+                        reverse("article.settings", args=(self.article.id,))
+                    )
         else:
             new_document_form = form()
 
@@ -393,7 +408,7 @@ class ReuploadFormView(ArticleEditBase, LoggedInView):
 
 class ChangeOrgView(NewDocView):
 
-    url_patterns = [r'^orgs/change/(.*)']
+    url_patterns = [r"^orgs/change/(.*)"]
     url_name = "org.change"
     args = ("org_id",)
 
@@ -406,29 +421,27 @@ class ChangeOrgView(NewDocView):
 class HomeView(NewDocView):
 
     template = "frontend//home.html"
-    url_patterns = [r'^']
+    url_patterns = [r"^"]
     url_name = "home"
 
     def logic(self):
         org = UserSettings.get_org(self.request.user)
-        documents = Article.objects.filter(
-            org=org).order_by('-last_updated')[:10]
+        documents = Article.objects.filter(org=org).order_by("-last_updated")[:10]
         self.documents = documents
-        self.orgs = Organisation.objects.all().order_by('name')
+        self.orgs = Organisation.objects.all().order_by("name")
 
 
 class DocListView(HomeView):
 
     template = "frontend//doc_list.html"
-    url_patterns = [r'^documents/list',
-                    r'^documents/list/(.*)']
+    url_patterns = [r"^documents/list", r"^documents/list/(.*)"]
     url_name = "document.list"
     args = (("page_no", 1),)
 
     def logic(self):
         page_count = 10
         org = UserSettings.get_org(self.request.user)
-        documents = Article.objects.filter(org=org).order_by('-last_updated')
+        documents = Article.objects.filter(org=org).order_by("-last_updated")
         paginator = GroupedPaginator(documents, page_count)
         page = self.page_no
         try:

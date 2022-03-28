@@ -14,13 +14,15 @@ from ruamel.yaml import YAML
 from useful_inkleby.files import QuickGrid, QuickText
 
 regex = re.compile(
-    r'^(?:http|ftp)s?://'  # http:// or https://
+    r"^(?:http|ftp)s?://"  # http:// or https://
     # domain...
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
-    r'localhost|'  # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
+    r"localhost|"  # localhost...
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+    r"(?::\d+)?"  # optional port
+    r"(?:/?|[/?]\S+)$",
+    re.IGNORECASE,
+)
 
 
 def fix_url(url):
@@ -39,8 +41,7 @@ def fix_footnotes(block):
     final = []
     for l in block.split("</li>"):
         nl = l.replace('<li id="footnote-{0}"><p>'.format(count), "")
-        nl = nl.replace(
-            '<a href="#footnote-ref-{0}">↑</a></p>'.format(count), "")
+        nl = nl.replace('<a href="#footnote-ref-{0}">↑</a></p>'.format(count), "")
         nl = nl.strip()
         nl = html2markdown.convert(nl).replace("\n", "")
         if l:
@@ -58,10 +59,15 @@ def mammoth_adjust(qt, demote=True):
     text = qt.text
 
     def note_text(x):
-        return '<sup><a href="#footnote-{0}" id="footnote-ref-{0}">\[{0}\]</a></sup>'.format(x)
+        return '<sup><a href="#footnote-{0}" id="footnote-ref-{0}">\[{0}\]</a></sup>'.format(
+            x
+        )
 
     def note_text_new(x):
-        return '<sup><a href="#footnote-{1}" id="footnote-ref-{1}">\[{0}\]</a></sup>'.format(x, x - 1)
+        return '<sup><a href="#footnote-{1}" id="footnote-ref-{1}">\[{0}\]</a></sup>'.format(
+            x, x - 1
+        )
+
     count = 1
 
     special_characters = "[]'.,!-" + '"'
@@ -78,20 +84,20 @@ def mammoth_adjust(qt, demote=True):
         text = text.replace(last_line, new_footnotes)
 
     while note_text(count) in text or note_text_new(count) in text:
-        text = text.replace(note_text(count),
-                            "[^{0}]".format(count))
-        text = text.replace(note_text_new(count),
-                            "[^{0}]".format(count))
-        text = text.replace("<sup>[^{0}]</sup>".format(count),
-                            "[^{0}]".format(count))
-        text = text.replace('{0}. <a id="footnote-{0}"></a>'.format(count),
-                            "[^{0}]:".format(count))
-        text = text.replace('[{0}]: <li id="footnote-{0}"><p>'.format(count),
-                            "[^{0}]:".format(count))
-        text = text.replace("[↑](#footnote-ref-{0})".format(count),
-                            "!!!FOOTNOTE!!!\n")
-        text = text.replace('<a href="#footnote-ref-{0}">↑</a></p></li>'.format(count),
-                            "!!!FOOTNOTE!!!\n")
+        text = text.replace(note_text(count), "[^{0}]".format(count))
+        text = text.replace(note_text_new(count), "[^{0}]".format(count))
+        text = text.replace("<sup>[^{0}]</sup>".format(count), "[^{0}]".format(count))
+        text = text.replace(
+            '{0}. <a id="footnote-{0}"></a>'.format(count), "[^{0}]:".format(count)
+        )
+        text = text.replace(
+            '[{0}]: <li id="footnote-{0}"><p>'.format(count), "[^{0}]:".format(count)
+        )
+        text = text.replace("[↑](#footnote-ref-{0})".format(count), "!!!FOOTNOTE!!!\n")
+        text = text.replace(
+            '<a href="#footnote-ref-{0}">↑</a></p></li>'.format(count),
+            "!!!FOOTNOTE!!!\n",
+        )
         count += 1
 
     # remove weird TOC links
@@ -101,25 +107,27 @@ def mammoth_adjust(qt, demote=True):
         text = text.replace(r, "")
 
     # get correct markdown out of action
-    for r in re.findall('\*\*(.*?)\*\*', text):
+    for r in re.findall("\*\*(.*?)\*\*", text):
         if r and r[0] != " " and r[-1] != " ":
-            text = text.replace("**{0}**".format(r),
-                                "!!DOUBLE!!{0}!!DOUBLE!!".format(r))
-    for r in re.findall('\*(.*?)\*', text):
+            text = text.replace(
+                "**{0}**".format(r), "!!DOUBLE!!{0}!!DOUBLE!!".format(r)
+            )
+    for r in re.findall("\*(.*?)\*", text):
         if r and r[0] != " " and r[-1] != " ":
-            text = text.replace("*{0}*".format(r),
-                                "!!SINGLE!!{0}!!SINGLE!!".format(r))
+            text = text.replace("*{0}*".format(r), "!!SINGLE!!{0}!!SINGLE!!".format(r))
 
     # remove bad markdown conversion - removes spaces at end of formatting
 
-    patterns = [("(\*\*(.*?) \*\*)", "**{0}** "),
-                ("(\*\* (.*?)\*\*)", " **{0}**"),
-                ("(\*(.*?) \*)", "*{0}* "),
-                ("(\* (.*?)\*)", " *{0}*"),
-                ("(\_\_(._?) \_\_)", "__{0}__ "),
-                ("(\_\_ (._?)\_\_)", " __{0}__"),
-                ("(\_(._?) \_)", "_{0}_ "),
-                ("(\_ (._?)\_)", " _{0}_")]
+    patterns = [
+        ("(\*\*(.*?) \*\*)", "**{0}** "),
+        ("(\*\* (.*?)\*\*)", " **{0}**"),
+        ("(\*(.*?) \*)", "*{0}* "),
+        ("(\* (.*?)\*)", " *{0}*"),
+        ("(\_\_(._?) \_\_)", "__{0}__ "),
+        ("(\_\_ (._?)\_\_)", " __{0}__"),
+        ("(\_(._?) \_)", "_{0}_ "),
+        ("(\_ (._?)\_)", " _{0}_"),
+    ]
     count = 0
     for p, replace in patterns:
         for r in re.findall(p, text):
@@ -133,8 +141,7 @@ def mammoth_adjust(qt, demote=True):
     text = text.replace("!!SINGLE!!", "*")
 
     # move any bold away from neighbouring text
-    patterns = [("(\*\*(.+?)\*\*)\w", "**{0}** "),
-                ("\w(\*\*(.+?)\*\*)", " **{0}**")]
+    patterns = [("(\*\*(.+?)\*\*)\w", "**{0}** "), ("\w(\*\*(.+?)\*\*)", " **{0}**")]
     for p, replace_format in patterns:
         for full, contents in re.findall(p, text):
             if "*" not in r and len(r) < 15:
@@ -151,8 +158,7 @@ def mammoth_adjust(qt, demote=True):
     qt.text = text
 
     normal_image_find = re.compile(r"\(data:image/(.*?);base64,(.*)\)(.*)")
-    alt_image_find = re.compile(
-        r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>')
+    alt_image_find = re.compile(r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>')
     image_finders = [normal_image_find, alt_image_find]
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
 
@@ -187,11 +193,13 @@ def mammoth_adjust(qt, demote=True):
                 if len(caption) < 5:
                     caption = None
                 slug = "word-asset-{0}".format(asset_count)
-                di = {"content_type": "image",
-                      "type": image_type,
-                      "content": content,
-                      "caption": caption,
-                      "slug": slug}
+                di = {
+                    "content_type": "image",
+                    "type": image_type,
+                    "content": content,
+                    "caption": caption,
+                    "slug": slug,
+                }
                 print("asset found {0}".format(asset_count))
                 print(di["slug"])
                 qt.assets.append(di)
@@ -201,7 +209,9 @@ def mammoth_adjust(qt, demote=True):
                 extra_map[line] = new_asset
                 break
             if not found:
-                warnings.warn("Couldn't extract asset for line beginning {0}".format(line[:20]))
+                warnings.warn(
+                    "Couldn't extract asset for line beginning {0}".format(line[:20])
+                )
 
         toc = toc_find.search(line)
         if l_line and l_line[0] == "_" and l_line[-1] == "_":
@@ -268,11 +278,11 @@ def remove_supports(t):
     for x in range(0, 100):
         t = t.replace("footnote-{0}".format(x), "")
     t = t.replace('<li id=""><p>', "")
-    t = t.replace('</p></li>', "")
+    t = t.replace("</p></li>", "")
     return t
 
 
-def markdown_table_contents(x, multi_line = False):
+def markdown_table_contents(x, multi_line=False):
     """
     extracts table row contents and converts to markdown
     """
@@ -308,37 +318,40 @@ def get_tables(html):
         markdown_header = []
         for n, row in enumerate(table.find_all("tr")):
             if n == 0:  # header:
-                table_data.append([td.get_text()
-                                   for td in row.find_all("td")])
-                markdown_header.append([markdown_table_contents(td, multi_line=True)
-                                   for td in row.find_all("td")])
+                table_data.append([td.get_text() for td in row.find_all("td")])
+                markdown_header.append(
+                    [
+                        markdown_table_contents(td, multi_line=True)
+                        for td in row.find_all("td")
+                    ]
+                )
             else:
-                table_data.append([markdown_table_contents(td)
-                                   for td in row.find_all("td")])
+                table_data.append(
+                    [markdown_table_contents(td) for td in row.find_all("td")]
+                )
         qg = QuickGrid()
         qg.header = table_data[0]
         qg.data = table_data[1:]
-        di = {"content_type": "table",
-              "type": "xls",
-              "content": qg,
-              "caption": "",
-              "slug": slug}
+        di = {
+            "content_type": "table",
+            "type": "xls",
+            "content": qg,
+            "caption": "",
+            "slug": slug,
+        }
 
         if len(qg.data) == 0:
             if len(qg.header) == 1:
                 replacement = "[[\n" + "\n".join(markdown_header[0]) + "\n]]"
-                table_html = str(table).replace(
-                    "<tbody>", "").replace("</tbody>", "")
+                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
                 new_html = new_html.replace(table_html, replacement)
             if len(qg.header) == 2:
                 replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)
-                table_html = str(table).replace(
-                    "<tbody>", "").replace("</tbody>", "")
+                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
                 new_html = new_html.replace(table_html, replacement)
         else:
             assets.append(di)
-            table_html = str(table).replace(
-                "<tbody>", "").replace("</tbody>", "")
+            table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
             new_html = new_html.replace(table_html, asset_format.format(slug))
             # if asset_format.format(slug) not in new_html:
             #    raise ValueError("Table slug not successfully inserted.")
@@ -347,7 +360,7 @@ def get_tables(html):
 
 def get_asset_captions(qt):
     """
-    if there's an italic line beneath an asset, uses it as a 
+    if there's an italic line beneath an asset, uses it as a
     """
     lookup = {}
     for x, a in enumerate(qt.assets):
@@ -411,8 +424,7 @@ def extract_assets(q):
             print(a["slug"])
             image_output = io.BytesIO()
             # Write decoded image to buffer
-            base64_content = base64.b64decode(
-                a["content"].encode("utf-8") + b"===")
+            base64_content = base64.b64decode(a["content"].encode("utf-8") + b"===")
             image_output.write(base64_content)
             image_output.seek(0)  # seek beginning of the image string
             file_path = os.path.join(asset_folder, a["slug"] + "." + a["type"])

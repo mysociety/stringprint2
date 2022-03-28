@@ -35,7 +35,7 @@ def compression_callback(sender, type, mode, context, **kwargs):
 class AssetView(ComboView):
 
     template = "ink//asset.html"
-    url_patterns = [r'^asset/(.*)/(.*)/(.*)/', r'^asset/(.*)/(.*)/']
+    url_patterns = [r"^asset/(.*)/(.*)/(.*)/", r"^asset/(.*)/(.*)/"]
     url_name = "asset_view"
 
     def view(self, request, article_slug, slug, static=None):
@@ -53,7 +53,7 @@ class AssetView(ComboView):
         if static:
             c.make_static = True
 
-        return {'asset': a, 'chart_collection': c}
+        return {"asset": a, "chart_collection": c}
 
 
 class HomeView(ComboView):
@@ -65,19 +65,22 @@ class HomeView(ComboView):
     page_title = settings.SITE_NAME
     share_twitter = settings.SITE_TWITTER
     template = "ink//home.html"
-    url_patterns = [r'^$']
+    url_patterns = [r"^$"]
     url_name = "home_view"
 
     def view(self, request):
-        return {'books': Article.objects.filter(public=True), }
+        return {
+            "books": Article.objects.filter(public=True),
+        }
 
 
 class KindleView(HomeView):
     """
     view to create the kindle version of an article
     """
+
     template = "ink//kindle.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/kindle']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/kindle"]
     url_name = "kindle_view"
     require_staff = False
     txt_mode = "kindle"
@@ -106,18 +109,21 @@ class KindleView(HomeView):
         for s in c.sections:
             s._article = a
         a.cached_assets = [x for x in a.assets.all()]
-        return {"article": a,
-                'content': c,
-                'txt_mode': self.__class__.txt_mode,
-                'debug': settings.DEBUG}
+        return {
+            "article": a,
+            "content": c,
+            "txt_mode": self.__class__.txt_mode,
+            "debug": settings.DEBUG,
+        }
 
 
 class EbookChapterView(KindleView):
     """
     Render ebook chapter
     """
+
     template = "ink//epub_chapter.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/epub/([A-Za-z0-9_-]+)/']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/epub/([A-Za-z0-9_-]+)/"]
     url_name = "epub_view"
 
 
@@ -125,7 +131,8 @@ class TOCView(HomeView):
     """
     view to create json toc
     """
-    url_patterns = [r'^([A-Za-z0-9_-]+)/tocjson']
+
+    url_patterns = [r"^([A-Za-z0-9_-]+)/tocjson"]
     url_name = "json_toc_view"
     require_staff = True
     article_settings_override = {"search": False}
@@ -154,8 +161,10 @@ class TOCView(HomeView):
         social_url = a.social_url()
 
         def get_item_and_children(i):
-            item = {"name": fix_trailing_numbers(i.name),
-                    "link": social_url + i.nav_url}
+            item = {
+                "name": fix_trailing_numbers(i.name),
+                "link": social_url + i.nav_url,
+            }
             item["children"] = [get_item_and_children(x) for x in i.children()]
             return item
 
@@ -169,11 +178,11 @@ class TipueSearchView(HomeView):
     """
     view to create the search page for tipue
     """
+
     template = "ink//search.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/search']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/search"]
     url_name = "tipue_search"
-    article_settings_override = {"baking": False,
-                                 "search": True}
+    article_settings_override = {"baking": False, "search": True}
 
     def get_article(self, request, article_slug):
         return Article.objects.get(slug=article_slug)
@@ -190,17 +199,16 @@ class TipueSearchView(HomeView):
                 a.nav_default_range = list(range(s.order, s.order + 3))
                 break
 
-        return {"article": a,
-                'content': c,
-                'cache_nav': 'full'}
+        return {"article": a, "content": c, "cache_nav": "full"}
 
 
 class TipueContentView(TipueSearchView):
     """
     view to create the contentfile for searches
     """
+
     template = "ink//search_js.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/tipuesearch_content.js']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/tipuesearch_content.js"]
     url_name = "tipue_content"
 
 
@@ -208,8 +216,9 @@ class TextView(KindleView):
     """
     view to create the plain text version
     """
+
     template = "ink//plain.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/text/']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/text/"]
     url_name = "txt_view"
     require_staff = True
     txt_mode = "text"
@@ -219,8 +228,9 @@ class KindleOPF(KindleView):
     """
     view to create the kindle version of an article
     """
+
     template = "ink//kindle.opf"
-    url_patterns = [r'^(.*)/kindle/opf']
+    url_patterns = [r"^(.*)/kindle/opf"]
     url_name = "kindle_opf"
 
 
@@ -228,8 +238,9 @@ class KindleNCX(KindleView):
     """
     view to create the kindle version of an article
     """
+
     template = "ink//toc.ncx"
-    url_patterns = [r'^(.*)/kindle/ncx']
+    url_patterns = [r"^(.*)/kindle/ncx"]
     url_name = "kindle_ncx"
 
 
@@ -237,9 +248,9 @@ class ArticleView(HomeView):
     """
     view to create the live version of a page
     """
+
     template = "ink//article_main.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/',
-                    r'^([A-Za-z0-9_-]+)/(.*)']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/", r"^([A-Za-z0-9_-]+)/(.*)"]
     url_name = "article_view"
     share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
     twitter_share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
@@ -255,8 +266,10 @@ class ArticleView(HomeView):
         params = super(ArticleView, self).extra_params(context)
         if hasattr(settings, "SITE_ROOT"):
             params["SITE_ROOT"] = settings.SITE_ROOT
-        extra = {"social_settings": self.social_settings(params),
-                 "page_title": self._page_title(params)}
+        extra = {
+            "social_settings": self.social_settings(params),
+            "page_title": self._page_title(params),
+        }
         params.update(extra)
         return params
 
@@ -272,22 +285,24 @@ class ArticleView(HomeView):
 
         c_context = Context(context)
 
-        def process(x): return Template(x).render(c_context)
+        def process(x):
+            return Template(x).render(c_context)
 
         if cls.twitter_share_image:
             twitter_img = cls.twitter_share_image
         else:
             twitter_img = cls.share_image
 
-        di = {'share_site_name': process(cls.share_site_name),
-              'share_image': process(cls.share_image),
-              'twitter_share_image': process(twitter_img),
-              'share_image_alt': process(cls.share_image_alt),
-              'share_description': process(cls.share_description),
-              'share_title': process(cls.share_title),
-              'url': process(cls.share_url),
-              'share_image_alt': process(cls.share_image_alt),
-              }
+        di = {
+            "share_site_name": process(cls.share_site_name),
+            "share_image": process(cls.share_image),
+            "twitter_share_image": process(twitter_img),
+            "share_image_alt": process(cls.share_image_alt),
+            "share_description": process(cls.share_description),
+            "share_title": process(cls.share_title),
+            "url": process(cls.share_url),
+            "share_image_alt": process(cls.share_image_alt),
+        }
 
         return di
 
@@ -350,20 +365,22 @@ class ArticleView(HomeView):
         else:
             asset_ids = c.used_assets()
         a.cached_titles_and_images = [
-            x for x in titles_and_images if x.is_title or x.id in asset_ids]
-        a.cached_assets = [x for x in a.assets.filter(
-            active=True) if x.id in asset_ids]
+            x for x in titles_and_images if x.is_title or x.id in asset_ids
+        ]
+        a.cached_assets = [x for x in a.assets.filter(active=True) if x.id in asset_ids]
         chart_assets = [x.chart for x in a.cached_assets if x.chart]
         chart_collection = ChartCollection(chart_assets)
 
         a.prep_image_lookup()
-        return {"article": a,
-                'content': c,
-                'debug': settings.DEBUG,
-                'message': message,
-                'first_multi_page': display_first_section,
-                'section_slug': section_slug,
-                'chart_collection': chart_collection}
+        return {
+            "article": a,
+            "content": c,
+            "debug": settings.DEBUG,
+            "message": message,
+            "first_multi_page": display_first_section,
+            "section_slug": section_slug,
+            "chart_collection": chart_collection,
+        }
 
     def _get_template_path(self):
         """
@@ -380,10 +397,7 @@ class ArticleView(HomeView):
         return template_path
 
     def context_to_html(self, request, context):
-        html = render(request,
-                      self._get_template_path(),
-                      context=context
-                      )
+        html = render(request, self._get_template_path(), context=context)
         return html
 
 
@@ -391,8 +405,9 @@ class RedirectLink(HomeView):
     """
     view to create the live version of a page
     """
+
     template = "ink//redirect.html"
-    url_patterns = [r'^([A-Za-z0-9_-]+)/l/(.*)']
+    url_patterns = [r"^([A-Za-z0-9_-]+)/l/(.*)"]
     url_name = "redirect_link"
     share_site_name = "{{article.org.name}}"
     share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
@@ -404,8 +419,7 @@ class RedirectLink(HomeView):
     def load_article(self, request, article_slug, paragraph_code):
         self.article = Article.objects.get(slug=article_slug)
         if self.__class__.article_settings_override:
-            self.article.__dict__.update(
-                self.__class__.article_settings_override)
+            self.article.__dict__.update(self.__class__.article_settings_override)
         self.content = self.article.display_content()
         graf, section = self.content.get_paragraph(paragraph_code)
         graf._section = section
@@ -429,9 +443,11 @@ class RedirectLink(HomeView):
                     if asset_caption:
                         self.alt = asset_caption
 
-        return {"article": self.article,
-                'content': self.content,
-                'graf': self.graf,
-                'alt': self.alt,
-                'asset_image': self.asset_image,
-                'paragraph_tag': self.paragraph_tag}
+        return {
+            "article": self.article,
+            "content": self.content,
+            "graf": self.graf,
+            "alt": self.alt,
+            "asset_image": self.asset_image,
+            "paragraph_tag": self.paragraph_tag,
+        }

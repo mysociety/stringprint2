@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0020_auto_20170727_1133'),
+        ("stringprint", "0020_auto_20170727_1133"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
-            name='display_footnotes_at_foot',
+            model_name="article",
+            name="display_footnotes_at_foot",
             field=models.BooleanField(default=True),
         ),
     ]

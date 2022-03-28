@@ -12,10 +12,10 @@ from paypal.standard.forms import PayPalPaymentsForm
 
 
 class UserSettings(FlexiBulkModel):
-    user = models.ForeignKey(User, related_name="settings",
-                             on_delete=models.CASCADE)
-    org = models.ForeignKey(Organisation, related_name="user_settings",
-                            on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name="settings", on_delete=models.CASCADE)
+    org = models.ForeignKey(
+        Organisation, related_name="user_settings", on_delete=models.CASCADE
+    )
     tokens = models.IntegerField(default=0)
 
     class Meta:
@@ -29,9 +29,9 @@ class UserSettings(FlexiBulkModel):
         return cls.objects.get(user=user).org
 
     @classmethod
-    def change_org(cls,user,org):
+    def change_org(cls, user, org):
         us = cls.get_settings(user)
-        us.org=org
+        us.org = org
         us.save()
 
     @classmethod
@@ -46,11 +46,10 @@ class UserSettings(FlexiBulkModel):
 
 def org_download_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return 'org_{0}/download/{1}'.format(instance.article.org_id, filename)
+    return "org_{0}/download/{1}".format(instance.article.org_id, filename)
 
 
 def get_file(fi):
     reopen = open(fi, "rb")
     django_file = File(reopen)
     return django_file
-

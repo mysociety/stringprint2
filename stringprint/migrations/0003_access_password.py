@@ -7,13 +7,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0002_headerimage_image_vertical'),
+        ("stringprint", "0002_headerimage_image_vertical"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='access',
-            name='password',
+            model_name="access",
+            name="password",
             field=models.CharField(max_length=255, null=True, blank=True),
         ),
     ]

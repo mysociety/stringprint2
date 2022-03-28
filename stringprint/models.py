@@ -47,7 +47,6 @@ chrome_driver_path = settings.CHROME_DRIVER
 
 
 class OverwriteStorage(FileSystemStorage):
-
     def get_available_name(self, name, max_length=None):
         if self.exists(name):
             os.remove(os.path.join(self.location, name))
@@ -95,7 +94,8 @@ class Organisation(models.Model):
     # for twitter card 'ny times'
     twitter = models.CharField(max_length=255, blank=True, null=True)
     ga_code = models.CharField(
-        max_length=255, blank=True, null=True)  # for google analytics
+        max_length=255, blank=True, null=True
+    )  # for google analytics
     ga_cookies = models.BooleanField(default=True)
     publish_root = models.URLField(max_length=255, blank=True, null=True)
     include_favicon = models.BooleanField(default=True)
@@ -122,8 +122,7 @@ class Organisation(models.Model):
 
     @property
     def template_dir(self):
-        template_dir = os.path.join(self.storage_dir,
-                                    "_templates")
+        template_dir = os.path.join(self.storage_dir, "_templates")
         if os.path.exists(template_dir):
             return template_dir
         else:
@@ -141,17 +140,9 @@ class Organisation(models.Model):
         """
         is there a local scss file to use
         """
-        scss_file = os.path.join(self.storage_dir,
-                                 "_static",
-                                 "scss",
-                                 filename
-                                 )
+        scss_file = os.path.join(self.storage_dir, "_static", "scss", filename)
 
-        scss_file_rel = os.path.join("orgs",
-                                     self.slug,
-                                     "scss",
-                                     filename
-                                     )
+        scss_file_rel = os.path.join("orgs", self.slug, "scss", filename)
         if os.path.exists(scss_file):
             return scss_file_rel
 
@@ -163,8 +154,7 @@ class Organisation(models.Model):
 
     def load_from_yaml(self):
         print(self.storage_dir)
-        data = get_yaml(os.path.join(
-            self.storage_dir, "_conf", "settings.yaml"))
+        data = get_yaml(os.path.join(self.storage_dir, "_conf", "settings.yaml"))
         ignore = ["orglinks"]
         change = False
 
@@ -192,15 +182,12 @@ class Organisation(models.Model):
             orglinks = data["orglinks"]
             links = []
             for k, v in orglinks.items():
-                o = OrgLinks(org=self,
-                             name=k,
-                             link=v["link"],
-                             order=v["order"])
+                o = OrgLinks(org=self, name=k, link=v["link"], order=v["order"])
                 links.append(o)
             OrgLinks.objects.bulk_create(links)
 
     def org_links_ordered(self):
-        return self.org_links.all().order_by('order')
+        return self.org_links.all().order_by("order")
 
     def stylesheet_min(self):
         if self.stylesheet:
@@ -233,18 +220,18 @@ class Organisation(models.Model):
 
 def org_source_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return 'org_{0}/sources/{1}'.format(instance.org_id, filename)
+    return "org_{0}/sources/{1}".format(instance.org_id, filename)
 
 
 def kindle_source_storage(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return 'kindle/org_{0}/{1}'.format(instance.org_id, filename)
+    return "kindle/org_{0}/{1}".format(instance.org_id, filename)
 
 
 class OrgLinks(models.Model):
-    org = models.ForeignKey(Organisation,
-                            related_name="org_links",
-                            on_delete=models.CASCADE)
+    org = models.ForeignKey(
+        Organisation, related_name="org_links", on_delete=models.CASCADE
+    )
     name = models.CharField(max_length=255)
     link = models.URLField(max_length=255)
     order = models.IntegerField(default=0)
@@ -255,6 +242,7 @@ class Chrome(object):
     stores selenium driver to reduce time spent after
     first start up
     """
+
     driver = None
 
     @classmethod
@@ -266,8 +254,9 @@ class Chrome(object):
         options.add_argument("headless")
         options.add_argument("hide-scrollbars")
         options.add_argument("--no-sandbox")
-        cls.driver = webdriver.Chrome(executable_path=chrome_driver_path,
-                                      options=options)
+        cls.driver = webdriver.Chrome(
+            executable_path=chrome_driver_path, options=options
+        )
         return cls.driver
 
     @classmethod
@@ -297,15 +286,19 @@ class Article(models.Model):
     publish_date = models.DateField(blank=True, null=True)
     cite_as = models.CharField(max_length=255, null=True, blank=True)
     seed = models.IntegerField(default=13)
-    org = models.ForeignKey(Organisation, null=True,
-                            blank=True, related_name="articles",
-                            on_delete=models.CASCADE)
+    org = models.ForeignKey(
+        Organisation,
+        null=True,
+        blank=True,
+        related_name="articles",
+        on_delete=models.CASCADE,
+    )
     book_cover = models.ImageField(
-        upload_to=kindle_source_storage, null=True, blank=True)
+        upload_to=kindle_source_storage, null=True, blank=True
+    )
     kindle_location = models.CharField(max_length=255, null=True, blank=True)
     multipage = models.BooleanField(default=False)
-    first_section_name = models.CharField(
-        max_length=255, default="start", blank=True)
+    first_section_name = models.CharField(max_length=255, default="start", blank=True)
     pdf_file = models.CharField(max_length=255, default="", blank=True)
     pdf_location = models.CharField(max_length=255, default="", blank=True)
     needs_processing = models.BooleanField(default=False)
@@ -355,7 +348,7 @@ class Article(models.Model):
 
     def split_subtitle(self):
         """
-        return subtitle if present, or try and split 
+        return subtitle if present, or try and split
         the title
         """
         if self.subtitle:
@@ -367,7 +360,7 @@ class Article(models.Model):
 
     def pdf_url(self):
         """
-        returns either the external location 
+        returns either the external location
         or the local pdf location
         """
         if self.pdf_location:
@@ -421,26 +414,28 @@ class Article(models.Model):
             file_name = header["location"]
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
-                    self.org.storage_dir, "_docs", self.slug, file_name)
+                    self.org.storage_dir, "_docs", self.slug, file_name
+                )
             file_ext = os.path.splitext(file_name)[1]
             internal_name = self.slug + file_ext
             image_size = header.get("size", "6")
             if image_size == "background":
                 image_size = -1
-            self.add_image(file_name,
-                           refresh=refresh_header,
-                           internal_name=internal_name,
-                           title_image=True,
-                           size=image_size)
+            self.add_image(
+                file_name,
+                refresh=refresh_header,
+                internal_name=internal_name,
+                title_image=True,
+                size=image_size,
+            )
 
         if "book_cover" in data:
             print("loading book cover")
             file_name = data["book_cover"]
             if os.path.exists(file_name) is False:
-                file_name = os.path.join(self.org.storage_dir,
-                                         "_docs",
-                                         self.slug,
-                                         file_name)
+                file_name = os.path.join(
+                    self.org.storage_dir, "_docs", self.slug, file_name
+                )
             self.get_book_cover(file_name)
 
         if "production_url" not in data:
@@ -453,24 +448,26 @@ class Article(models.Model):
         self.save()
 
     def yaml_export(self, folder):
-        basic_settings = ["title",
-                          "short_title",
-                          "slug",
-                          "description",
-                          "byline",
-                          "current_version",
-                          "copyright",
-                          "authors",
-                          "cite_as",
-                          "file_source",
-                          "publish_date",
-                          "multipage",
-                          "pdf_location",
-                          "production_url",
-                          "display_notes",
-                          "display_footnotes_at_foot",
-                          "repo_entry",
-                          "bottom_iframe"]
+        basic_settings = [
+            "title",
+            "short_title",
+            "slug",
+            "description",
+            "byline",
+            "current_version",
+            "copyright",
+            "authors",
+            "cite_as",
+            "file_source",
+            "publish_date",
+            "multipage",
+            "pdf_location",
+            "production_url",
+            "display_notes",
+            "display_footnotes_at_foot",
+            "repo_entry",
+            "bottom_iframe",
+        ]
 
         # load into dict
         output = OrderedDict()
@@ -496,15 +493,13 @@ class Article(models.Model):
         BAKE_SERVER = "http://127.0.0.1:8000"
 
         url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
-        url = url + \
-            "?id={0}&screenshot=true".format(
-                self.id)
+        url = url + "?id={0}&screenshot=true".format(self.id)
         c = self.display_content()
-        grafs_to_do = [
-        ]
+        grafs_to_do = []
         for g in c.all_grafs():
             g.destination_location = os.path.join(
-                folder, "{0}.png".format(g.combo_key()))
+                folder, "{0}.png".format(g.combo_key())
+            )
             if os.path.exists(g.destination_location) and refresh_all is False:
                 continue
             if g.plain_txt.strip() == "" or "[asset:" in g.plain_txt.lower():
@@ -524,7 +519,8 @@ class Article(models.Model):
             print(g.order, g.combo_key())
             try:
                 element = driver.find_element_by_xpath(
-                    "//div[@id='r{0}']".format(g.order))
+                    "//div[@id='r{0}']".format(g.order)
+                )
             except common.exceptions.NoSuchElementException:
                 print("skipping - element {0} not found".format(g.order))
                 continue
@@ -537,14 +533,14 @@ class Article(models.Model):
             #    left_offset += 30
 
             driver.execute_script(
-                "window.scrollTo(0, {0});".format(location['y'] - offset))
+                "window.scrollTo(0, {0});".format(location["y"] - offset)
+            )
 
             screenshot = driver.get_screenshot_as_base64()
-            img = Image.open(
-                BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
+            img = Image.open(BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
             width = 520
             height = int(width / 1.91)
-            left = location['x'] - left_offset
+            left = location["x"] - left_offset
             top = offset - 8
             right = left + 16 + width
             bottom = top + height  # size['height'] + 2
@@ -587,29 +583,30 @@ class Article(models.Model):
                 a["content_type"] = "table"
                 no_header = True
 
-            f = Asset(article=self,
-                      slug=a["slug"],
-                      type=a["content_type"],
-                      alt_text=a.get("alt_text", a.get("caption", "")),
-                      caption=a.get("caption", ""),
-                      content=markdown.markdown(
-                          a.get("longdesc", "").replace("\n", "\n\n")),
-                      no_header=no_header,
-                      )
+            f = Asset(
+                article=self,
+                slug=a["slug"],
+                type=a["content_type"],
+                alt_text=a.get("alt_text", a.get("caption", "")),
+                caption=a.get("caption", ""),
+                content=markdown.markdown(a.get("longdesc", "").replace("\n", "\n\n")),
+                no_header=no_header,
+            )
             file_name = "{0}.{1}".format(a["slug"], a["type"])
             file_path = os.path.join(asset_folder, file_name)
             if a["content_type"] == "image":
                 reopen = open(file_path, "rb")
-                filename = '{2}_{0}.{1}'.format(a["slug"],
-                                                a["type"],
-                                                self.id)
+                filename = "{2}_{0}.{1}".format(a["slug"], a["type"], self.id)
                 process_images = True
-                if os.path.exists(os.path.join(settings.MEDIA_ROOT, filename)) and refresh is False:
+                if (
+                    os.path.exists(os.path.join(settings.MEDIA_ROOT, filename))
+                    and refresh is False
+                ):
                     process_images = False
                 django_file = File(reopen)
-                suf = SimpleUploadedFile(filename,
-                                         django_file.read(),
-                                         content_type='image/png')
+                suf = SimpleUploadedFile(
+                    filename, django_file.read(), content_type="image/png"
+                )
                 f.image = suf
                 django_file.close()
                 f.size = a.get("size", 4)
@@ -617,14 +614,13 @@ class Article(models.Model):
                     f.extra_values = {}
                     f.create_responsive(ignore_first=True)
                     f.create_tiny()
-                    
+
                 if len(f.extra_values) == 0:
                     f.get_ratio()
                     f.get_average_color()
                     f.header_image_res()
             if "table" in a["content_type"]:
-                f.chart = Chart(chart_type="table_chart",
-                                file_name=file_path)
+                f.chart = Chart(chart_type="table_chart", file_name=file_path)
             if a["content_type"] == "html":
                 f.content_type = "html"
                 f.type = Asset.RAW_HTML
@@ -671,9 +667,7 @@ class Article(models.Model):
 
     def get_book_cover(self, path):
         fi = get_file(path)
-        self.book_cover.save("{0}-book-cover.tif".format(self.id),
-                             fi,
-                             save=True)
+        self.book_cover.save("{0}-book-cover.tif".format(self.id), fi, save=True)
         fi.close()
 
     def cite_link(self, paragraph):
@@ -687,8 +681,13 @@ class Article(models.Model):
             v += "l/{0}.html".format(paragraph.combo_key())
             return v
         else:
-            return reverse('redirect_link', args=(self.slug,
-                                                  paragraph.combo_key(),))
+            return reverse(
+                "redirect_link",
+                args=(
+                    self.slug,
+                    paragraph.combo_key(),
+                ),
+            )
 
     def social_cite_link(self, paragraph):
         """
@@ -698,7 +697,9 @@ class Article(models.Model):
         v = "#" + paragraph.combo_key()
 
         if self.multipage:
-            return self.social_url() + paragraph._section.nav_url(include_anchor=False) + v
+            return (
+                self.social_url() + paragraph._section.nav_url(include_anchor=False) + v
+            )
         else:
             return self.social_url() + v
 
@@ -706,8 +707,14 @@ class Article(models.Model):
         images = self.images.all()
         self.image_lookup = {x.section_name: x for x in images}
 
-    def add_image(self, file_location="", image_vertical="", internal_name="",
-                  refresh=False, **kwargs):
+    def add_image(
+        self,
+        file_location="",
+        image_vertical="",
+        internal_name="",
+        refresh=False,
+        **kwargs,
+    ):
         """
         create image entry
         """
@@ -721,28 +728,24 @@ class Article(models.Model):
                 print("found-deleting")
                 q.delete()
 
-        ni, created = HeaderImage.objects.get_or_create(article=self,
-                                                        source_loc=file_location,
-                                                        )
+        ni, created = HeaderImage.objects.get_or_create(
+            article=self,
+            source_loc=file_location,
+        )
         for k, v in kwargs.items():
             setattr(ni, k, v)
 
         ni.save()
         if created is True or refresh is True or len(ni.extra_values) == 0:
             fi = get_file(file_location)
-            ni.image.save(internal_name,
-                          fi,
-                          save=True
-                          )
+            ni.image.save(internal_name, fi, save=True)
             fi.close()
             if image_vertical:
 
                 header, tail = os.path.splitext(internal_name)
                 vert_file = header + "_vert" + tail
                 fi = get_file(image_vertical)
-                ni.image_vertical.save(vert_file,
-                                       fi,
-                                       save=True)
+                ni.image_vertical.save(vert_file, fi, save=True)
                 fi.close()
             # ni.trigger_create_responsive()
             ni.extra_values = {}
@@ -784,11 +787,10 @@ class Article(models.Model):
         """
         temp_folder = mkdtemp()
         self.render(destination=temp_folder, *args, **kwargs)
-        shutil.make_archive(zip_destination, 'zip', temp_folder)
+        shutil.make_archive(zip_destination, "zip", temp_folder)
         return zip_destination
 
-    def render(self, destination, url=None, plain=True, kindle=True,
-               refresh_all=False):
+    def render(self, destination, url=None, plain=True, kindle=True, refresh_all=False):
         """
         export this and supporting files to location
         """
@@ -808,35 +810,37 @@ class Article(models.Model):
         self.prepare_assets()
         self.tinify_headers()
 
-        from .views import (ArticleView,
-                            TextView,
-                            TipueContentView,
-                            TipueSearchView,
-                            RedirectLink,
-                            TOCView)
+        from .views import (
+            ArticleView,
+            TextView,
+            TipueContentView,
+            TipueSearchView,
+            RedirectLink,
+            TOCView,
+        )
 
         """
         create destination folders
         """
-        dirs = [destination,
-                os.path.join(destination, "static"),
-                os.path.join(destination, "static", "css"),
-                os.path.join(destination, "static", "CACHE"),
-                os.path.join(destination, "static", "CACHE", "css"),
-                os.path.join(destination, "static", "CACHE", "js"),
-                os.path.join(destination, "static", "js"),
-                os.path.join(destination, "static", "images"),
-                os.path.join(destination, "media"),
-                os.path.join(destination, "media", "paragraphs"),
-                os.path.join(destination, "l"),
-                ]
+        dirs = [
+            destination,
+            os.path.join(destination, "static"),
+            os.path.join(destination, "static", "css"),
+            os.path.join(destination, "static", "CACHE"),
+            os.path.join(destination, "static", "CACHE", "css"),
+            os.path.join(destination, "static", "CACHE", "js"),
+            os.path.join(destination, "static", "js"),
+            os.path.join(destination, "static", "images"),
+            os.path.join(destination, "media"),
+            os.path.join(destination, "media", "paragraphs"),
+            os.path.join(destination, "l"),
+        ]
 
         # discovery is there is a specific org directory to copy across
         org_static_folder = os.path.join(self.org.storage_dir, "_static")
         if os.path.exists(org_static_folder):
             dirs.append(os.path.join(destination, "static", "orgs"))
-            dirs.append(os.path.join(
-                destination, "static", "orgs", self.org.slug))
+            dirs.append(os.path.join(destination, "static", "orgs", self.org.slug))
 
         for d in dirs:
             if os.path.isdir(d) is False:
@@ -856,14 +860,14 @@ class Article(models.Model):
 
         if self.pdf_file:
             source_file = os.path.join(
-                self.org.storage_dir, "_docs", self.slug, self.pdf_file)
+                self.org.storage_dir, "_docs", self.slug, self.pdf_file
+            )
             dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
             shutil.copyfile(source_file, dest_file)
 
-        extra_files = self.extra_values.get('copy_files', [])
+        extra_files = self.extra_values.get("copy_files", [])
         for f in extra_files:
-            source_file = os.path.join(
-                self.org.storage_dir, "_docs", self.slug, f)
+            source_file = os.path.join(self.org.storage_dir, "_docs", self.slug, f)
             dest_file = os.path.join(destination, f)
             print("copying {0}".format(f))
             shutil.copyfile(source_file, dest_file)
@@ -871,8 +875,9 @@ class Article(models.Model):
         """
         generate paragraph images
         """
-        self.export_paragraph_images(os.path.join(
-            destination, "media", "paragraphs"), refresh_all=refresh_all)
+        self.export_paragraph_images(
+            os.path.join(destination, "media", "paragraphs"), refresh_all=refresh_all
+        )
 
         """
         subclass so we can amend article override settings - force paywall off
@@ -884,35 +889,45 @@ class Article(models.Model):
         class BakeArticleView(ArticleView):
             share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
             twitter_share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-            article_settings_override = {"paywall": False,
-                                         "baking": True,
-                                         "search": False}
+            article_settings_override = {
+                "paywall": False,
+                "baking": True,
+                "search": False,
+            }
 
             def get_article(self, request, article_slug):
                 return current_article
 
         class BakeTipueContentView(TipueContentView):
-            article_settings_override = {"paywall": False,
-                                         "baking": True,
-                                         "search": True}
+            article_settings_override = {
+                "paywall": False,
+                "baking": True,
+                "search": True,
+            }
 
         class BakeTipueSearchView(TipueSearchView):
-            article_settings_override = {"paywall": False,
-                                         "baking": True,
-                                         "search": True}
+            article_settings_override = {
+                "paywall": False,
+                "baking": True,
+                "search": True,
+            }
 
             def get_article(self, request, article_slug):
                 return current_article
 
         class BakeTOCView(TOCView):
-            article_settings_override = {"paywall": False,
-                                         "baking": True,
-                                         "search": False}
+            article_settings_override = {
+                "paywall": False,
+                "baking": True,
+                "search": False,
+            }
 
         class BakePlainView(TextView):
-            article_settings_override = {"paywall": False,
-                                         "baking": True,
-                                         "search": False}
+            article_settings_override = {
+                "paywall": False,
+                "baking": True,
+                "search": False,
+            }
 
         article = self
         article.baking = True
@@ -928,7 +943,6 @@ class Article(models.Model):
             shorter_link = ".".join(k.split(".")[:6])
 
             class BakeRedirectLinkView(RedirectLink):
-
                 def load_article(self, request, article_slug, paragraph_slug):
                     self.article = article
                     self.article.baking = True
@@ -945,37 +959,41 @@ class Article(models.Model):
                     self.paragraph_tag = shorter_link
 
             args = ("blah", "blah")
-            BakeRedirectLinkView.write_file(path=os.path.join(destination,
-                                                              "l", shorter_link + ".html"),
-                                            args=args)
+            BakeRedirectLinkView.write_file(
+                path=os.path.join(destination, "l", shorter_link + ".html"), args=args
+            )
 
         if self.multipage:
             c = self.display_content()
             for s in c.sections:
                 args = (self.slug, s.anchor())
                 name = "{0}.html".format(s.anchor())
-                BakeArticleView.write_file(path=os.path.join(destination, name),
-                                           args=args)
+                BakeArticleView.write_file(
+                    path=os.path.join(destination, name), args=args
+                )
 
         args = (self.slug,)
-        BakeArticleView.write_file(path=os.path.join(
-            destination, "index.html"), args=args)
-        BakeTipueSearchView.write_file(path=os.path.join(
-            destination, "search.html"), args=args)
-        BakeTipueContentView.write_file(path=os.path.join(destination,
-                                                          "tipuesearch_content.js"),
-                                        args=args)
-        BakeTOCView.write_file(path=os.path.join(destination, "toc.json"),
-                               args=args)
+        BakeArticleView.write_file(
+            path=os.path.join(destination, "index.html"), args=args
+        )
+        BakeTipueSearchView.write_file(
+            path=os.path.join(destination, "search.html"), args=args
+        )
+        BakeTipueContentView.write_file(
+            path=os.path.join(destination, "tipuesearch_content.js"), args=args
+        )
+        BakeTOCView.write_file(path=os.path.join(destination, "toc.json"), args=args)
 
         if plain:
-            BakePlainView.write_file(path=os.path.join(
-                destination, "plain.html"), args=args)
+            BakePlainView.write_file(
+                path=os.path.join(destination, "plain.html"), args=args
+            )
 
         print("moving compressed files")
 
-        self.compressed_files = [x[len(settings.COMPRESS_URL):]
-                                 for x in self.compressed_files]
+        self.compressed_files = [
+            x[len(settings.COMPRESS_URL) :] for x in self.compressed_files
+        ]
 
         for c in self.compressed_files:
             print(c)
@@ -997,18 +1015,13 @@ class Article(models.Model):
 
         files.extend(self.compressed_files)
 
-        folders = [
-            "favicon",
-            "licences",
-            "font"
-        ]
+        folders = ["favicon", "licences", "font"]
 
         media = settings.MEDIA_ROOT
 
         for f in files:
             print(f)
-            shutil.copyfile(finders.find(f),
-                            os.path.join(destination, "static", f))
+            shutil.copyfile(finders.find(f), os.path.join(destination, "static", f))
 
         for f in folders:
             print(f)
@@ -1035,20 +1048,22 @@ class Article(models.Model):
             for f in i.get_all_files():
                 print(f)
                 if os.path.exists(os.path.join(media, f)):
-                    shutil.copyfile(os.path.join(media, f),
-                                    os.path.join(destination, "media", f))
+                    shutil.copyfile(
+                        os.path.join(media, f), os.path.join(destination, "media", f)
+                    )
 
         for a in self.assets.filter(active=True):
             if a.image:
                 for f in a.get_all_files():
-                    shutil.copyfile(os.path.join(media, f),
-                                    os.path.join(destination, "media",
-                                                 f))
+                    shutil.copyfile(
+                        os.path.join(media, f), os.path.join(destination, "media", f)
+                    )
             if a.image_chart:
                 print(a.image_chart.name)
-                shutil.copyfile(os.path.join(media, a.image_chart.name),
-                                os.path.join(destination, "media",
-                                             a.image_chart.name))
+                shutil.copyfile(
+                    os.path.join(media, a.image_chart.name),
+                    os.path.join(destination, "media", a.image_chart.name),
+                )
 
         if kindle:
             self.create_kindle(destination, use_temp=True)
@@ -1056,16 +1071,18 @@ class Article(models.Model):
 
     def create_ebook(self, destination):
 
-        from .views import (EbookChapterView)
+        from .views import EbookChapterView
 
         book = mkepub.Book(title=self.title, authors=self.authors.split(","))
 
-        book.set_stylesheet(""".asset-long-desc{
+        book.set_stylesheet(
+            """.asset-long-desc{
                             display: None;
-                            }""")
+                            }"""
+        )
 
         if self.book_cover:
-            with open(self.book_cover.path, 'rb') as file:
+            with open(self.book_cover.path, "rb") as file:
                 book.set_cover(file.read())
 
         sections = []
@@ -1075,8 +1092,7 @@ class Article(models.Model):
             args = (self.slug, s.anchor())
             path = self.slug + "/epub/" + anchor
             request = RequestFactory().get(path)
-            content = EbookChapterView.as_view(decorators=False)(
-                request, *args).content
+            content = EbookChapterView.as_view(decorators=False)(request, *args).content
             content = content.decode("utf-8")
             content = content.replace('src="/media/', 'src="images/')
             book.add_page(s.name, content)
@@ -1091,7 +1107,7 @@ class Article(models.Model):
 
         for f in media_files:
             origin = os.path.join(settings.MEDIA_ROOT, f)
-            with open(origin, 'rb') as file:
+            with open(origin, "rb") as file:
                 book.add_image(f, file.read())
 
         file_path = os.path.join(destination, self.slug + ".epub")
@@ -1147,19 +1163,21 @@ class Article(models.Model):
                     media_files.append(a.image_chart.name)
 
         for f in media_files:
-            copyfile(os.path.join(settings.MEDIA_ROOT, f),
-                     os.path.join(media_dir, f))
+            copyfile(os.path.join(settings.MEDIA_ROOT, f), os.path.join(media_dir, f))
 
-        KindleView.write_file(path=os.path.join(
-            staging, "text.html"), args=args, minimise=False)
+        KindleView.write_file(
+            path=os.path.join(staging, "text.html"), args=args, minimise=False
+        )
         KindleOPF.write_file(path=opf, args=args, minimise=False)
-        KindleNCX.write_file(path=os.path.join(
-            staging, "toc.ncx"), args=args, minimise=False)
-        copyfile(finders.find(os.path.join("css", "kindle.css")),
-                 os.path.join(css_dir, "kindle.css"))
+        KindleNCX.write_file(
+            path=os.path.join(staging, "toc.ncx"), args=args, minimise=False
+        )
+        copyfile(
+            finders.find(os.path.join("css", "kindle.css")),
+            os.path.join(css_dir, "kindle.css"),
+        )
         if self.book_cover:
-            copyfile(self.book_cover.path,
-                     os.path.join(staging, "bookcover.jpg"))
+            copyfile(self.book_cover.path, os.path.join(staging, "bookcover.jpg"))
 
         print("generating mobi")
         com = settings.KINDLEGEN_LOC + " " + opf
@@ -1169,9 +1187,10 @@ class Article(models.Model):
             if os.path.exists(os.path.join(staging, self.slug + ".mobi")):
 
                 print("copying to destination")
-                shutil.copyfile(os.path.join(staging, self.slug + ".mobi"),
-                                os.path.join(destination, self.slug + ".mobi"),
-                                )
+                shutil.copyfile(
+                    os.path.join(staging, self.slug + ".mobi"),
+                    os.path.join(destination, self.slug + ".mobi"),
+                )
             else:
                 print("error! kindle file not present")
 
@@ -1245,8 +1264,7 @@ class Article(models.Model):
 
         # prevent execution by restricting to listed fields
         fields = self._meta.fields
-        lookup_dict = {x.name: getattr(self, x.name)
-                       for x in fields if x.name != "org"}
+        lookup_dict = {x.name: getattr(self, x.name) for x in fields if x.name != "org"}
         lookup_dict.update(self.extra_values)
 
         c_context = Context({"article": lookup_dict})
@@ -1271,8 +1289,7 @@ class Article(models.Model):
         """
         retrieve current version of content
         """
-        q = Version.objects.filter(article=self,
-                                   number=self.current_version)
+        q = Version.objects.filter(article=self, number=self.current_version)
         # error handling
         if q.count() > 1:
             print("deleting previous")
@@ -1280,8 +1297,9 @@ class Article(models.Model):
 
         if not q.exists():
             print("creating new content")
-            v = Version.objects.get_or_create(article=self,
-                                              number=self.current_version)[0]
+            v = Version.objects.get_or_create(
+                article=self, number=self.current_version
+            )[0]
         else:
 
             v = q[0]
@@ -1293,8 +1311,7 @@ class Article(models.Model):
         """
         content = self.content()
         content.article = self
-        content.load_sections(
-            slugs, display_first_section=display_first_section)
+        content.load_sections(slugs, display_first_section=display_first_section)
 
         return content
 
@@ -1302,7 +1319,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        with codecs.open(self.file_source, encoding='utf-8') as f:
+        with codecs.open(self.file_source, encoding="utf-8") as f:
             raw = f.read()
         if raw:
             c = self.content()
@@ -1313,7 +1330,7 @@ class Article(models.Model):
         """
         get the header image reference
         """
-        images = self.images.filter(title_image=True).order_by('-id')
+        images = self.images.filter(title_image=True).order_by("-id")
         if images.exists():
             return images[0]
         else:
@@ -1401,25 +1418,23 @@ class HeaderMixin(object):
     def get_ratio(self):
         ratio = self.extra_values.get("ratio", None)
         if not ratio:
-            file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(1440))
+            file_path = os.path.join(settings.MEDIA_ROOT, self.get_image_name(1440))
             image = Image.open(file_path)
             o_width, o_height = image.size
             image.close()
-            ratio = (float(o_height) / float(o_width))
+            ratio = float(o_height) / float(o_width)
             self.extra_values["ratio"] = ratio
         return ratio
 
     def get_average_color(self):
         color = self.extra_values.get("color", None)
         if not color:
-            file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(1440))
+            file_path = os.path.join(settings.MEDIA_ROOT, self.get_image_name(1440))
             image = Image.open(file_path)
             q = image.quantize(colors=2, method=2)
             color = q.getpalette()[:3]
             image.close()
-            color = '#{:02x}{:02x}{:02x}'.format(*color)
+            color = "#{:02x}{:02x}{:02x}".format(*color)
             self.extra_values["color"] = color
         return color
 
@@ -1433,12 +1448,13 @@ class HeaderMixin(object):
         self.extra_values["sizes"] = ratios
         print("loading image resolution", self.image)
         for width in [768, 992, 1200, 1440, 1920]:
-            image_name = settings.MEDIA_URL + \
-                self.get_image_name(width, assume_tiny=True)
-            not_tiny_url = settings.MEDIA_URL + \
-                self.get_responsive_image_name(width)
+            image_name = settings.MEDIA_URL + self.get_image_name(
+                width, assume_tiny=True
+            )
+            not_tiny_url = settings.MEDIA_URL + self.get_responsive_image_name(width)
             file_path = os.path.join(
-                settings.MEDIA_ROOT, self.get_image_name(width, assume_tiny=True))
+                settings.MEDIA_ROOT, self.get_image_name(width, assume_tiny=True)
+            )
             if str(width) in ratios:
                 o_width, o_height = ratios[str(width)]
             else:
@@ -1479,18 +1495,18 @@ class HeaderMixin(object):
         tinify.key = settings.TINY_PNG_KEY
 
         if hasattr(self, "image_vertical") and self.image_vertical:
-            images = ((self.image_vertical, [768]),
-                      (self.image, [992, 1200, 1440, 1920]),
-                      )
+            images = (
+                (self.image_vertical, [768]),
+                (self.image, [992, 1200, 1440, 1920]),
+            )
         else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),
-                      )
+            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
         for i_file, res in images:
             for width in res:
-                file_name = settings.MEDIA_ROOT + \
-                    self.get_responsive_image_name(width)
-                tiny_name = settings.MEDIA_ROOT + \
-                    self.get_tiny_responsive_image_name(width)
+                file_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
+                tiny_name = settings.MEDIA_ROOT + self.get_tiny_responsive_image_name(
+                    width
+                )
                 if settings.TINY_PNG_KEY:
                     print("reducing using tinify")
                     source = tinify.from_file(str(file_name))
@@ -1512,12 +1528,12 @@ class HeaderMixin(object):
         """
 
         if hasattr(self, "image_vertical") and self.image_vertical:
-            images = ((self.image_vertical, [768]),
-                      (self.image, [992, 1200, 1440, 1920]),
-                      )
+            images = (
+                (self.image_vertical, [768]),
+                (self.image, [992, 1200, 1440, 1920]),
+            )
         else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),
-                      )
+            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
 
         pos = 0
         web_p_files = []
@@ -1537,10 +1553,8 @@ class HeaderMixin(object):
                 new_height = new_width / float(o_width) * o_height
                 thumbnail = image.copy()
                 if new_width < o_width and new_width > 1 and new_height > 1:
-                    thumbnail.thumbnail(
-                        (new_width, new_height), Image.ANTIALIAS)
-                new_name = settings.MEDIA_ROOT + \
-                    self.get_responsive_image_name(width)
+                    thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
+                new_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
                 print("saving as {0}".format(new_name))
                 if os.path.exists(new_name):
                     print("deleting")
@@ -1553,8 +1567,11 @@ class HeaderMixin(object):
                     print("deleting")
                     os.remove(dest)
                 print("creating webp")
-                webp.cwebp(source_name, dest,
-                           f"-lossless -q 100 -resize {new_width} {new_height}")
+                webp.cwebp(
+                    source_name,
+                    dest,
+                    f"-lossless -q 100 -resize {new_width} {new_height}",
+                )
 
 
 class HeaderImage(FlexiBulkModel, HeaderMixin):
@@ -1562,12 +1579,12 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
     title_image = models.BooleanField(default=False)
     section_name = models.CharField(max_length=255, null=True, blank=True)
     source_loc = models.CharField(max_length=255, null=True, blank=True)
-    image = models.ImageField(null=True, blank=True,
-                              storage=OverwriteStorage())
+    image = models.ImageField(null=True, blank=True, storage=OverwriteStorage())
     image_vertical = models.ImageField(null=True, blank=True)
     image_alt = models.CharField(max_length=255, null=True, blank=True)
-    article = models.ForeignKey(Article, related_name="images",
-                                on_delete=models.CASCADE)
+    article = models.ForeignKey(
+        Article, related_name="images", on_delete=models.CASCADE
+    )
     size = models.IntegerField(default=0)
     queue_responsive = models.BooleanField(default=False)
     queue_tiny = models.BooleanField(default=False)
@@ -1575,8 +1592,9 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
 
 
 class Version(models.Model):
-    article = models.ForeignKey(Article, related_name="versions",
-                                on_delete=models.CASCADE)
+    article = models.ForeignKey(
+        Article, related_name="versions", on_delete=models.CASCADE
+    )
     number = models.IntegerField()
     label = models.CharField(max_length=255, blank=True, null=True)
     raw = models.TextField(blank=True, null=True)
@@ -1585,7 +1603,7 @@ class Version(models.Model):
     has_notes = models.BooleanField(default=False)
 
     def load_from_file(self):
-        with codecs.open(self.article.file_source, encoding='utf-8') as f:
+        with codecs.open(self.article.file_source, encoding="utf-8") as f:
             raw = f.read()
         if raw:
             self.raw = raw
@@ -1625,9 +1643,10 @@ class Version(models.Model):
         kwargs["article"] = article
         query = cls.objects.filter(**kwargs)
         if query.exists():
-            values = query.values('pk', 'id', 'number',
-                                  'label', 'sections', 'has_notes')[0]
-            props = {'article': article}
+            values = query.values(
+                "pk", "id", "number", "label", "sections", "has_notes"
+            )[0]
+            props = {"article": article}
             props.update(values)
             v = cls(**props)
         v.load_sections(slugs)
@@ -1670,7 +1689,6 @@ class Version(models.Model):
         """
 
         class Link(object):
-
             def __init__(self, **kwargs):
                 self.id = 0
                 self.order = 0
@@ -1730,7 +1748,7 @@ class Version(models.Model):
                 return mark_safe(character_group(self.name))
 
             def children(self):
-                future = self._toc.items[self.order + 1:]
+                future = self._toc.items[self.order + 1 :]
                 children = []
                 for i in future:
                     if i.level == self.level:
@@ -1740,7 +1758,6 @@ class Version(models.Model):
                 return children
 
         class Toc(object):
-
             def __init__(self):
                 self.items = []
 
@@ -1811,20 +1828,22 @@ class Version(models.Model):
                 if s.order == 1 and not name:
                     name = stand_in_introduction
                 if name:
-                    toc.add(name=name,
-                            anchor=s.anchor(),
-                            nav_url=s.nav_url(),
-                            id=s.order,
-                            level=1
-                            )
+                    toc.add(
+                        name=name,
+                        anchor=s.anchor(),
+                        nav_url=s.nav_url(),
+                        id=s.order,
+                        level=1,
+                    )
                 for g in s.get_grafs():
                     if g.title:
-                        toc.add(name=g.title,
-                                anchor=g.anchor(),
-                                nav_url=g.nav_url(),
-                                id=g.order,
-                                level=g.header_level
-                                )
+                        toc.add(
+                            name=g.title,
+                            anchor=g.anchor(),
+                            nav_url=g.nav_url(),
+                            id=g.order,
+                            level=g.header_level,
+                        )
         return toc
 
     def anchors(self):
@@ -1833,7 +1852,7 @@ class Version(models.Model):
         """
 
         def y(title, anchor, count):
-            return {"title": title, "anchor": anchor, 'count': count}
+            return {"title": title, "anchor": anchor, "count": count}
 
         yield y("Table of Contents", "toc", "1")
         count = 2
@@ -1891,11 +1910,13 @@ class Version(models.Model):
                 if graf.order < start_order + 2 * preview_range:
                     display_range = list(range(0, (2 * preview_range) + 1))
                 elif graf.order > end_order - 2 * preview_range:
-                    display_range = list(range(
-                        len(s.grafs) - 2 * preview_range, len(s.grafs)))
+                    display_range = list(
+                        range(len(s.grafs) - 2 * preview_range, len(s.grafs))
+                    )
                 else:
-                    display_range = list(range(
-                        cur_pos - preview_range, cur_pos + preview_range + 1))
+                    display_range = list(
+                        range(cur_pos - preview_range, cur_pos + preview_range + 1)
+                    )
 
                 for i, g in enumerate(s.grafs):
                     if i not in display_range:
@@ -1943,22 +1964,23 @@ class Version(models.Model):
         elif len(splits) == 6:
             parent, paragraph_key, key, letter_key, start_key, end = splits
 
-        keys = {'parent_id': parent,
-                'order': paragraph_key,
-                'letter_key': letter_key,
-                'key': key,
-                'start_key': start_key,
-                'end_key': end
-                }
+        keys = {
+            "parent_id": parent,
+            "order": paragraph_key,
+            "letter_key": letter_key,
+            "key": key,
+            "start_key": start_key,
+            "end_key": end,
+        }
 
         methods = [
-            ['key'],
-            ['letter_key'],
-            ['start_key', 'end_key'],
-            ['start_key', 'order'],
-            ['start_key'],
-            ['end_key'],
-            ['order', 'parent_id'],
+            ["key"],
+            ["letter_key"],
+            ["start_key", "end_key"],
+            ["start_key", "order"],
+            ["start_key"],
+            ["end_key"],
+            ["order", "parent_id"],
         ]
 
         for m in methods:
@@ -2003,25 +2025,23 @@ class Version(models.Model):
         return files
 
     def load_paragraph_links(self):
-        para_file = os.path.join(self.article.org.storage_dir,
-                                 "_docs",
-                                 self.article.slug,
-                                 "_paragraphs.yaml")
+        para_file = os.path.join(
+            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        )
         if os.path.exists(para_file):
             self.paragraph_links = get_yaml(para_file)
         else:
             self.paragraph_links = []
 
     def save_paragraph_links(self):
-        para_file = os.path.join(self.article.org.storage_dir,
-                                 "_docs",
-                                 self.article.slug,
-                                 "_paragraphs.yaml")
+        para_file = os.path.join(
+            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        )
         write_yaml(para_file, self.paragraph_links)
 
     def paragraph_lookup(self):
         """
-        returns a dictionary of current 
+        returns a dictionary of current
         graf status.
         True = existing graf
         'reference' = graf this now maps to
@@ -2062,8 +2082,7 @@ class Version(models.Model):
         for n in new_render:
             paragraph_lookup[n] = None
 
-        new_existing_grafs = [
-            x for x in existing_grafs if x not in paragraph_lookup]
+        new_existing_grafs = [x for x in existing_grafs if x not in paragraph_lookup]
 
         orphan_grafs = []
         for k, v in paragraph_lookup.items():
@@ -2099,17 +2118,18 @@ class Version(models.Model):
 
         class MiniGraf(object):
 
-            order = ["para_key_position",
-                     "para_key",
-                     "letter_key",
-                     "start_and_end",
-                     "fuzzy_match",
-                     "start_and_pos",
-                     "end_and_pos",
-                     "start_key",
-                     "end_key",
-                     "pos_and_section"
-                     ]
+            order = [
+                "para_key_position",
+                "para_key",
+                "letter_key",
+                "start_and_end",
+                "fuzzy_match",
+                "start_and_pos",
+                "end_and_pos",
+                "start_key",
+                "end_key",
+                "pos_and_section",
+            ]
 
             def __init__(self, key):
                 self.key = key
@@ -2143,8 +2163,7 @@ class Version(models.Model):
                 matches = []
                 for c in candidates:
                     if self.letter_seq and c.letter_seq:
-                        c.distance = lev.distance(
-                            self.letter_seq, c.letter_seq)
+                        c.distance = lev.distance(self.letter_seq, c.letter_seq)
                         if c.distance <= self.fuzzy_distance:
                             matches.append(c)
                 if matches:
@@ -2212,7 +2231,8 @@ class Version(models.Model):
             self.number += 1
             self.article.current_version += 1
             Article.objects.filter(id=self.article_id).update(
-                current_version=self.number)
+                current_version=self.number
+            )
 
         super(Version, self).save(*args, **kwargs)
 
@@ -2222,21 +2242,18 @@ class Asset(FlexiBulkModel, HeaderMixin):
     RAW_HTML = "h"
     IMAGE = "i"
     CHART = "c"
-    types = ((RAW_HTML, "html"),
-             (IMAGE, "image"),
-             (CHART, "chart"))
+    types = ((RAW_HTML, "html"), (IMAGE, "image"), (CHART, "chart"))
 
-    article = models.ForeignKey(Article, related_name="assets", null=True,
-                                on_delete=models.CASCADE)
+    article = models.ForeignKey(
+        Article, related_name="assets", null=True, on_delete=models.CASCADE
+    )
     slug = models.CharField(max_length=255, null=True)
     type = models.CharField(max_length=2, choices=types, null=True)
     location = models.CharField(max_length=255, null=True)
     chart = ChartField(null=True, blank=True)
-    image_chart = models.ImageField(null=True, blank=True,
-                                    storage=OverwriteStorage())
+    image_chart = models.ImageField(null=True, blank=True, storage=OverwriteStorage())
     regenerate_image_chart = models.BooleanField(default=False)
-    image = models.ImageField(null=True, blank=True,
-                              storage=OverwriteStorage())
+    image = models.ImageField(null=True, blank=True, storage=OverwriteStorage())
     size = models.IntegerField(default=0)
     alt_text = models.CharField(max_length=255, null=True, blank=True)
     caption = models.CharField(max_length=255, null=True, blank=True)
@@ -2252,17 +2269,17 @@ class Asset(FlexiBulkModel, HeaderMixin):
             txt = self.caption
         elif self.alt_text:
             txt = self.alt_text
-        txt = txt.encode('ascii', 'ignore')
+        txt = txt.encode("ascii", "ignore")
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
-        return txt.decode('utf-8')
+        return txt.decode("utf-8")
 
     def escape_text(self):
         txt = self.content
         txt = txt.replace("<p>", "")
         txt = txt.replace("</p>", "")
-        txt = txt.encode('ascii', 'ignore')
+        txt = txt.encode("ascii", "ignore")
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
-        return txt.decode('utf-8')
+        return txt.decode("utf-8")
 
     def get_chart_image(self):
         """
@@ -2278,22 +2295,24 @@ class Asset(FlexiBulkModel, HeaderMixin):
         file_destination = os.path.join(temp_dir, temp_name + ".html")
         address = "file:///" + file_destination.replace("\\", "/")
         AssetView.write_file(
-            args=(self.article.slug, self.slug, "yes"), path=file_destination)
+            args=(self.article.slug, self.slug, "yes"), path=file_destination
+        )
         driver = webdriver.Firefox()
         driver.get(address)
         elem = driver.find_element_by_id(self.chart.ident)
-        contents = elem.get_attribute('innerHTML')
-        contents = contents.replace(
-            '<img src="data:image/png;base64,', "")[:-2]
+        contents = elem.get_attribute("innerHTML")
+        contents = contents.replace('<img src="data:image/png;base64,', "")[:-2]
         driver.quit()
         image_output = io.StringIO()
         # Write decoded image to buffer
-        image_output.write(contents.decode('base64'))
+        image_output.write(contents.decode("base64"))
         image_output.seek(0)  # seek beginning of the image string
 
-        suf = SimpleUploadedFile('{0}.png'.format(self.chart.ident),
-                                 image_output.read(),
-                                 content_type='image/png')
+        suf = SimpleUploadedFile(
+            "{0}.png".format(self.chart.ident),
+            image_output.read(),
+            content_type="image/png",
+        )
 
         self.image_chart = suf
         self.regenerate_image_chart = False
@@ -2313,16 +2332,13 @@ class Asset(FlexiBulkModel, HeaderMixin):
 
         head, tail = os.path.splitext(file_location)
 
-        self.image.save(self.slug + tail,
-                        get_file(file_location),
-                        save=True
-                        )
+        self.image.save(self.slug + tail, get_file(file_location), save=True)
 
     def get_text_from_file(self):
         """
         extract content for a html asset
         """
-        with codecs.open(self.location, encoding='utf-8') as f:
+        with codecs.open(self.location, encoding="utf-8") as f:
             raw = f.read()
         if "---CODE---" in raw:
             self.content, self.code_content = raw.split("---CODE---")
@@ -2357,17 +2373,19 @@ class Asset(FlexiBulkModel, HeaderMixin):
             self.caption = ""
 
         if basic:
-            template = 'charts//basic_image.html'
+            template = "charts//basic_image.html"
         else:
-            template = 'charts//responsive_image.html'
+            template = "charts//responsive_image.html"
 
-        context = {"kindle": kindle,
-                   "asset": self,
-                   "source": url,
-                   "alt": escape(at),
-                   "title": escape(self.caption),
-                   "caption": self.caption,
-                   "header": header}
+        context = {
+            "kindle": kindle,
+            "asset": self,
+            "source": url,
+            "alt": escape(at),
+            "title": escape(self.caption),
+            "caption": self.caption,
+            "header": header,
+        }
 
         rendered = render_to_string(template, context)
         return mark_safe(rendered)
@@ -2379,13 +2397,17 @@ class Asset(FlexiBulkModel, HeaderMixin):
         if self.type == Asset.RAW_HTML:
             return mark_safe(self.content)
         if self.type == Asset.IMAGE:
-            return self.render_image(basic=basic, chart_alt=False, kindle=kindle, header=header)
+            return self.render_image(
+                basic=basic, chart_alt=False, kindle=kindle, header=header
+            )
         if self.type == Asset.CHART:
             if self.chart.chart_type == "table_chart":
                 if basic:
                     return self.chart.render_html_table(self.caption, self.no_header)
                 else:
-                    return self.chart.render_bootstrap_table(self.caption, self.no_header)
+                    return self.chart.render_bootstrap_table(
+                        self.caption, self.no_header
+                    )
             else:
                 if basic:
                     return self.render_image(basic=basic, chart_alt=True)

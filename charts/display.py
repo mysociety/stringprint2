@@ -19,7 +19,7 @@ def safe_markdown(x):
 
 
 def id_generator(size=6, chars=string.ascii_uppercase):
-    return ''.join(random.choice(chars) for _ in range(size))
+    return "".join(random.choice(chars) for _ in range(size))
 
 
 class ChartCollection(object):
@@ -47,7 +47,10 @@ class Column(SerialObject):
         self.format = format
         self.setting = setting
         self.multiple = multiple
-        if self.name.lower().strip() in ["%", "percent", "percentage"] and self.format == "":
+        if (
+            self.name.lower().strip() in ["%", "percent", "percentage"]
+            and self.format == ""
+        ):
             self.format = "{0:.0f}%"
             self.multiple = 100
         if "[[currency]]" in self.name:
@@ -146,10 +149,8 @@ class Chart(SerialObject):
                     col_type = "string"
 
             if col_name.lower() == "year":
-                col_type = 'string'
-            self.add_column(name=col_name,
-                            type=col_type,
-                            setting=setting)
+                col_type = "string"
+            self.add_column(name=col_name, type=col_type, setting=setting)
 
         self.rows = qg.data
         return self
@@ -166,8 +167,7 @@ class Chart(SerialObject):
         table = []
         l = len(self.rows)
         for rx, r in enumerate(self.rows):
-            row = [self.columns[i].format_value(
-                x, rx, l) for i, x in enumerate(r)]
+            row = [self.columns[i].format_value(x, rx, l) for i, x in enumerate(r)]
             table.append(row)
 
         return mark_safe(json.dumps(table))
@@ -180,19 +180,19 @@ class Chart(SerialObject):
         rows = []
 
         for r in self.rows:
-            row = [mark_safe(safe_markdown(self.columns[i].boring_format(x)))
-                   for i, x in enumerate(r)]
+            row = [
+                mark_safe(safe_markdown(self.columns[i].boring_format(x)))
+                for i, x in enumerate(r)
+            ]
             rows.append(row)
 
             if no_header:
                 rows.insert(0, header)
                 header = []
 
-        context = {"header": header,
-                   "rows": rows,
-                   "caption": caption}
+        context = {"header": header, "rows": rows, "caption": caption}
 
-        rendered = render_to_string('charts//bootstrap_table.html', context)
+        rendered = render_to_string("charts//bootstrap_table.html", context)
         return mark_safe(rendered)
 
     def render_html_table(self, caption, no_header=False):
@@ -203,18 +203,18 @@ class Chart(SerialObject):
         rows = []
 
         for r in self.rows:
-            row = [mark_safe(safe_markdown(self.columns[i].boring_format(x)))
-                   for i, x in enumerate(r)]
+            row = [
+                mark_safe(safe_markdown(self.columns[i].boring_format(x)))
+                for i, x in enumerate(r)
+            ]
             rows.append(row)
 
         if no_header:
             rows.insert(0, header)
             header = []
 
-        context = {"header": header,
-                   "rows": rows,
-                   "caption": caption}
+        context = {"header": header, "rows": rows, "caption": caption}
 
-        rendered = render_to_string('charts//basic_table.html', context)
+        rendered = render_to_string("charts//basic_table.html", context)
 
         return mark_safe(rendered)

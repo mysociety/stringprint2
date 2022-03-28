@@ -1,13 +1,16 @@
-'''
+"""
 Extention to filesystem loader that allows
 template directories to have namespaces
-'''
+"""
 from django.template.loaders.filesystem import (
-    Loader, safe_join, SuspiciousFileOperation, Origin)
+    Loader,
+    safe_join,
+    SuspiciousFileOperation,
+    Origin,
+)
 
 
 class NamespaceAwareLoader(Loader):
-
     def namespace_aware_dirs(self):
         dirs = self.get_dirs()
         for d in dirs:
@@ -30,8 +33,8 @@ class NamespaceAwareLoader(Loader):
         for namespace, template_dir in self.namespace_aware_dirs():
             adjusted_template_name = template_name
             if namespace:
-                if namespace.lower() == template_name[:len(namespace)].lower():
-                    adjusted_template_name = template_name[len(namespace) + 1:]
+                if namespace.lower() == template_name[: len(namespace)].lower():
+                    adjusted_template_name = template_name[len(namespace) + 1 :]
                 else:
                     adjusted_template_name = namespace + adjusted_template_name
             try:

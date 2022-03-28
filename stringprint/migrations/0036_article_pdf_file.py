@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0035_article_display_toc'),
+        ("stringprint", "0035_article_display_toc"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
-            name='pdf_file',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="article",
+            name="pdf_file",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
     ]

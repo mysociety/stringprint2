@@ -1,11 +1,10 @@
-
 import os
 import yaml
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # load settings from config file
-with open(os.path.join(BASE_DIR, 'proj', 'conf', 'config.yaml')) as fi:
+with open(os.path.join(BASE_DIR, "proj", "conf", "config.yaml")) as fi:
     config = yaml.load(fi, Loader=yaml.FullLoader)
 
 # if running as a vagrant, need to address through file system
@@ -35,14 +34,14 @@ PAYPAL_TEST = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 PROJECT_PATH = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-MEDIA_ROOT = PROJECT_PATH + '/media/'
+MEDIA_ROOT = PROJECT_PATH + "/media/"
 
-STATIC_ROOT = PROJECT_PATH + '/static/'
+STATIC_ROOT = PROJECT_PATH + "/static/"
 COMPRESS_ROOT = STATIC_ROOT
 
 STATICFILES_DIRS = [
-    (PROJECT_PATH + '/web/'),
-    ("vendor", PROJECT_PATH + '/vendor/'),
+    (PROJECT_PATH + "/web/"),
+    ("vendor", PROJECT_PATH + "/vendor/"),
 ]
 
 ORG_TEMPLATE_DIRS = []
@@ -59,24 +58,26 @@ for k, v in config["ORGS"].items():
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-
-        'DIRS': ORG_TEMPLATE_DIRS + [
-            PROJECT_PATH + '/templates/',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": ORG_TEMPLATE_DIRS
+        + [
+            PROJECT_PATH + "/templates/",
         ],
-        'OPTIONS': {
-            'debug': DEBUG,
-            'loaders': ['proj.loaders.NamespaceAwareLoader',
-                        'django.template.loaders.app_directories.Loader'],
-            'context_processors': [
-                'proj.universal.universal_context',
-                'django.contrib.auth.context_processors.auth',
-                'django.template.context_processors.debug',
-                'django.template.context_processors.i18n',
-                'django.template.context_processors.media',
-                'django.template.context_processors.static',
-                'django.template.context_processors.tz',
-                'django.contrib.messages.context_processors.messages',
+        "OPTIONS": {
+            "debug": DEBUG,
+            "loaders": [
+                "proj.loaders.NamespaceAwareLoader",
+                "django.template.loaders.app_directories.Loader",
+            ],
+            "context_processors": [
+                "proj.universal.universal_context",
+                "django.contrib.auth.context_processors.auth",
+                "django.template.context_processors.debug",
+                "django.template.context_processors.i18n",
+                "django.template.context_processors.media",
+                "django.template.context_processors.static",
+                "django.template.context_processors.tz",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -85,39 +86,39 @@ TEMPLATES = [
 COMPRESS_ENABLED = True
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'compressor',
-    'stringprint',
-    'bootstrapform',
-    'import_export',
-    'frontend',
-    'static_precompiler'
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "compressor",
+    "stringprint",
+    "bootstrapform",
+    "import_export",
+    "frontend",
+    "static_precompiler",
 )
 
 MIDDLEWARE = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'htmlmin.middleware.MarkRequestMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'htmlmin.middleware.HtmlMinifyMiddleware',
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "htmlmin.middleware.MarkRequestMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "htmlmin.middleware.HtmlMinifyMiddleware",
 )
 
-ROOT_URLCONF = 'proj.urls'
+ROOT_URLCONF = "proj.urls"
 
-WSGI_APPLICATION = 'proj.wsgi.application'
+WSGI_APPLICATION = "proj.wsgi.application"
 
 # CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
 CELERY_SEND_TASK_ERROR_EMAILS = True
 
 # Database
@@ -126,16 +127,16 @@ CELERY_SEND_TASK_ERROR_EMAILS = True
 if DEBUG:
 
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
 
 else:
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': "stringprint1",
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "stringprint1",
         }
     }
 
@@ -147,18 +148,18 @@ else:
         DATABASES = LIVE_DATEBASES_REMOTE
     else:
         DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
             }
         }
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -169,7 +170,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
 SESSION_COOKIE_AGE = 604800
@@ -177,17 +178,18 @@ DEBUG = True
 
 
 STATICFILES_FINDERS = [
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'compressor.finders.CompressorFinder',
-    'static_precompiler.finders.StaticPrecompilerFinder',
-
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "compressor.finders.CompressorFinder",
+    "static_precompiler.finders.StaticPrecompilerFinder",
 ]
 
-COMPRESS_CSS_FILTERS = ["compressor.filters.css_default.CssRelativeFilter",
-                        #'compressor.filters.css_default.CssAbsoluteFilter',
-                        #'compressor.filters.cssmin.rCSSMinFilter',
-                        'stringprint.compiler.SVGSafeMinify']
+COMPRESS_CSS_FILTERS = [
+    "compressor.filters.css_default.CssRelativeFilter",
+    #'compressor.filters.css_default.CssAbsoluteFilter',
+    #'compressor.filters.cssmin.rCSSMinFilter',
+    "stringprint.compiler.SVGSafeMinify",
+]
 
 
 bootstrap_sass = os.path.join(PROJECT_PATH, "vendor", "bootstrap", "scss")
@@ -196,14 +198,17 @@ normal_scss = os.path.join(PROJECT_PATH, "web", "scss")
 
 
 STATIC_PRECOMPILER_COMPILERS = (
-    ('stringprint.compiler.CustomSCSS', {
-        # ""
-        "executable": "/usr/bin/sass",
-        "sourcemap_enabled": False,
-        "compass_enabled": False,
-        "precision": 2,
-        "load_paths": [bootstrap_sass, normal_scss]
-    }),
+    (
+        "stringprint.compiler.CustomSCSS",
+        {
+            # ""
+            "executable": "/usr/bin/sass",
+            "sourcemap_enabled": False,
+            "compass_enabled": False,
+            "precision": 2,
+            "load_paths": [bootstrap_sass, normal_scss],
+        },
+    ),
 )
 
 # not really required - used to configure what is now the back end

@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stringprint', '0018_auto_20160831_0903'),
+        ("stringprint", "0018_auto_20160831_0903"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
-            name='pdf_location',
-            field=models.CharField(blank=True, default=b'', max_length=255),
+            model_name="article",
+            name="pdf_location",
+            field=models.CharField(blank=True, default=b"", max_length=255),
         ),
     ]
