@@ -14,6 +14,15 @@ from useful_inkleby.useful_django.serialisers import SerialObject
 from django.utils.html import mark_safe, escape
 import random
 import string
+from bs4.element import NavigableString, Tag
+from django.utils.safestring import SafeText
+
+from typing import Any, Iterator, List, Optional, Union
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from stringprint.models import Version, Graf
 
 
 tag_re_statement = re.compile('"#tag.(.*?)"')
@@ -24,7 +33,7 @@ class RandomAssignment(object):
 
     max = 10000
 
-    def __init__(self, seed=13):
+    def __init__(self, seed: int = 13) -> None:
         """
         a seed of -1 will give direct numbers counting up
         """
@@ -34,7 +43,7 @@ class RandomAssignment(object):
         random.seed(self.seed)
         self.simple = 0
 
-    def get(self):
+    def get(self) -> int:
         if self.seed == -1:
             self.simple += 1
             return self.simple
@@ -118,7 +127,7 @@ class Footnote(SerialObject):
 
 
 class Section(SerialObject):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.id = 0
         self.name = ""
         self.order = 0
@@ -135,17 +144,17 @@ class Section(SerialObject):
         if self.header_asset:
             return self._article.assets.get(id=self.header_asset)
 
-    def first_graf_id(self):
+    def first_graf_id(self) -> int:
         if self.grafs:
             return self.grafs[0].order
 
-    def save_process(self):
+    def save_process(self) -> None:
         """
         execute at the end of loading before being stashed in database
         """
         self.tagged = {x.tag: self.order for x in self.grafs if x.tag}
 
-    def used_assets(self):
+    def used_assets(self) -> List[Any]:
         """
         which assets are in this section
         """
@@ -177,7 +186,7 @@ class Section(SerialObject):
     def anchorless_nav_link(self):
         return self.nav_url(False)
 
-    def nav_url(self, include_anchor=True):
+    def nav_url(self, include_anchor: bool = True) -> str:
         """
         link to this section (either as anchor or link to new page).
         """
@@ -218,10 +227,10 @@ class Section(SerialObject):
                 else:
                     return "#" + anchor
 
-    def prev_id(self):
+    def prev_id(self) -> int:
         return self.order - 1
 
-    def prev_if_single_page(self):
+    def prev_if_single_page(self) -> int:
         """
         returns own order in multi-page system
         """
@@ -242,7 +251,7 @@ class Section(SerialObject):
     def grafs_with_titles(self):
         return [x for x in self.grafs if x.title]
 
-    def search_grafs(self):
+    def search_grafs(self) -> Iterator["Graf"]:
 
         assets = self._version.article.assets.all()
         assets = {x.id: x for x in assets}
@@ -257,10 +266,10 @@ class Section(SerialObject):
             if g.visible:
                 yield g
 
-    def get_grafs_with_titles(self):
+    def get_grafs_with_titles(self) -> Iterator[Any]:
         return self.get_grafs(just_titles=True)
 
-    def get_kindle_grafs(self):
+    def get_kindle_grafs(self) -> Iterator["Graf"]:
         self.kindle_extras = []
         if self._article.display_notes:
             for g in self.get_grafs(change_footnotes=False):
@@ -276,18 +285,20 @@ class Section(SerialObject):
                 else:
                     yield g
 
-    def get_kindle_extras(self):
+    def get_kindle_extras(self) -> None:
         for g in self.kindle_extras:
             yield g
 
-    def has_grafs(self):
+    def has_grafs(self) -> int:
         if self.grafs:
             grafs = [x for x in self.grafs if len(x.plain_txt) > 1]
             if grafs:
                 return len(grafs)
         return False
 
-    def get_grafs(self, just_titles=False, change_footnotes=True):
+    def get_grafs(
+        self, just_titles: bool = False, change_footnotes: bool = True
+    ) -> Iterator["Graf"]:
 
         if hasattr(self, "stored_grafs"):
             if self._version.article.multipage and change_footnotes is False:
@@ -379,7 +390,7 @@ class Section(SerialObject):
                 if p.visible or p.title:
                     yield p
 
-    def anchor(self):
+    def anchor(self) -> str:
         """
         returns an identifiable marker for this section
         from name
@@ -423,7 +434,7 @@ class Graf(SerialObject):
         (EXTENDED_COMPLETE, "Extended Complete"),
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.id = ""
         self.title = ""
         self.html = ""
@@ -453,21 +464,21 @@ class Graf(SerialObject):
         self.position_key = 0
         self.__dict__.update(kwargs)
 
-    def get_element_tag(self):
+    def get_element_tag(self) -> str:
         if self.asset and self.h_name == "p":
             return "div"
         else:
             return self.h_name
 
-    def escape_text(self):
+    def escape_text(self) -> str:
         txt = self.plain_txt.encode("ascii", "ignore")
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
         return txt.decode("utf-8")
 
-    def paragraph_image_url(self):
+    def paragraph_image_url(self) -> str:
         return "/media/paragraphs/{0}.png".format(self.combo_key())
 
-    def nav_url(self):
+    def nav_url(self) -> str:
         """
         nav url to this graf
         """
@@ -496,7 +507,7 @@ class Graf(SerialObject):
                 return self.visible
         return ""
 
-    def classes(self):
+    def classes(self) -> str:
         """
         Called by template.
         classes to inject into row object
@@ -506,7 +517,7 @@ class Graf(SerialObject):
         else:
             return ""
 
-    def anchor_code(self):
+    def anchor_code(self) -> SafeText:
         """
         produces the code used to anchor the magic_cite system
         """
@@ -529,7 +540,7 @@ class Graf(SerialObject):
         code = "<a {0}></a>".format(" ".join(lines))
         return mark_safe(code)
 
-    def social_cite_link(self):
+    def social_cite_link(self) -> str:
         return self._article.social_cite_link(self)
 
     def start_tag_class_type(self):
@@ -539,13 +550,13 @@ class Graf(SerialObject):
             return "extended"
         return ""
 
-    def extended(self):
+    def extended(self) -> bool:
         """
         Boolean - is this an extended paragraph>
         """
         return "E" in self.type
 
-    def has_content(self):
+    def has_content(self) -> bool:
         """
         is there any content in this graf?
         """
@@ -554,7 +565,7 @@ class Graf(SerialObject):
                 return True
         return False
 
-    def self_and_extras(self):
+    def self_and_extras(self) -> Iterator["Graf"]:
         """
         return this and any child paragraphs (in extended sections)
         """
@@ -562,7 +573,7 @@ class Graf(SerialObject):
             if x.html or x.title:
                 yield x
 
-    def long_combo_key(self):
+    def long_combo_key(self) -> str:
         """
         key for this paragrah - including letter starts
         """
@@ -578,7 +589,7 @@ class Graf(SerialObject):
             ]
         )
 
-    def combo_key(self):
+    def combo_key(self) -> str:
         """
         key for this paragrah
         """
@@ -605,7 +616,12 @@ class Graf(SerialObject):
                     if f.content == "" and f.local_ref == ref:
                         f.set_content(note)
 
-    def process(self, prev_type="", article=None, section=None):
+    def process(
+        self,
+        prev_type: str = "",
+        article: Optional["Version"] = None,
+        section: Optional[Section] = None,
+    ) -> None:
         def depuntuate(s):
             return re.sub(r"[^\w\s]", "", s)
 
@@ -716,7 +732,7 @@ class Graf(SerialObject):
 
         self.html = text
 
-    def end_expand_link(self, next_block_type=""):
+    def end_expand_link(self, next_block_type: str = "") -> str:
         if next:
             if next_block_type in [Graf.EXTENDED_START, Graf.EXTENDED_COMPLETE]:
                 link_type = "expand"
@@ -726,13 +742,13 @@ class Graf(SerialObject):
                 link_type = ""
         return link_type
 
-    def is_extended_start(self):
+    def is_extended_start(self) -> bool:
         return self.type in [Graf.EXTENDED_START, Graf.EXTENDED_COMPLETE]
 
-    def is_extended_end(self):
+    def is_extended_end(self) -> bool:
         return self.type in [Graf.EXTENDED_END, Graf.EXTENDED_COMPLETE]
 
-    def display(self):
+    def display(self) -> SafeText:
         """
         render for display
         """
@@ -778,17 +794,17 @@ class Graf(SerialObject):
 
         return mark_safe(text)
 
-    def display_text(self):
+    def display_text(self) -> SafeText:
         return self.display_kindle(remove_links=False)
 
-    def display_bare(self):
+    def display_bare(self) -> str:
         text = self.html
         text = BeautifulSoup(text, features="html5lib").text
         if len(text) > 420:
             text = text[:417] + "..."
         return text
 
-    def display_kindle(self, remove_links=True):
+    def display_kindle(self, remove_links: bool = True) -> SafeText:
 
         text = self.html
         links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
@@ -813,7 +829,7 @@ class Graf(SerialObject):
 
         return mark_safe(text)
 
-    def block_start(self, prev_block=None):
+    def block_start(self, prev_block: Optional[bool] = None) -> None:
         """
         special start to block if start of note or blockquote section
 
@@ -824,7 +840,7 @@ class Graf(SerialObject):
         if self.type == Graf.EXTENDED_START or self.type == Graf.EXTENDED_COMPLETE:
             return "StartNotes"
 
-    def block_end(self, next_block=None):
+    def block_end(self, next_block: Optional[bool] = None) -> bool:
 
         if self.blockquote and next_block is False:
             return True
@@ -833,7 +849,7 @@ class Graf(SerialObject):
         else:
             return False
 
-    def anchor(self):
+    def anchor(self) -> str:
         """
         is there a named anchor for this graf
         """
@@ -856,7 +872,7 @@ class Graf(SerialObject):
         return new
 
 
-def quote_fix(content):
+def quote_fix(content: str) -> str:
     if not content:
         return content
     return (
@@ -868,7 +884,7 @@ def quote_fix(content):
     )
 
 
-def move_extended_close(content):
+def move_extended_close(content: str) -> str:
     """
     moves ]] onto next line to escape difficulties.
     """
@@ -883,24 +899,24 @@ def move_extended_close(content):
     return "\n".join(final)
 
 
-def hide_footnote_refs(content):
+def hide_footnote_refs(content: str) -> str:
     # hide footnotes from markdown processor
     content = content.replace("[^", "!!footnotestandin!!")
     return content
 
 
-def return_footnote_refs(content):
+def return_footnote_refs(content: str) -> str:
     content = content.replace("!!footnotestandin!!", "[^")
     return content
 
 
-def get_classes(e):
+def get_classes(e: Tag) -> List[Any]:
     if e.has_attr("class"):
         return e.attrs["class"]
     return []
 
 
-def get_content(e):
+def get_content(e: Union[NavigableString, Tag]) -> str:
     good_to_extract = [
         "p",
         "ul",
@@ -922,7 +938,7 @@ def get_content(e):
         return str(e)
 
 
-def process_ink(version, content):
+def process_ink(version: "Version", content: str) -> None:
 
     Footnote.note_count = 0
 

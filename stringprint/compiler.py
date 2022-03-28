@@ -12,7 +12,7 @@ from rcssmin import cssmin
 import os
 
 
-def svg_safe(input_css, *args, **kwargs):
+def svg_safe(input_css: str, *args, **kwargs) -> str:
     """
     does not allow whitespace to be removed where svg is contained
     in the css

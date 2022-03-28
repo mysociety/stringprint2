@@ -18,10 +18,16 @@ from compressor.signals import post_compress
 
 from .models import Article, Asset
 from useful_inkleby.useful_django.views import ComboView
+from django.core.handlers.wsgi import WSGIRequest
+from stringprint.models import Article, Version
+from stringprint.tools.deepink import Section
+from typing import Any, Dict, List, Type, Union
 
 
 @receiver(post_compress)
-def compression_callback(sender, type, mode, context, **kwargs):
+def compression_callback(
+    sender: Any, type: str, mode: str, context: Dict[str, Any], **kwargs
+) -> None:
     """
     Logs files compressed back into the article object
     this lets the rendering process capture and move them
@@ -86,7 +92,7 @@ class KindleView(HomeView):
     txt_mode = "kindle"
     article_settings_override = {"baking": False, "search": False}
 
-    def get_article(self, request, article_slug):
+    def get_article(self, request: WSGIRequest, article_slug: str) -> Article:
         a = Article.objects.get(slug=article_slug)
         """
         lets the bake view interact with the settings for the article
@@ -95,13 +101,15 @@ class KindleView(HomeView):
             a.__dict__.update(self.__class__.article_settings_override)
         return a
 
-    def restrict(self, sections, code):
+    def restrict(self, sections: List[Section], code: str) -> List[Section]:
         if code:
             return [x for x in sections if x.anchor() == code]
         else:
             return sections
 
-    def view(self, request, article_slug, paragraph_code=""):
+    def view(
+        self, request: WSGIRequest, article_slug: str, paragraph_code: str = ""
+    ) -> dict:
 
         a = self.get_article(request, article_slug)
         c = a.display_content()

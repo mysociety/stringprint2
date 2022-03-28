@@ -8,6 +8,7 @@ import string
 from django.template.loader import render_to_string
 from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
 import markdown
+from typing import Any, List
 
 RENDER_TABLES_AS_CHARTS = False
 
@@ -27,7 +28,7 @@ class ChartCollection(object):
     a chart collection lets you combine the render functions for multiple tables
     """
 
-    def __init__(self, charts):
+    def __init__(self, charts: List[Any]) -> None:
 
         if RENDER_TABLES_AS_CHARTS is False:
             charts = [x for x in charts if x.chart_type != "table_chart"]

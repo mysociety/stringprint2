@@ -1,53 +1,57 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-import os
-import datetime
-import time
 import codecs
-import shutil
+import datetime
 import io
-from PIL import Image
-from tempfile import mkdtemp
-import tinify
-import Levenshtein as lev
-import mkepub
-from django.test.client import RequestFactory
+import os
+import shutil
 import subprocess
+import time
+from collections import OrderedDict
+from pathlib import Path
+from tempfile import mkdtemp
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
+import Levenshtein as lev
+import markdown
+import mkepub
+import tinify
+from charts import Chart
+from charts.fields import ChartField
+from dirsync import sync
 from django.conf import settings
-from django.urls import reverse
-from django.core.files import File
 from django.contrib.auth.models import User
+from django.contrib.staticfiles import finders
+from django.core.files import File
+from django.core.files.storage import FileSystemStorage
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
 from django.db.models import F
+from django.template import Context, Template
 from django.template.loader import render_to_string
+from django.test.client import RequestFactory
+from django.urls import reverse
 from django.utils.html import escape, mark_safe
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.files.storage import FileSystemStorage
 from django.utils.timezone import now
-from dirsync import sync
-from django.contrib.staticfiles import finders
-from django.template import Template, Context
-
-from collections import OrderedDict
+from PIL import Image
 from ruamel.yaml import YAML
-from selenium import webdriver, common
-from webptools import webplib as webp
-import markdown
-
+from selenium import common, webdriver
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
 from useful_inkleby.useful_django.models import FlexiBulkModel
+from webptools import webplib as webp
 
-from charts.fields import ChartField
 from .tools.deepink import process_ink
-from charts import Chart
+from django.db.models.query import QuerySet
+from selenium.webdriver.chrome.webdriver import WebDriver
+from stringprint.tools.deepink import Graf, Section
 
 chrome_driver_path = settings.CHROME_DRIVER
 
 
 class OverwriteStorage(FileSystemStorage):
-    def get_available_name(self, name, max_length=None):
+    def get_available_name(self, name: str, max_length: Optional[int] = None) -> str:
         if self.exists(name):
             os.remove(os.path.join(self.location, name))
         return super().get_available_name(name, max_length)
@@ -65,7 +69,7 @@ def fix_yaml(ya):
     return ya
 
 
-def get_yaml(file_path):
+def get_yaml(file_path: str) -> dict:
     yaml = YAML(typ="safe")
     with open(file_path, "rb") as doc:
         data = yaml.load(doc)
@@ -73,7 +77,7 @@ def get_yaml(file_path):
     return data
 
 
-def write_yaml(file_path, content):
+def write_yaml(file_path: str, content: dict) -> None:
     yaml = YAML()
     yaml.default_flow_style = False
 
@@ -81,7 +85,7 @@ def write_yaml(file_path, content):
         yaml.dump(content, f)
 
 
-def get_file(fi):
+def get_file(fi: str) -> File:
     reopen = open(fi, "rb")
     django_file = File(reopen)
     return django_file
@@ -104,7 +108,7 @@ class Organisation(models.Model):
     commands = JsonBlockField(default={})
     extra_values = JsonBlockField(default={})
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """
         make extra values directly accessible from the object
         """
@@ -112,23 +116,23 @@ class Organisation(models.Model):
         self.__dict__.update(self.extra_values)
 
     @property
-    def storage_dir(self):
+    def storage_dir(self) -> str:
         return settings.ORGS[self.slug]["storage_dir"]
 
     @property
-    def publish_dir(self):
+    def publish_dir(self) -> str:
         alt_path = os.path.join(self.storage_dir, "_publish")
         return settings.ORGS[self.slug].get("publish_dir", alt_path)
 
     @property
-    def template_dir(self):
+    def template_dir(self) -> str:
         template_dir = os.path.join(self.storage_dir, "_templates")
         if os.path.exists(template_dir):
             return template_dir
         else:
             return None
 
-    def relative_icon_path(self):
+    def relative_icon_path(self) -> str:
         """
         resolve for local org static dirs
         """
@@ -136,7 +140,7 @@ class Organisation(models.Model):
             relative_org_static = "orgs/{0}/".format(self.slug)
             return relative_org_static + self.icon
 
-    def org_scss(self, filename="main.scss"):
+    def org_scss(self, filename: str = "main.scss") -> str:
         """
         is there a local scss file to use
         """
@@ -152,8 +156,7 @@ class Organisation(models.Model):
         """
         return self.org_scss("screenshot.scss")
 
-    def load_from_yaml(self):
-        print(self.storage_dir)
+    def load_from_yaml(self) -> None:
         data = get_yaml(os.path.join(self.storage_dir, "_conf", "settings.yaml"))
         ignore = ["orglinks"]
         change = False
@@ -186,7 +189,7 @@ class Organisation(models.Model):
                 links.append(o)
             OrgLinks.objects.bulk_create(links)
 
-    def org_links_ordered(self):
+    def org_links_ordered(self) -> QuerySet:
         return self.org_links.all().order_by("order")
 
     def stylesheet_min(self):
@@ -208,7 +211,7 @@ class Organisation(models.Model):
     def __str__(self):
         return self.name
 
-    def get_ga_code(self):
+    def get_ga_code(self) -> str:
         if self.ga_code:
             return self.ga_code
         else:
@@ -223,7 +226,7 @@ def org_source_path(instance, filename):
     return "org_{0}/sources/{1}".format(instance.org_id, filename)
 
 
-def kindle_source_storage(instance, filename):
+def kindle_source_storage(instance: Article, filename: str) -> str:
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return "kindle/org_{0}/{1}".format(instance.org_id, filename)
 
@@ -246,7 +249,7 @@ class Chrome(object):
     driver = None
 
     @classmethod
-    def get_driver(cls):
+    def get_driver(cls) -> WebDriver:
         if cls.driver:
             return cls.driver
 
@@ -260,7 +263,7 @@ class Chrome(object):
         return cls.driver
 
     @classmethod
-    def quit(cls):
+    def quit(cls) -> None:
         if cls.driver:
             cls.driver.quit()
         cls.driver = None
@@ -311,7 +314,7 @@ class Article(models.Model):
     extra_values = JsonBlockField(default={})
     commands = JsonBlockField(default={})
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """
         make extra values directly accessible from the object
         """
@@ -322,7 +325,7 @@ class Article(models.Model):
     def storage_dir(self):
         return os.path.join(self.org.storage_dir, "_docs", self.slug)
 
-    def org_related_links(self):
+    def org_related_links(self) -> List[List[str]]:
         items = []
         if hasattr(self, "repo_entry") and self.repo_entry:
             items.append([self.repo_entry, "About this publication"])
@@ -330,7 +333,7 @@ class Article(models.Model):
             items.append([link.link, link.name])
         return items
 
-    def split_title(self):
+    def split_title(self) -> str:
         """
         return title - but try and split if possible
         """
@@ -346,7 +349,7 @@ class Article(models.Model):
         else:
             return title
 
-    def split_subtitle(self):
+    def split_subtitle(self) -> None:
         """
         return subtitle if present, or try and split
         the title
@@ -358,7 +361,7 @@ class Article(models.Model):
         elif "?" in self.title:
             return self.title.split("?")[1].strip()
 
-    def pdf_url(self):
+    def pdf_url(self) -> str:
         """
         returns either the external location
         or the local pdf location
@@ -370,7 +373,7 @@ class Article(models.Model):
         else:
             return None
 
-    def load_from_yaml(self, storage_dir, refresh_header=False):
+    def load_from_yaml(self, storage_dir: Path, refresh_header: bool = False) -> None:
         """
         Load config for the article from the stored file
         """
@@ -482,13 +485,13 @@ class Article(models.Model):
         with open(filename, "wb") as f:
             yaml.dump(output, f)
 
-    def export_paragraph_images(self, folder, refresh_all=False):
+    def export_paragraph_images(self, folder: str, refresh_all: bool = False) -> None:
         """
         exports a folder of images - 1 for each element labeled with the
         combo key
         """
-        from io import BytesIO
         import base64
+        from io import BytesIO
 
         BAKE_SERVER = "http://127.0.0.1:8000"
 
@@ -553,13 +556,13 @@ class Article(models.Model):
     def reprocessing(self):
         return self.needs_processing or self.reprocess_source
 
-    def search_url(self):
+    def search_url(self) -> str:
         if self.baking:
             return "search.html"
         else:
             return "search"
 
-    def import_assets(self, asset_folder, refresh):
+    def import_assets(self, asset_folder: Path, refresh: bool) -> None:
         """
         given the assets folder - loads all assets inside
         """
@@ -630,7 +633,7 @@ class Article(models.Model):
             print("saving {0}".format(f.slug))
             f.save()
 
-    def prepare_assets(self):
+    def prepare_assets(self) -> None:
         """
         if assets have a chart - produce the image
         """
@@ -639,7 +642,7 @@ class Article(models.Model):
                 print("making image for {0}".format(a.slug))
                 a.get_chart_image()
 
-    def tinify_headers(self):
+    def tinify_headers(self) -> None:
         """
         creates tiny version of headers if needed
         """
@@ -665,12 +668,12 @@ class Article(models.Model):
 
         return access
 
-    def get_book_cover(self, path):
+    def get_book_cover(self, path: str) -> None:
         fi = get_file(path)
         self.book_cover.save("{0}-book-cover.tif".format(self.id), fi, save=True)
         fi.close()
 
-    def cite_link(self, paragraph):
+    def cite_link(self, paragraph: Graf) -> str:
         """
         returns a citeable link depending on article settings
         """
@@ -689,7 +692,7 @@ class Article(models.Model):
                 ),
             )
 
-    def social_cite_link(self, paragraph):
+    def social_cite_link(self, paragraph: Graf) -> str:
         """
         returns a citeable link depending on article settings
         """
@@ -703,18 +706,18 @@ class Article(models.Model):
         else:
             return self.social_url() + v
 
-    def prep_image_lookup(self):
+    def prep_image_lookup(self) -> None:
         images = self.images.all()
         self.image_lookup = {x.section_name: x for x in images}
 
     def add_image(
         self,
-        file_location="",
-        image_vertical="",
-        internal_name="",
-        refresh=False,
+        file_location: str = "",
+        image_vertical: str = "",
+        internal_name: str = "",
+        refresh: bool = False,
         **kwargs,
-    ):
+    ) -> HeaderImage:
         """
         create image entry
         """
@@ -790,7 +793,14 @@ class Article(models.Model):
         shutil.make_archive(zip_destination, "zip", temp_folder)
         return zip_destination
 
-    def render(self, destination, url=None, plain=True, kindle=True, refresh_all=False):
+    def render(
+        self,
+        destination: Path,
+        url: None = None,
+        plain: bool = True,
+        kindle: bool = True,
+        refresh_all: bool = False,
+    ) -> None:
         """
         export this and supporting files to location
         """
@@ -812,10 +822,10 @@ class Article(models.Model):
 
         from .views import (
             ArticleView,
+            RedirectLink,
             TextView,
             TipueContentView,
             TipueSearchView,
-            RedirectLink,
             TOCView,
         )
 
@@ -1069,7 +1079,7 @@ class Article(models.Model):
             self.create_kindle(destination, use_temp=True)
             self.create_ebook(destination)
 
-    def create_ebook(self, destination):
+    def create_ebook(self, destination: Path) -> None:
 
         from .views import EbookChapterView
 
@@ -1116,13 +1126,14 @@ class Article(models.Model):
         book.save(file_path)
         print("rendered epub")
 
-    def create_kindle(self, destination, use_temp=False):
+    def create_kindle(self, destination: Path, use_temp: bool = False) -> None:
         """
         export views and supporting files to location and generate kindle file
         """
 
-        from .views import KindleView, KindleOPF, KindleNCX
         from shutil import copyfile
+
+        from .views import KindleNCX, KindleOPF, KindleView
 
         if use_temp:
             staging = mkdtemp()
@@ -1194,7 +1205,7 @@ class Article(models.Model):
             else:
                 print("error! kindle file not present")
 
-    def social_url(self):
+    def social_url(self) -> str:
         """
         url the baker uses to render to the social settings
         """
@@ -1203,7 +1214,7 @@ class Article(models.Model):
         else:
             return self.url()
 
-    def url(self, section=""):
+    def url(self, section: str = "") -> str:
         """
         get url of article (with section)
         """
@@ -1228,7 +1239,7 @@ class Article(models.Model):
         """
         return settings.LIVE_ROOT + reverse("article_view", args=(self.slug,))
 
-    def year(self):
+    def year(self) -> int:
         """
         get year - 'now' if publication date not avaliable
         """
@@ -1277,7 +1288,7 @@ class Article(models.Model):
         subprocess.call(commands, cwd=working_directory)
         print("{0} complete".format(command))
 
-    def process(self):
+    def process(self) -> None:
         """
         creates the section and graf structure from raw markup
         """
@@ -1285,7 +1296,7 @@ class Article(models.Model):
         self.needs_processing = False
         self.save()
 
-    def content(self):
+    def content(self) -> Version:
         """
         retrieve current version of content
         """
@@ -1305,7 +1316,9 @@ class Article(models.Model):
             v = q[0]
         return v
 
-    def display_content(self, slugs=[], display_first_section=False):
+    def display_content(
+        self, slugs: List[Any] = [], display_first_section: bool = False
+    ) -> Version:
         """
         initialize the content for rendering
         """
@@ -1315,7 +1328,7 @@ class Article(models.Model):
 
         return content
 
-    def load_from_file(self):
+    def load_from_file(self) -> None:
         """
         load markdown from file
         """
@@ -1326,7 +1339,7 @@ class Article(models.Model):
             c.raw = raw
             c.save()
 
-    def title_image(self):
+    def title_image(self) -> Optional[HeaderImage]:
         """
         get the header image reference
         """
@@ -1336,7 +1349,7 @@ class Article(models.Model):
         else:
             return None
 
-    def get_share_image(self):
+    def get_share_image(self) -> Optional[str]:
         """
         return a filename for an social share
         """
@@ -1346,7 +1359,7 @@ class Article(models.Model):
         else:
             return None
 
-    def headers_and_images(self):
+    def headers_and_images(self) -> Iterator[HeaderImage]:
         """
         generator that returns the title image and image assets
         """
@@ -1371,7 +1384,7 @@ class HeaderMixin(object):
     converts images to various responsive sizes
     """
 
-    def get_image_name(self, resolution, assume_tiny=False):
+    def get_image_name(self, resolution: int, assume_tiny: bool = False) -> str:
         """
         returns big or small image depending if we've tinified
         """
@@ -1386,7 +1399,7 @@ class HeaderMixin(object):
                 return o
         raise ValueError("{0} missing".format(path))
 
-    def get_share_image(self):
+    def get_share_image(self) -> str:
         """
         return the large view display for header image
         """
@@ -1396,7 +1409,7 @@ class HeaderMixin(object):
 
         return settings.MEDIA_URL + file_name
 
-    def get_responsive_image_name(self, resolution, webp=False):
+    def get_responsive_image_name(self, resolution: int, webp: bool = False) -> str:
         """
         get the responsive image needed for each resolution
         """
@@ -1405,17 +1418,17 @@ class HeaderMixin(object):
             ext = ".webp"
         return name + "_{0}".format(resolution) + ext
 
-    def get_tiny_responsive_image_name(self, resolution):
+    def get_tiny_responsive_image_name(self, resolution: int) -> str:
         """
         get the responsive image needed for each resolution
         """
         name, ext = os.path.splitext(self.image.name)
         return name + "_{0}_tiny".format(resolution) + ext
 
-    def header_image_res(self):
-        return [x for x in self._header_image_res()]
+    def header_image_res(self) -> List:
+        return list(self._header_image_res())
 
-    def get_ratio(self):
+    def get_ratio(self) -> float:
         ratio = self.extra_values.get("ratio", None)
         if not ratio:
             file_path = os.path.join(settings.MEDIA_ROOT, self.get_image_name(1440))
@@ -1426,7 +1439,7 @@ class HeaderMixin(object):
             self.extra_values["ratio"] = ratio
         return ratio
 
-    def get_average_color(self):
+    def get_average_color(self) -> str:
         color = self.extra_values.get("color", None)
         if not color:
             file_path = os.path.join(settings.MEDIA_ROOT, self.get_image_name(1440))
@@ -1438,7 +1451,7 @@ class HeaderMixin(object):
             self.extra_values["color"] = color
         return color
 
-    def _header_image_res(self):
+    def _header_image_res(self) -> Iterator[Tuple[str, str, int, int, int, int, int]]:
         """
 
         tell template about different resolutions
@@ -1474,7 +1487,7 @@ class HeaderMixin(object):
         """
         return settings.MEDIA_URL + self.get_tiny_responsive_image_name(1440)
 
-    def get_all_files(self):
+    def get_all_files(self) -> Iterator[str]:
         """
         get all files named for copying reasons
         """
@@ -1486,7 +1499,7 @@ class HeaderMixin(object):
 
         yield self.image.name
 
-    def create_tiny(self):
+    def create_tiny(self) -> None:
         """
 
         Passes up to tinyimg to reduce.
@@ -1518,7 +1531,7 @@ class HeaderMixin(object):
                     img = Image.open(file_name)
                     img.save(tiny_name, optimize=True, quality=95)
 
-    def create_responsive(self, ignore_first=True):
+    def create_responsive(self, ignore_first: bool = True) -> None:
         """
         creates the different sized versions of the header image.
 
@@ -1652,7 +1665,9 @@ class Version(models.Model):
         v.load_sections(slugs)
         return v
 
-    def load_sections(self, slugs, display_first_section=False):
+    def load_sections(
+        self, slugs: List[Any], display_first_section: bool = False
+    ) -> None:
         """
         construct a self.sections connected to the content
         """
@@ -1669,7 +1684,7 @@ class Version(models.Model):
                 else:
                     s.active_section = False
 
-    def used_assets(self):
+    def used_assets(self) -> List[Any]:
         """
         slugs for assets used by this version
         """
@@ -1678,7 +1693,7 @@ class Version(models.Model):
             assets.extend(s.used_assets())
         return assets
 
-    def display_sections(self):
+    def display_sections(self) -> Iterator[Section]:
         for s in self.sections:
             if s.has_grafs() and s.active_section:
                 yield s
@@ -1846,7 +1861,7 @@ class Version(models.Model):
                         )
         return toc
 
-    def anchors(self):
+    def anchors(self) -> Iterator[Dict[str, Union[str, int]]]:
         """
         for kindle
         """
@@ -1869,9 +1884,9 @@ class Version(models.Model):
             yield y("Notes", "refs", count)
             count += 1
 
-    def all_grafs(self):
+    def all_grafs(self) -> Iterator[Graf]:
         """
-        only show introduction if not logged in
+        return all graphs across all sections
         """
 
         for s in self.sections:
@@ -1879,72 +1894,6 @@ class Version(models.Model):
                 g._section = s
                 yield g
 
-    def limit_all_but_first(self):
-        """
-        only show introduction if not logged in
-        """
-
-        for s in self.sections[1:]:
-            s.visible = False
-            for g in s.grafs:
-                g.visible = False
-
-    def limit_to_code(self, code="", first_para_slug=""):
-        """
-        only display shared paragraph
-        """
-        graf, section = self.get_paragraph(code, first_para_slug)
-
-        if graf is None:
-            self.limit_all_but_first()
-            return
-
-        preview_range = 2
-        for s in self.sections[1:]:
-            s.sneak_peak = True
-            if s == section:
-                start_order = s.grafs[0].order
-                end_order = s.grafs[-1].order
-                cur_pos = graf.order - start_order
-
-                if graf.order < start_order + 2 * preview_range:
-                    display_range = list(range(0, (2 * preview_range) + 1))
-                elif graf.order > end_order - 2 * preview_range:
-                    display_range = list(
-                        range(len(s.grafs) - 2 * preview_range, len(s.grafs))
-                    )
-                else:
-                    display_range = list(
-                        range(cur_pos - preview_range, cur_pos + preview_range + 1)
-                    )
-
-                for i, g in enumerate(s.grafs):
-                    if i not in display_range:
-                        g.visible = False
-                    else:
-                        g.visible = True
-
-                for i, d in enumerate(display_range):
-                    if s.grafs[d] == graf:
-                        cur_pos = i
-
-                        break
-
-                # fade out
-                s.grafs[display_range[-1]].place_message = True
-                if cur_pos == 0:  # start
-                    s.grafs[display_range[-2]].visible = "half-opacity"
-                    s.grafs[display_range[-1]].visible = "quarter-opacity"
-                elif cur_pos == len(display_range) - 1:  # end
-                    s.grafs[display_range[0]].visible = "quarter-opacity"
-                    s.grafs[display_range[1]].visible = "half-opacity"
-                else:  # else
-                    s.grafs[display_range[0]].visible = "half-opacity"
-                    s.grafs[display_range[-1]].visible = "half-opacity"
-            else:
-                s.visible = False
-                for g in s.grafs:
-                    g.visible = False
 
     def get_paragraph(self, code="", first_para_slug=None):
         """
@@ -1998,7 +1947,7 @@ class Version(models.Model):
                 return matches[0]  # paragraph, section
         return None, None
 
-    def footnotes(self):
+    def footnotes(self) -> List[Any]:
         notes = []
         for s in self.sections:
             if s.active_section:
@@ -2009,7 +1958,7 @@ class Version(models.Model):
                                 notes.append(f)
         return notes
 
-    def source_paragraph_links_from_render(self):
+    def source_paragraph_links_from_render(self) -> List[Any]:
         """
         For converting older versions
         Extract from previously rendered links
@@ -2024,7 +1973,7 @@ class Version(models.Model):
         files = [os.path.splitext(x)[0] for x in files]
         return files
 
-    def load_paragraph_links(self):
+    def load_paragraph_links(self) -> None:
         para_file = os.path.join(
             self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
         )
@@ -2033,13 +1982,13 @@ class Version(models.Model):
         else:
             self.paragraph_links = []
 
-    def save_paragraph_links(self):
+    def save_paragraph_links(self) -> None:
         para_file = os.path.join(
             self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
         )
         write_yaml(para_file, self.paragraph_links)
 
-    def paragraph_lookup(self):
+    def paragraph_lookup(self) -> Dict[str, Optional[Union[bool, str]]]:
         """
         returns a dictionary of current
         graf status.
@@ -2053,7 +2002,7 @@ class Version(models.Model):
                 lookup.update(r)
         return lookup
 
-    def update_paragraph_links(self):
+    def update_paragraph_links(self) -> None:
         """
         upgrade the list of paragraph links (past and present)
         """
@@ -2111,7 +2060,7 @@ class Version(models.Model):
         self.paragraph_links = new_paragraph_links
         self.save_paragraph_links()
 
-    def anchor_orphans(self, all_grafs, orphan_grafs):
+    def anchor_orphans(self, all_grafs: List[str], orphan_grafs: List[str]) -> dict:
         """
         given orphan paragraphs, match to better ones
         """
@@ -2196,7 +2145,7 @@ class Version(models.Model):
 
         return {x.key: x.match for x in orphans}
 
-    def process(self):
+    def process(self) -> None:
         """
         creates the section and graf structure from raw markup
         """
@@ -2214,7 +2163,7 @@ class Version(models.Model):
         self.last_updated = now()
         self.save()
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """
         increment versioning if copy has changed
 
@@ -2285,10 +2234,12 @@ class Asset(FlexiBulkModel, HeaderMixin):
         """
         loads the chart in selenium so we can fetch the image version
         """
-        from selenium import webdriver
-        from .views import AssetView
         import io
         import tempfile
+
+        from selenium import webdriver
+
+        from .views import AssetView
 
         temp_dir = tempfile._get_default_tempdir()
         temp_name = next(tempfile._get_candidate_names())

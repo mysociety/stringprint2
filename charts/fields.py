@@ -10,7 +10,7 @@ class ChartField(models.TextField):
     from the one object.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.chart_type = None
         if "chart_type" in kwargs:
             self.chart_type = kwargs["chart_type"]

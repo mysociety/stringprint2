@@ -1,7 +1,9 @@
 from django.conf import settings  # import the settings file
+from django.core.handlers.wsgi import WSGIRequest
+from typing import Dict
 
 
-def universal_context(request):
+def universal_context(request: WSGIRequest) -> Dict:
     """
     returns helpful universal context to the views
     """

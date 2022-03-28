@@ -1,13 +1,15 @@
 from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from stringprint.models import Asset
+from stringprint.models import Article, HeaderImage, Asset
+from stringprint.tools.deepink import Graf
+from typing import Dict, Union
 
 register = template.Library()
 
 
 @register.filter("range")
-def range_f(v):
+def range_f(v: int) -> range:
     if v < 0:
         return range(v, 0)
     else:
@@ -15,7 +17,7 @@ def range_f(v):
 
 
 @register.filter
-def empty_if_none(v):
+def empty_if_none(v: None) -> str:
     if v:
         return v
     else:
@@ -112,12 +114,12 @@ def display_asset_kindle(article, asset_id):
 
 
 @register.filter
-def cite_link(article, paragraph):
+def cite_link(article: Article, paragraph: Graf) -> str:
     return article.cite_link(paragraph)
 
 
 @register.filter
-def get_item(dictionary, key):
+def get_item(dictionary: Dict[None, HeaderImage], key: str) -> None:
     return dictionary.get(key)
 
 
@@ -130,7 +132,9 @@ def divide(value, arg):
 
 
 @register.inclusion_tag("ink//header_image.html")
-def header_image(image_obj, alt_text=""):
+def header_image(
+    image_obj: HeaderImage, alt_text: str = ""
+) -> Dict[str, Union[HeaderImage, str]]:
     return {"image": image_obj, "alt_text": alt_text}
 
 
