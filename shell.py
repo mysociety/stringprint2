@@ -3,24 +3,23 @@
 import cmd
 import io
 import os
-import signal
 import shutil
+import signal
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional, List, Any, Callable
+from subprocess import Popen
+from typing import Any, Callable, List, Optional, Union
 
 import django
 import fitz
+from cookiecutter.main import cookiecutter
 from PIL import Image
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from rich.prompt import Prompt
 from rich import print
+from rich.prompt import Prompt
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickText
-
-from subprocess import Popen
-
 
 try:
     os.environ.pop("DJANGO_SETTINGS_MODULE")
@@ -307,8 +306,10 @@ class SPPrompt(cmd.Cmd):
         return [x.name for x in self.get_valid_doc_folders() if x.name in slugs]
 
     def get_valid_doc_folders(self) -> List[Path]:
+        special = ["_template"]
         root = Path(self.current_org.storage_dir, "_docs")
-        l = [x for x in root.iterdir() if (x / "settings.yaml").exists()]
+        l = [x for x in root.iterdir() if (x / "settings.yaml").exists() and x.name not in [special]]
+
         l.sort()
         return l
 
@@ -604,6 +605,15 @@ class SPPrompt(cmd.Cmd):
         hero_path = Path(self.doc_folder, hero_location)
         destination = Path(self.doc_folder, "hero.png")
         create_hero(hero_path, destination)
+
+    def do_newdoc(self, inp):
+        """
+        Create a new document from the template
+        """
+        template_path = str(Path(self.current_org.storage_dir, "_docs", "_template"))
+        output_dir = str(Path(self.current_org.storage_dir, "_docs"))
+
+        cookiecutter(template_path, output_dir=output_dir )
 
     def default(self, line):
         options = line.split(" ")
