@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import sys
 import codecs
 import datetime
+import importlib
 import io
 import os
 import shutil
@@ -28,6 +30,7 @@ from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
 from django.db.models import F
+from django.db.models.query import QuerySet
 from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.test.client import RequestFactory
@@ -37,15 +40,15 @@ from django.utils.timezone import now
 from PIL import Image
 from ruamel.yaml import YAML
 from selenium import common, webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
 from useful_inkleby.useful_django.models import FlexiBulkModel
 from webptools import webplib as webp
 
-from .tools.deepink import process_ink
-from django.db.models.query import QuerySet
-from selenium.webdriver.chrome.webdriver import WebDriver
 from stringprint.tools.deepink import Graf, Section
+
+from .tools.deepink import process_ink
 
 chrome_driver_path = settings.CHROME_DRIVER
 
@@ -1252,11 +1255,11 @@ class Article(models.Model):
         """
         Run commands around process
 
-        typically preprocess, publish
+        Typically preprocess, publish
 
-        prefer article to org level commands
-        org level commands working directory is the top level
-        article level commands working directory is the article folder
+        Prefer article to org level commands
+        Org level commands working directory is the top level
+        Article level commands working directory is the article folder
 
         python script.py {{article.slug}} - passes the slug
 
@@ -1268,6 +1271,25 @@ class Article(models.Model):
         if command in self.commands:
             command_str = self.commands[command]
             working_directory = self.storage_dir
+
+        if command_str.startswith("module::"):
+            module_path = command_str.replace("module::", "")
+            module, item = module_path.split(":")
+            if "$doc/" in module:
+                module = module.replace("$doc/", "")
+                file_path = Path(self.storage_dir) / module
+            if "$org/" in module:
+                module = module.replace("$org/", "")
+                file_path = Path(self.org.storage_dir) / module
+            spec = importlib.util.spec_from_file_location("module.name", file_path)
+            my_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(my_module)
+            detected_item = getattr(my_module, item)
+            result = detected_item(self)
+            # allow for classes to be instanced and then run
+            if callable(result):
+                result()
+            return result
 
         if not command_str:
             print("No {0} command configured".format(command))
@@ -1893,7 +1915,6 @@ class Version(models.Model):
             for g in s.grafs:
                 g._section = s
                 yield g
-
 
     def get_paragraph(self, code="", first_para_slug=None):
         """
