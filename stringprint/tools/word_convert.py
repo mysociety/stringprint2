@@ -6,7 +6,7 @@ import os
 import re
 import warnings
 from collections import OrderedDict
-
+from typing import Tuple, List, Optional, Dict
 import html2markdown
 import mammoth
 from bs4 import BeautifulSoup
@@ -25,13 +25,13 @@ regex = re.compile(
 )
 
 
-def fix_url(url):
+def fix_url(url: str) -> str:
     if regex.match(url):
         return "Link: [{0}]({0})".format(url)
     return url
 
 
-def fix_footnotes(block):
+def fix_footnotes(block: str) -> str:
     """
     texttomarkdown doesn't do this right, fix manually
     """
@@ -50,7 +50,7 @@ def fix_footnotes(block):
     return "\n".join(final)
 
 
-def mammoth_adjust(qt, demote=True):
+def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     """
     given the results of a mammoth conversion:
     fixes up footnotes
@@ -157,7 +157,7 @@ def mammoth_adjust(qt, demote=True):
 
     qt.text = text
 
-    normal_image_find = re.compile(r"\(data:image/(.*?);base64,(.*)\)(.*)")
+    normal_image_find = re.compile(r"\!\[(.*?)\]\(data:image/(.*?);base64,(.*)\)(.*)")
     alt_image_find = re.compile(r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>')
     image_finders = [normal_image_find, alt_image_find]
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
@@ -189,15 +189,21 @@ def mammoth_adjust(qt, demote=True):
                 if not search:
                     continue
                 found = True
-                image_type, content, caption = search.groups()
+                results = search.groups()
+                alt_text = ""
+                if len(results) == 3:
+                    image_type, content, caption = results
+                if len(results) == 4:
+                    alt_text, image_type, content, caption = results
                 if len(caption) < 5:
                     caption = None
-                slug = "word-asset-{0}".format(asset_count)
+                slug = "doc-asset-{0}".format(asset_count)
                 di = {
                     "content_type": "image",
                     "type": image_type,
                     "content": content,
                     "caption": caption,
+                    "alt_text": alt_text,
                     "slug": slug,
                 }
                 print("asset found {0}".format(asset_count))
@@ -263,7 +269,7 @@ def mammoth_adjust(qt, demote=True):
     qt.text = qt.text.replace(">_Table", "_Table")
 
 
-def fix_header(line):
+def fix_header(line: str) -> str:
     level = "".join([x for x in line if x == "#"])
     text = line.replace("#", "").strip()
     if len(text) == 0:
@@ -303,7 +309,7 @@ def markdown_table_contents(x, multi_line=False):
         return ""
 
 
-def get_tables(html):
+def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = html
     soup = BeautifulSoup(html, features="html5lib")
     tables = soup.findAll("table")
@@ -358,7 +364,7 @@ def get_tables(html):
     return new_html, assets
 
 
-def get_asset_captions(qt):
+def get_asset_captions(qt: QuickText) -> None:
     """
     if there's an italic line beneath an asset, uses it as a
     """
@@ -383,13 +389,14 @@ def get_asset_captions(qt):
                 last_asset = None
 
 
-def convert_docx(file_path, demote=False):
+def convert_docx(file_path, demote=False) -> QuickText:
     """
     given a word file as a file object, converts to markdown
     and then does post processing for stringprint specific features
     """
     with open(file_path, "rb") as docx_file:
         m_conversion = mammoth.convert_to_html(docx_file)
+
     html = m_conversion.value
     html, assets = get_tables(html)
 
@@ -408,7 +415,7 @@ def convert_docx(file_path, demote=False):
     return q
 
 
-def extract_assets(q):
+def extract_assets(q: QuickText) -> None:
 
     folder = os.path.dirname(q.filename)
     asset_folder = os.path.join(folder, "assets")
@@ -421,6 +428,7 @@ def extract_assets(q):
             print(a["slug"])
             a["content"].save([asset_folder, a["slug"] + ".xls"])
         if a["content_type"] == "image":
+
             print(a["slug"])
             image_output = io.BytesIO()
             # Write decoded image to buffer
@@ -431,7 +439,7 @@ def extract_assets(q):
             with open(file_path, "wb") as image_file:
                 image_file.write(image_output.read())
 
-    props = ["content_type", "type", "caption"]
+    props = ["content_type", "type", "caption", "alt_text"]
     yaml_output = []
     for a in q.assets:
         item = {}
