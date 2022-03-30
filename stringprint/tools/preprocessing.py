@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, TypeVar, Union, Dict
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from stringprint.models import Article
 from stringprint.tools.word_convert import convert_word
 from useful_inkleby.files import QuickText
+
+from .google_download import GoogleDownloader
 
 
 def merge_pdfs(
@@ -172,6 +175,8 @@ class SectionMove(SectionActionBase):
 
 
 class BasePreprocess:
+    google_download: bool = True
+    google_download_formats: list = ["contents.pdf", "doc_source.docx"]
     word_source_file: Optional[str] = None
     word_demote: bool = False  # push everyone down one header level
     word_convert: bool = True
@@ -201,6 +206,7 @@ class BasePreprocess:
         """
         Run standard features
         """
+        self.do_google_download()
         self.do_convert_word()
         self.import_markdown()
         self.combine_pdfs()
@@ -209,6 +215,18 @@ class BasePreprocess:
         self.do_section_actions()
         self.postprocess()
         self.output()
+
+    def do_google_download(self):
+        """ """
+        if (
+            self.__class__.google_download
+            and "google_doc_url" in self.article.extra_values
+        ):
+            google_doc_url = self.article.extra_values["google_doc_url"]
+            gd = GoogleDownloader()
+            for f in self.__class__.google_download_formats:
+                dest = self.doc_folder / f
+                gd.download_file(dest=dest, url=google_doc_url)
 
     def import_markdown(self):
         """
@@ -237,6 +255,16 @@ class BasePreprocess:
             filename = self.pdf_output_filename
 
         output = self.doc_folder / filename
+
+        if not (any([front_page.exists(), contents.exists()])):
+            print("neither source files for merging pdf, skipping")
+            return
+
+        if contents.exists() and not front_page.exists():
+            print("no front page, just reusing contents page")
+            shutil.copy(contents, output)
+            return
+
         merge_pdfs(front_page, contents, output, start_page)
         print("combined pdfs")
 
