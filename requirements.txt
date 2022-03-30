@@ -50,4 +50,4 @@ rich==12.0.1
 cookiecutter==1.7.3
 google-api-python-client==2.42.0
 oauth2client==4.1.3
-python-unsplash==2.27.1
+python-unsplash==1.1.0
