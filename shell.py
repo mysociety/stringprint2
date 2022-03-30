@@ -16,10 +16,13 @@ import fitz
 from cookiecutter.main import cookiecutter
 from PIL import Image
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from rich import print
+import rich
 from rich.prompt import Prompt
+from rich.panel import Panel
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickText
+
+print = rich.print
 
 try:
     os.environ.pop("DJANGO_SETTINGS_MODULE")
@@ -36,6 +39,24 @@ from frontend.views import ArticleSettingsView, HomeView
 from stringprint.functions import compress_static
 from stringprint.models import Article, Asset, Organisation
 from stringprint.tools.word_convert import convert_word
+
+
+class PanelPrint:
+    """
+    Helper for printing list of items in a panel
+    """
+
+    def __init__(self, expand: bool = False, **kwargs):
+        self.items: List[str] = []
+        self.panel_properties = kwargs
+        self.panel_properties["expand"] = expand
+
+    def print(self, item: str) -> None:
+        self.items.append(item)
+
+    def display(self) -> None:
+        panel = Panel("\n".join(self.items), **self.panel_properties)
+        rich.print(panel)
 
 
 def fix_yaml(ya):
@@ -172,7 +193,7 @@ class CatchOut:
 
 
 class SPPrompt(cmd.Cmd):
-    intro = "🔥🔥🔥 [green]Stringprint document manager.[/green] Type [green]help[/green] or [green]?[/green] to list commands. 🔥🔥🔥\n"
+    intro = "🧶🧶🧶 [green]Stringprint document manager.[/green] Type [green]help[/green] or [green]?[/green] to list commands. 🧶🧶🧶\n"
     prompt = "[blue](stringprint)[/blue] "
 
     def __init__(self, *args, **kwargs):
@@ -183,7 +204,7 @@ class SPPrompt(cmd.Cmd):
         self.full_refresh: bool = False
         super().__init__(*args, **kwargs)
 
-    def do_startserver(self, inp):
+    def do_startserver(self, inp="noprint"):
         """
         Start the preview server
         """
@@ -195,15 +216,20 @@ class SPPrompt(cmd.Cmd):
 
         cmd = "python manage.py runserver 0.0.0.0:8000"
         p = Popen(cmd.split(), cwd="stringprint2", stdout=f, stderr=f, stdin=f)
-        print(f"Started server with pid {p.pid}")
+
         self.running_server = p.pid
-        self.print_status()
+
+        if "noprint" not in inp:
+            print(f"Started server with pid {p.pid}")
+            self.print_status()
+        else:
+            return f"Started server with pid {p.pid}"
 
     def do_stopserver(self, inp):
         """
         Stop the preview server
         """
-        if self.running_server:
+        if self.running_server is None:
             print("No server running")
             return None
         print("Stopping preview server")
@@ -217,7 +243,13 @@ class SPPrompt(cmd.Cmd):
         self.print_status()
 
     def print_status(self):
-        print("")
+        """
+        Print the current status of the document
+        """
+
+        panel = PanelPrint(title="Current document status", padding=1)
+        print = panel.print
+
         if self.current_org:
             print(f"Current org: [green]{self.current_org.name}[/green]")
         if self.current_doc:
@@ -243,13 +275,14 @@ class SPPrompt(cmd.Cmd):
                 )
                 print(f"Last published: [green]{txt_date.split('.')[0]}[/green]")
                 if self.running_server:
-                    print(f"Preview: http://127.0.0.1:8000/preview/{self.current_doc}/")
+                    print(
+                        f"Preview: [bright_blue]http://127.0.0.1:8000/preview/{self.current_doc}/[/bright_blue]"
+                    )
                 else:
                     print("[red]Preview server not started.[/red]")
             else:
                 print(f"Document status: [red]Unloaded[/red]")
-
-            print("")
+        panel.display()
 
     @property
     def doc_folder(self) -> Path:
@@ -268,6 +301,7 @@ class SPPrompt(cmd.Cmd):
         self.current_org = Organisation.objects.get(slug=slug)
         self.avaliable_docs = [x.name for x in self.get_valid_doc_folders()]
         if self.avaliable_docs:
+            print("Run `preprocess` and `process` to load document.")
             self.do_setdoc(self.avaliable_docs[0])
 
     def complete_setdoc(self, text, line, start_index, end_index):
@@ -285,7 +319,7 @@ class SPPrompt(cmd.Cmd):
         set the current document being processed
         """
         if slug.isdigit():
-            slug = self.avaliable_docs[int(slug) + 1]
+            slug = self.avaliable_docs[int(slug) - 1]
         doc_folder = Path(self.current_org.storage_dir, "_docs", slug)
         config_file = doc_folder / "settings.yaml"
         if config_file.exists() is False:
@@ -308,7 +342,11 @@ class SPPrompt(cmd.Cmd):
     def get_valid_doc_folders(self) -> List[Path]:
         special = ["_template"]
         root = Path(self.current_org.storage_dir, "_docs")
-        l = [x for x in root.iterdir() if (x / "settings.yaml").exists() and x.name not in [special]]
+        l = [
+            x
+            for x in root.iterdir()
+            if (x / "settings.yaml").exists() and x.name not in [special]
+        ]
 
         l.sort()
         return l
@@ -317,6 +355,14 @@ class SPPrompt(cmd.Cmd):
         """
         List all documents for the current org
         """
+
+        panel = PanelPrint(
+            padding=1,
+            style="yellow",
+            title="Document list",
+            subtitle="(set document using 'setdoc \[slug or number]')",
+        )
+        print = panel.print
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
         x = 0
         for doc_folder in self.get_valid_doc_folders():
@@ -324,23 +370,30 @@ class SPPrompt(cmd.Cmd):
             slugged = doc_folder.name in slugs
             if slugged:
                 if not silent:
-                    print(f"{x}. [blue]{doc_folder.name}[/blue]")
+                    print(f"{x}. [bright_blue]{doc_folder.name}[/bright_blue]")
             else:
                 if not silent:
-                    print(f"{x}. [red]{doc_folder.name}  (unloaded)[/red]")
+                    print(
+                        f"{x}. [bright_red]{doc_folder.name}  (unloaded)[/bright_red]"
+                    )
+        panel.display()
 
-    def do_load(self, inp):
+    def do_load(self, refresh):
         """
         Load current doc if one set
-        if input is 'all' or 'unloaded' load
-        all or all unloaded documents.
+        Does not process input file or assets
+        'process' does all three.
+
+        Call load to get details before running preprocess
         """
-        if inp is None and self.current_doc:
-            self.do_process(inp)
-        if inp == "all":
-            self.do_loadall("")
-        if inp == "unloaded":
-            self.do_loadunloaded("")
+        if "--refresh" in refresh or self.full_refresh:
+            refresh_header = True
+        else:
+            refresh_header = False
+        doc, created = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
+        doc.load_from_yaml(self.doc_folder, refresh_header)
 
     def do_loadall(self, inp):
         """
@@ -443,9 +496,9 @@ class SPPrompt(cmd.Cmd):
     @select_doc
     def do_process(self, refresh: str):
         """
-        Load and process current script
+        Load and process the current document
         """
-        if "--refresh" in refresh:
+        if "--refresh" in refresh or self.full_refresh:
             refresh_header = True
         else:
             refresh_header = False
@@ -463,6 +516,7 @@ class SPPrompt(cmd.Cmd):
     def do_command(self, command):
         """
         Run arbitary python script from 'script' directory of org working dir.
+        Or specified in the current document's yaml.
         """
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
@@ -474,7 +528,10 @@ class SPPrompt(cmd.Cmd):
     @select_doc
     def do_preprocess(self, inp):
         """
-        Run preprocess script as configured for this document.
+        Run the preprocess steps (if present).
+        The preprocess steps are those that *create*
+        the markdown file and the assets list.
+
         """
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
@@ -613,7 +670,10 @@ class SPPrompt(cmd.Cmd):
         template_path = str(Path(self.current_org.storage_dir, "_docs", "_template"))
         output_dir = str(Path(self.current_org.storage_dir, "_docs"))
 
-        cookiecutter(template_path, output_dir=output_dir )
+        final_dir = cookiecutter(template_path, output_dir=output_dir)
+        if final_dir:
+            dir_name = Path(final_dir).parts[-1]
+            self.do_setdoc(dir_name)
 
     def default(self, line):
         options = line.split(" ")
@@ -634,6 +694,9 @@ if __name__ == "__main__":
 
     args = sys.argv[1:]
 
+    if args and len(args) == 0 and args[0] in ["?", "help"]:
+        args = ("--help",)
+
     special_args = ["--no-server", "--continue"]
 
     dont_start_server = "--no-server" in args
@@ -653,10 +716,16 @@ if __name__ == "__main__":
             current_instruction.append(a)
     instructions.append(current_instruction)
 
-    print(SPPrompt.intro)
+    panel = PanelPrint(padding=1, style="green")
+
+    panel.print(SPPrompt.intro)
     default_org = load_org_details()
     prompt = SPPrompt(stdout=CatchOut())
-    prompt.do_startserver("args")
+    panel.print(prompt.do_startserver("noprint"))
+    panel.print("")
+    panel.print("List avaliable documents with 'listdocs'")
+    panel.display()
+
     prompt.do_setorg(default_org)
     if do_refresh:
         prompt.do_refresh("")
