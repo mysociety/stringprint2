@@ -12,6 +12,7 @@ import mammoth
 from bs4 import BeautifulSoup
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickGrid, QuickText
+from django.utils.text import slugify
 
 regex = re.compile(
     r"^(?:http|ftp)s?://"  # http:// or https://
@@ -23,6 +24,24 @@ regex = re.compile(
     r"(?:/?|[/?]\S+)$",
     re.IGNORECASE,
 )
+
+
+class UniqueSlugify:
+    """
+    Quick tool to make sure slugs generated are unique
+    """
+
+    def __init__(self):
+        self.previous: List[str] = []
+
+    def unique(self, identifier: str) -> str:
+        """
+        given general string, return a valid slug that's unique
+        """
+        base_slug = slugify(identifier[20:])
+        self.previous.append(base_slug)
+        current_count = len([x for x in self.previous if x == base_slug])
+        return f"{base_slug}-{current_count}"
 
 
 def fix_url(url: str) -> str:
@@ -171,6 +190,8 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
 
     extra_map = {}
 
+    slug_getter = UniqueSlugify()
+
     for line in qt:
         new_asset = None
         l_line = line.lower().strip()
@@ -197,7 +218,11 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
                     alt_text, image_type, content, caption = results
                 if len(caption) < 5:
                     caption = None
-                slug = "doc-asset-{0}".format(asset_count)
+
+                if alt_text:
+                    slug = slug_getter.unique(alt_text)
+                else:
+                    slug = "doc-asset-{0}".format(asset_count)
                 di = {
                     "content_type": "image",
                     "type": image_type,
