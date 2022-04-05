@@ -38,7 +38,7 @@ class UniqueSlugify:
         """
         given general string, return a valid slug that's unique
         """
-        base_slug = slugify(identifier[20:])
+        base_slug = slugify(identifier[:20])
         self.previous.append(base_slug)
         current_count = len([x for x in self.previous if x == base_slug])
         return f"{base_slug}-{current_count}"
@@ -78,14 +78,12 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     text = qt.text
 
     def note_text(x):
-        return '<sup><a href="#footnote-{0}" id="footnote-ref-{0}">\[{0}\]</a></sup>'.format(
+        return '<sup><a href="#footnote-{0}" id="footnote-ref-{0}">\\[{0}\\]</a></sup>'.format(
             x
         )
 
     def note_text_new(x):
-        return '<sup><a href="#footnote-{1}" id="footnote-ref-{1}">\[{0}\]</a></sup>'.format(
-            x, x - 1
-        )
+        return f'<sup><a href="#footnote-{x - 1}" id="footnote-ref-{x - 1}">\\[{x}\\]</a></sup>'
 
     count = 1
 
@@ -165,8 +163,6 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
         for full, contents in re.findall(p, text):
             if "*" not in r and len(r) < 15:
                 replace = replace_format.format(contents)
-                print(full)
-                print(replace)
                 text = text.replace(full, replace)
 
     for s in special_characters:
@@ -174,11 +170,24 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
 
     text = text.replace("\n\r", "\n")
 
+    # another fix to catch instances where things have been grouped wrong
+
+    options = ["(\_{2})(.*)(\_{2})", "(\_{1})(.*)(\_{1})"]
+    for o in options:
+        for r in re.finditer(o, text):
+            open_underline, contained, close_underline = r.groups()
+            if contained.endswith(" "):
+                new_line = open_underline + contained.strip() + close_underline + " "
+                text = text.replace(r[0], new_line)
+
     qt.text = text
 
-    normal_image_find = re.compile(r"\!\[(.*?)\]\(data:image/(.*?);base64,(.*)\)(.*)")
-    alt_image_find = re.compile(r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>')
-    image_finders = [normal_image_find, alt_image_find]
+    normal_image_find = re.compile(
+        r"\!\[(.*?)\]\(data:image/(.*?);base64,(.*?)\)", flags=re.DOTALL
+    )
+    alt_image_find = re.compile(
+        r'<img src="data:image/(.*?);base64,(.*)\)(.*)"/>', flags=re.DOTALL
+    )
     toc_find = re.compile(r"\[.*[0-9]\]\(#_Toc.*\)")
 
     ignore_before_h1 = True
@@ -191,6 +200,38 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     extra_map = {}
 
     slug_getter = UniqueSlugify()
+    replace_list = []
+    asset_count += 1
+    for i in [normal_image_find, alt_image_find]:
+        for search in i.finditer(qt.text):
+            results = search.groups()
+            alt_text = ""
+            caption = ""
+            if i is alt_image_find:
+                image_type, content, caption = results
+            if i is normal_image_find:
+                alt_text, image_type, content = results
+
+            if alt_text:
+                slug = slug_getter.unique(alt_text)
+            else:
+                slug = "doc-asset-{0}".format(asset_count)
+            di = {
+                "content_type": "image",
+                "type": image_type,
+                "content": content,
+                "caption": caption,
+                "alt_text": alt_text,
+                "slug": slug,
+            }
+            print("asset found {0}".format(asset_count))
+            qt.assets.append(di)
+            new_asset = "[asset:{0}]".format(slug)
+            replace_list.append((search[0], new_asset))
+            asset_count += 1
+
+    for old, new in replace_list:
+        qt.text = qt.text.replace(old, new)
 
     for line in qt:
         new_asset = None
@@ -202,50 +243,8 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
         if l_line and l_line[0] == "#":
             line.update(fix_header(line))
             ignore_before_h1 = False
-        if "data:" in line and "base64" in line:
-            asset_count += 1
-            found = False
-            for i in image_finders:
-                search = i.search(line)
-                if not search:
-                    continue
-                found = True
-                results = search.groups()
-                alt_text = ""
-                if len(results) == 3:
-                    image_type, content, caption = results
-                if len(results) == 4:
-                    alt_text, image_type, content, caption = results
-                if len(caption) < 5:
-                    caption = None
-
-                if alt_text:
-                    slug = slug_getter.unique(alt_text)
-                else:
-                    slug = "doc-asset-{0}".format(asset_count)
-                di = {
-                    "content_type": "image",
-                    "type": image_type,
-                    "content": content,
-                    "caption": caption,
-                    "alt_text": alt_text,
-                    "slug": slug,
-                }
-                print("asset found {0}".format(asset_count))
-                print(di["slug"])
-                qt.assets.append(di)
-                new_asset = "[asset:{0}]".format(slug)
-                print(new_asset)
-                line.update(new_asset)
-                extra_map[line] = new_asset
-                break
-            if not found:
-                warnings.warn(
-                    "Couldn't extract asset for line beginning {0}".format(line[:20])
-                )
-
         toc = toc_find.search(line)
-        if l_line and l_line[0] == "_" and l_line[-1] == "_":
+        if l_line and l_line[0] == "_" and l_line[-1] == "_" and len(l_line) > 50:
             # assume this is a blockquote paragraph
             if "asset:" not in prev:
                 line.update(">" + line)
@@ -292,6 +291,9 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
 
     qt.text = qt.text.replace(">[asset:", "[asset:")
     qt.text = qt.text.replace(">_Table", "_Table")
+    qt.text = qt.text.replace("</sup>", "")
+    qt.text = qt.text.replace("<sup>", "")
+    qt.text = qt.text.replace("<sup", "")
 
 
 def fix_header(line: str) -> str:
@@ -336,14 +338,24 @@ def markdown_table_contents(x, multi_line=False):
 
 def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = html
-    soup = BeautifulSoup(html, features="html5lib")
+
+    # treat header as row
+    new_html = new_html.replace("<th>", "<td>")
+    new_html = new_html.replace("</th>", "</td>")
+    new_html = new_html.replace("<thead>", "")
+    new_html = new_html.replace("</thead>", "")
+    new_html = new_html.replace("<tbody>", "")
+    new_html = new_html.replace("</tbody>", "")
+    soup = BeautifulSoup(new_html, features="html5lib")
     tables = soup.findAll("table")
     slug_format = "table-asset-{0}"
     table_count = 0
     asset_format = "<p>[asset:{0}]</p>"
     assets = []
     for table in tables:
+
         table_count += 1
+        print(f"getting table {table_count}")
         slug = slug_format.format(table_count)
         table_data = []
         markdown_header = []
@@ -370,10 +382,11 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
             "caption": "",
             "slug": slug,
         }
-
         if len(qg.data) == 0:
             if len(qg.header) == 1:
                 replacement = "[[\n" + "\n".join(markdown_header[0]) + "\n]]"
+                replacement = replacement.replace("\\[", "[")
+                replacement = replacement.replace("\\]", "]")
                 table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
                 new_html = new_html.replace(table_html, replacement)
             if len(qg.header) == 2:
@@ -449,12 +462,10 @@ def extract_assets(q: QuickText) -> None:
 
     for a in q.assets:
         if a["content_type"] == "table":
-            print("table")
-            print(a["slug"])
+            print("table", a["slug"])
             a["content"].save([asset_folder, a["slug"] + ".xls"])
         if a["content_type"] == "image":
-
-            print(a["slug"])
+            print("image", a["slug"])
             image_output = io.BytesIO()
             # Write decoded image to buffer
             base64_content = base64.b64decode(a["content"].encode("utf-8") + b"===")
@@ -469,7 +480,7 @@ def extract_assets(q: QuickText) -> None:
     for a in q.assets:
         item = {}
         for p in props:
-            item[p] = a[p]
+            item[p] = a.get(p, "")
         yaml_output.append({a["slug"]: item})
 
     yaml_file = os.path.join(asset_folder, "assets.yaml")
