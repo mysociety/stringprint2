@@ -450,7 +450,7 @@ class Article(models.Model):
         if os.path.exists(self.file_source) is False:
             self.file_source = os.path.join(storage_dir, self.file_source)
 
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = now()
         self.save()
 
     def yaml_export(self, folder):
@@ -672,9 +672,10 @@ class Article(models.Model):
         return access
 
     def get_book_cover(self, path: str) -> None:
-        fi = get_file(path)
-        self.book_cover.save("{0}-book-cover.tif".format(self.id), fi, save=True)
-        fi.close()
+        if os.path.exists(path):
+            fi = get_file(path)
+            self.book_cover.save("{0}-book-cover.tif".format(self.id), fi, save=True)
+            fi.close()
 
     def cite_link(self, paragraph: Graf) -> str:
         """
