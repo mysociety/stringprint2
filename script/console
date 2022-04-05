@@ -10,4 +10,4 @@ fi
 
 #!/bin/sh
 
-python3 shell.py "$@"
+python3 cli.py "$@"
