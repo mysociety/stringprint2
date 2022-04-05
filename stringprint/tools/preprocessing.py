@@ -59,6 +59,10 @@ class SectionActionBase:
 
         return qt
 
+    def __call__(self, text: str) -> str:
+        qt = self.process_text(QuickText(text))
+        return qt.text
+
 
 @dataclass
 class SectionDelete(SectionActionBase):
@@ -146,7 +150,6 @@ class SectionMove(SectionActionBase):
         """
         sections, order = self.get_sections_order(qt)
 
-        print(order)
         if self.section not in order:
             raise ValueError(f"'{self.section}' not in section list.")
 
@@ -165,13 +168,31 @@ class SectionMove(SectionActionBase):
 
         order.insert(pos, self.section)
 
-        print(order)
-
         new_lines = []
         for s in order:
             new_lines.extend(sections[s])
 
         return QuickText("\n".join(new_lines))
+
+
+class BaseTextAction:
+    def __call__(self, text: str):
+        return text
+
+
+@dataclass
+class TextSnip(BaseTextAction):
+    """
+    remove all text between start phrase and end phrase
+    """
+
+    start_snip: str
+    end_snip: str
+
+    def __call__(self, text: str) -> str:
+        start_position = text.find(self.start_snip)
+        end_position = text.find(self.end_snip, start_position) + len(self.end_snip)
+        return text[:start_position] + text[end_position:]
 
 
 class BasePreprocess:
@@ -187,8 +208,8 @@ class BasePreprocess:
     pdf_output_filename: Union[str, Callable] = lambda self: self.article.slug + ".pdf"
     pdf_start_page: int = 1
     pdf_merge: bool = True
-    section_actions: Optional[List[SectionMove]] = None
     find_replace: Optional[List[Tuple[str, str]]] = None
+    text_actions: Optional[List[Callable]] = None
 
     def from_article(cls, article: "Article") -> SubClassPreprocess:
         return cls(article)
@@ -212,12 +233,26 @@ class BasePreprocess:
         self.combine_pdfs()
         self.preprocess()
         self.do_find_replace()
-        self.do_section_actions()
+        self.do_text_actions()
         self.postprocess()
         self.output()
 
+    def do_text_actions(self):
+        """
+        feed the text through a series of functions
+        Generally classes defined here, but any function
+        that expects a str and returns a str works
+        """
+        if self.__class__.text_actions == None:
+            return None
+
+        for action in self.__class__.text_actions:
+            self.qt.text = action(self.qt.text)
+
     def do_google_download(self):
-        """ """
+        """
+        Download specified files through google api
+        """
         if (
             self.__class__.google_download
             and "google_doc_url" in self.article.extra_values
@@ -278,17 +313,6 @@ class BasePreprocess:
         for old, new in self.__class__.find_replace:
             self.qt.text = self.qt.text.replace(old, new)
         print("Ran find replace")
-
-    def do_section_actions(self) -> None:
-        """
-        Run SectionMove processes against
-        current text
-        """
-        if self.__class__.section_actions == None:
-            return None
-
-        for m in self.section_actions:
-            self.qt = m.process_text(self.qt)
 
     def do_convert_word(self) -> None:
         """
