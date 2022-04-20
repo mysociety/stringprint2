@@ -63,6 +63,13 @@ def fix_footnotes(block: str) -> str:
         nl = nl.replace('<a href="#footnote-ref-{0}">↑</a></p>'.format(count), "")
         nl = nl.strip()
         nl = html2markdown.convert(nl).replace("\n", "")
+        nl = nl.strip()
+        if nl.endswith("__"):
+            nl = nl[:-2]
+        if nl.endswith("_ _"):
+            nl = nl[:-3]
+
+        print(nl)
         if l:
             final.append("[^{0}]: {1}".format(count + 1, nl))
         count += 1
