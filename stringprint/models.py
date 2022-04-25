@@ -1586,7 +1586,7 @@ class HeaderMixin(object):
                     if new_width == 960:  # minor adaption so can appear full screen
                         new_width = 970
                     print("resizing to {0}".format(new_width))
-                new_height = new_width / float(o_width) * o_height
+                new_height = round(new_width / float(o_width) * o_height)
                 thumbnail = image.copy()
                 if new_width < o_width and new_width > 1 and new_height > 1:
                     thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
