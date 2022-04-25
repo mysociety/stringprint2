@@ -1603,12 +1603,13 @@ class HeaderMixin(object):
                     print("deleting")
                     os.remove(dest)
                 print("creating webp")
-                webp.cwebp(
+                result = webp.cwebp(
                     source_name,
                     dest,
                     f"-lossless -q 100 -resize {new_width} {new_height}",
                 )
                 if os.path.exists(dest) is False:
+                    print(result)
                     raise ValueError(
                         f"Webp {dest} not created, with settings:"
                         + f"-lossless -q 100 -resize {new_width} {new_height}"
