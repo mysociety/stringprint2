@@ -1608,6 +1608,11 @@ class HeaderMixin(object):
                     dest,
                     f"-lossless -q 100 -resize {new_width} {new_height}",
                 )
+                if os.path.exists(dest) is False:
+                    raise ValueError(
+                        f"Webp {dest} not created, with settings:"
+                        + f"-lossless -q 100 -resize {new_width} {new_height}"
+                    )
 
 
 class HeaderImage(FlexiBulkModel, HeaderMixin):
