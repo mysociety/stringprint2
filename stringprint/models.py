@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-
+import time
 import sys
 import codecs
 import datetime
@@ -1598,12 +1598,12 @@ class HeaderMixin(object):
                 thumbnail.save(new_name)
                 webp_name = os.path.splitext(new_name)[0] + ".webp"
                 web_p_files.append([i_file.path, webp_name, new_width, new_height])
+            if os.path.exists(i_file.path) is False:
+                image.save(i_file.path)
             for source_name, dest, new_width, new_height in web_p_files:
                 if os.path.exists(dest):
                     print("deleting")
                     os.remove(dest)
-                if os.path.exists(source_name) is False:
-                    continue
                 print("creating webp")
                 result = webp.cwebp(
                     source_name,
