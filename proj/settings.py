@@ -1,10 +1,18 @@
 import os
 import yaml
+from pathlib import Path
+from shutil import copy
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+config_file = Path(BASE_DIR, "proj", "conf", "config.yaml")
+template_config_file = Path(BASE_DIR, "proj", "conf", "config-example.yaml")
+
+if config_file.exists() is False and template_config_file.exists():
+    copy(template_config_file, config_file)
+
 # load settings from config file
-with open(os.path.join(BASE_DIR, "proj", "conf", "config.yaml")) as fi:
+with open(config_file) as fi:
     config = yaml.load(fi, Loader=yaml.FullLoader)
 
 # if running as a vagrant, need to address through file system
