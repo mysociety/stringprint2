@@ -1602,6 +1602,8 @@ class HeaderMixin(object):
                 if os.path.exists(dest):
                     print("deleting")
                     os.remove(dest)
+                if os.path.exists(source_name) is False:
+                    continue
                 print("creating webp")
                 result = webp.cwebp(
                     source_name,
