@@ -6,7 +6,12 @@
             {% for source, source_webp, previous_size, size, width, height, ratio in asset.header_image_res %}
 			<source srcset="{{source_webp}}" media="(max-width: {{size}}px)" type="image/webp">
             <source srcset="{{source}}" media="(max-width: {{size}}px)">
+            {% if size == 1920 %}
+            <source srcset="{{source_webp}}" media="(max-width: 10000px)" type="image/webp">
+            <source srcset="{{source}}" media="(max-width: 10000px)">
+            {% endif %}
             {% endfor %}
+
             <!--[if IE 9]></video><![endif]-->
             {% if header == False %}<a href="{{asset.image.url}}">{% endif %}<img srcset="{{asset.image.url}}" class="size_{{asset.image.name|slugify}}" title="{{title}}" loading="lazy" alt="{{asset.alt_text|empty_if_none}}" {% if asset.content %} longdesc="#desc_{{asset.image.name|slugify}}" {% endif%} style="margin:0 auto;">{% if header == False %}</a>{% endif %}
         </picture>

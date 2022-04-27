@@ -615,7 +615,7 @@ class Article(models.Model):
                 )
                 f.image = suf
                 django_file.close()
-                f.size = a.get("size", 4)
+                f.size = a.get("size", 6)
                 if process_images:
                     f.extra_values = {}
                     f.create_responsive(ignore_first=True)
@@ -1577,19 +1577,36 @@ class HeaderMixin(object):
             print("creating responsive versions")
             image = Image.open(i_file)
             o_width, o_height = image.size
+            print(self.image.path)
+            print(f"original width {o_width}, height {o_height}")
+            size_adjustment = {}
+            if isinstance(self, Asset):
+                size_adjustment = {1920: -1, 1440: 2, 1200: 2, 992: 2, 768:12  }
             for width in res:
                 pos += 1
                 # if display is being scaled down, reduce size of image
                 new_width = width
                 if (pos > 1 or ignore_first is False) and self.size != -1:
-                    new_width = (new_width / 12) * self.size
+                    relative_size = self.size + size_adjustment.get(
+                        width, 0
+                    )  # in twelves
+                    if relative_size > 12:
+                        relative_size = 12
+                    new_width = (float(new_width) / 12) * relative_size
+                    print(
+                        f"size={self.size},relative_size={relative_size},new_width={new_width} "
+                    )
+
                     if new_width == 960:  # minor adaption so can appear full screen
                         new_width = 970
                     print("resizing to {0}".format(new_width))
-                new_height = round(new_width / float(o_width) * o_height)
+                new_height = round(new_width * (float(o_height) / o_width))
                 thumbnail = image.copy()
+                print(f"{new_width=}, {o_width=}, {new_height=}")
                 if new_width < o_width and new_width > 1 and new_height > 1:
-                    thumbnail.thumbnail((new_width, new_height), Image.ANTIALIAS)
+                    thumbnail.thumbnail((new_width, new_height), Image.BICUBIC)
+                else:
+                    print("new size is larger than original, not downsizing")
                 new_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
                 print("saving as {0}".format(new_name))
                 if os.path.exists(new_name):
