@@ -1579,20 +1579,27 @@ class HeaderMixin(object):
             o_width, o_height = image.size
             print(self.image.path)
             print(f"original width {o_width}, height {o_height}")
+
             size_adjustment = {}
+            column_size = {}
             if isinstance(self, Asset):
-                size_adjustment = {1920: -1, 1440: 2, 1200: 2, 992: 2, 768:12  }
+                size_adjustment = {1920: -2, 1440: 2, 1200: 2, 992: 2, 768: 12}
+                column_size = {1920: 970 * (5 / 6), 1440: 970 * (5 / 6)}
             for width in res:
                 pos += 1
                 # if display is being scaled down, reduce size of image
                 new_width = width
                 if (pos > 1 or ignore_first is False) and self.size != -1:
-                    relative_size = self.size + size_adjustment.get(
-                        width, 0
-                    )  # in twelves
-                    if relative_size > 12:
-                        relative_size = 12
-                    new_width = (float(new_width) / 12) * relative_size
+                    if width in column_size:
+                        new_width = column_size[width]
+                        print(f"forcing use of {new_width}")
+                    else:
+                        relative_size = self.size + size_adjustment.get(
+                            width, 0
+                        )  # in twelves
+                        if relative_size > 12:
+                            relative_size = 12
+                        new_width = (float(new_width) / 12) * relative_size
                     print(
                         f"size={self.size},relative_size={relative_size},new_width={new_width} "
                     )
