@@ -264,7 +264,7 @@ class SPPrompt(cmd.Cmd):
 
                 if upload_time_file.exists():
                     txt_date = upload_time_file.open().read()
-                    upload_time = datetime.fromisoformat(txt_date)
+                    upload_time = datetime.fromisoformat(txt_date.strip())
                     txt_date = str(upload_time)
                 else:
                     txt_date = "Never uploaded."
