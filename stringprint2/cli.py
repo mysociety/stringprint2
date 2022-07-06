@@ -215,7 +215,7 @@ class SPPrompt(cmd.Cmd):
         f = open(os.devnull, "w")
 
         cmd = "python manage.py runserver 0.0.0.0:8000"
-        p = Popen(cmd.split(), cwd="stringprint2", stdout=f, stderr=f, stdin=f)
+        p = Popen(cmd.split(), cwd=Path("stringprint2", "stringprint2"), stdout=f, stderr=f, stdin=f)
 
         self.running_server = p.pid
 

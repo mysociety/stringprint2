@@ -19,8 +19,8 @@ import Levenshtein as lev
 import markdown
 import mkepub
 import tinify
-from charts import Chart
-from charts.fields import ChartField
+from stringprint2.charts import Chart
+from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
 from django.contrib.auth.models import User
