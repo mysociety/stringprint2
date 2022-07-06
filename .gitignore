@@ -6,7 +6,7 @@ configlocal.py
 .project
 .pydevproject
 fabfile.py
-media/
+stringprint2/media/
 _env/
 .vagrant
 #################
@@ -26,7 +26,7 @@ target/
 local.properties
 .classpath
 .settings/
-static/CACHE
-static/COMPILED
+stringprint2/static/CACHE
+stringprint2/static/COMPILED
 config.yaml
 ubuntu-xenial-16.04-cloudimg-console.log

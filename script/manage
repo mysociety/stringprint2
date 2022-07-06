@@ -1,7 +1,7 @@
 #!/bin/sh
 
 default_venv_activate="$(dirname "$0")/../../venv/bin/activate"
-managepy="$(dirname "$0")/../manage.py"
+managepy="$(dirname "$0")/../stringprint2/manage.py"
 
 # If we aren’t already in a virtualenv, but there’s a suitable one
 # in ../venv (eg: when we’re running in the Vagrant VM), activate it.
