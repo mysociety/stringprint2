@@ -175,8 +175,8 @@ def select_doc(func: Callable) -> Callable:
         protected_terms = ["refresh"]
         inp = inp.strip().lower()
         inp = inp.split(" ")
-        pass_down = " ".join([x for x in inp if x in protected_terms])
-        inp = [x for x in inp if x not in protected_terms + [""]]
+        pass_down = " ".join([x for x in inp if x in protected_terms or "no-" in x])
+        inp = [x for x in inp if x not in protected_terms + [""] and "no-" not in x]
         # use current doc
         if not inp:
             func(self, pass_down)
@@ -662,7 +662,8 @@ class SPPrompt(cmd.Cmd):
             self.do_pdfpng("")
 
         hero_path = path / "hero.png"
-        thumbnail_path = path / f"{slug}-cover.png"
+        cover_path = path / f"{slug}-cover.png"
+        thumbnail_path = path / f"{slug}-thumbnail.png"
         json_settings_path = path / f"settings-for-render.json"
 
         yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
@@ -675,6 +676,8 @@ class SPPrompt(cmd.Cmd):
         extra_files = []
         if hero_path.exists():
             extra_files.append((hero_path, Path(hero_path.name)))
+        if cover_path.exists():
+            extra_files.append((cover_path, Path(cover_path.name)))
         if thumbnail_path.exists():
             extra_files.append((thumbnail_path, Path(thumbnail_path.name)))
         if json_settings_path.exists():
