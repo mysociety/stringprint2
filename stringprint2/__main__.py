@@ -2,6 +2,7 @@
 
 import cmd
 import io
+import json
 import os
 import shutil
 import signal
@@ -9,16 +10,16 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
-from typing import Any, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
 
 import django
 import fitz
+import rich
 from cookiecutter.main import cookiecutter
 from PIL import Image
 from PyPDF2 import PdfFileReader, PdfFileWriter
-import rich
-from rich.prompt import Prompt
 from rich.panel import Panel
+from rich.prompt import Prompt
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickText
 
@@ -29,16 +30,27 @@ try:
 except Exception:
     pass
 
+
+# add the stringprint dir to the working directory
+sys.path.append(str(Path(__file__).parent))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proj.settings")
 django.setup()
 
 from django.conf import settings
 
-from charts import Chart, ChartCollection
-from frontend.views import ArticleSettingsView, HomeView
-from stringprint.functions import compress_static
-from stringprint.models import Article, Asset, Organisation
-from stringprint.tools.word_convert import convert_word
+if TYPE_CHECKING:
+    from stringprint2.charts import Chart, ChartCollection
+    from stringprint2.frontend.views import ArticleSettingsView, HomeView
+    from stringprint2.stringprint.functions import compress_static
+    from stringprint2.stringprint.models import Article, Asset, Organisation
+    from stringprint2.stringprint.tools.word_convert import convert_word
+
+else:
+    from charts import Chart, ChartCollection
+    from frontend.views import ArticleSettingsView, HomeView
+    from stringprint.functions import compress_static
+    from stringprint.models import Article, Asset, Organisation
+    from stringprint.tools.word_convert import convert_word
 
 
 class PanelPrint:
@@ -86,6 +98,7 @@ def load_org_details() -> str:
     default_slug = os.environ.get("DEFAULT_ORG")
     for k, v in settings.ORGS.items():
         org, created = Organisation.objects.get_or_create(slug=k)
+        org: Organisation
         org.load_from_yaml()
         if default_slug is None:
             default_slug = k
@@ -215,7 +228,13 @@ class SPPrompt(cmd.Cmd):
         f = open(os.devnull, "w")
 
         cmd = "python manage.py runserver 0.0.0.0:8000"
-        p = Popen(cmd.split(), cwd=Path("stringprint2", "stringprint2"), stdout=f, stderr=f, stdin=f)
+        p = Popen(
+            cmd.split(),
+            cwd=str(Path("stringprint2", "stringprint2")),
+            stdout=f,
+            stderr=f,
+            stdin=f,
+        )
 
         self.running_server = p.pid
 
@@ -498,10 +517,12 @@ class SPPrompt(cmd.Cmd):
         """
         Load and process the current document
         """
-        if "--refresh" in refresh or self.full_refresh:
-            refresh_header = True
-        else:
+        if "--no-refresh" in refresh:
             refresh_header = False
+        else:
+            refresh_header = True
+        if not "--no-preprocess" in refresh:
+            self.do_preprocess("")
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
@@ -544,10 +565,15 @@ class SPPrompt(cmd.Cmd):
     def do_publish(self, inp):
         """
         Run publish script as configured for this org.
+        Add 'no-render-zip' as an argument not to render a zip as part of this stpe.
         """
+        if not "no-render-zip" in inp:
+            self.do_renderzip("")
+
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
+        doc = cast(Article, doc)
         doc.load_from_yaml(self.doc_folder)
         doc.run_command("publish")
         print("Finished publishing: {0}".format(doc.title))
@@ -626,7 +652,38 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        zip_location = doc.render_to_zip(zip_destination, refresh_all=refresh_all)
+        doc = cast(Article, doc)
+
+        # specify some extra files to dump in the zip
+
+        if not "no-hero" in inp:
+            self.do_hero("")
+        if not "no-thumbnail" in inp:
+            self.do_pdfpng("")
+
+        hero_path = path / "hero.png"
+        thumbnail_path = path / f"{slug}-cover.png"
+        json_settings_path = path / f"settings-for-render.json"
+
+        yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
+        if "commands" in yaml_data:
+            del yaml_data["commands"]
+
+        with open(json_settings_path, "w") as f:
+            json.dump(yaml_data, f, indent=4, default=str)
+
+        extra_files = []
+        if hero_path.exists():
+            extra_files.append((hero_path, Path(hero_path.name)))
+        if thumbnail_path.exists():
+            extra_files.append((thumbnail_path, Path(thumbnail_path.name)))
+        if json_settings_path.exists():
+            extra_files.append((json_settings_path, Path(json_settings_path.name)))
+
+        zip_location = doc.render_to_zip(
+            zip_destination, refresh_all=refresh_all, extra_files=extra_files
+        )
+        json_settings_path.unlink()  # don't cause confusion with two files
         print(f"Zip created at {zip_location}")
 
     @select_doc
@@ -649,6 +706,13 @@ class SPPrompt(cmd.Cmd):
         front_page = Path(df, "cover.pdf")
         output = Path(df, "{0}-cover.png".format(self.current_doc))
         thumb = Path(df, "{0}-thumbnail.png".format(self.current_doc))
+        if front_page.exists() is False:
+            print(
+                "[red]No cover.pdf found in {0}[/red], not generating thumbnail".format(
+                    df
+                )
+            )
+            return None
         pdf_page_to_png(front_page, output)
         create_thumbnail(output, thumb)
 
@@ -690,42 +754,42 @@ class SPPrompt(cmd.Cmd):
             return super().default(line)
 
 
-if __name__ == "__main__":
+args = sys.argv[1:]
 
-    args = sys.argv[1:]
+if args and len(args) == 0 and args[0] in ["?", "help"]:
+    args = ("--help",)
 
-    if args and len(args) == 0 and args[0] in ["?", "help"]:
-        args = ("--help",)
+special_args = ["--no-server", "--continue"]
 
-    special_args = ["--no-server", "--continue"]
+dont_start_server = "--no-server" in args
+continue_in_shell = "--continue" in args
+do_refresh = "--refresh" in args
+args = [x for x in args if x not in special_args]
 
-    dont_start_server = "--no-server" in args
-    continue_in_shell = "--continue" in args
-    do_refresh = "--refresh" in args
-    args = [x for x in args if x not in special_args]
+instructions = []
+current_instruction = []
+for n, a in enumerate(args):
+    if a.startswith("--"):
+        if current_instruction:
+            instructions.append(current_instruction)
+            current_instruction = []
+        current_instruction.append(a[2:])
+    else:
+        current_instruction.append(a)
+instructions.append(current_instruction)
 
-    instructions = []
-    current_instruction = []
-    for n, a in enumerate(args):
-        if a.startswith("--"):
-            if current_instruction:
-                instructions.append(current_instruction)
-                current_instruction = []
-            current_instruction.append(a[2:])
-        else:
-            current_instruction.append(a)
-    instructions.append(current_instruction)
+panel = PanelPrint(padding=1, style="green")
 
-    panel = PanelPrint(padding=1, style="green")
+panel.print(SPPrompt.intro)
+default_org = load_org_details()
+prompt = SPPrompt(stdout=CatchOut())
+panel.print(prompt.do_startserver("noprint"))
+panel.print("")
+panel.print("List avaliable documents with 'listdocs'")
+panel.display()
 
-    panel.print(SPPrompt.intro)
-    default_org = load_org_details()
-    prompt = SPPrompt(stdout=CatchOut())
-    panel.print(prompt.do_startserver("noprint"))
-    panel.print("")
-    panel.print("List avaliable documents with 'listdocs'")
-    panel.display()
 
+def main():
     prompt.do_setorg(default_org)
     if do_refresh:
         prompt.do_refresh("")
@@ -733,3 +797,7 @@ if __name__ == "__main__":
         prompt.onecmd(" ".join(i))
     if not sys.argv[1:] or continue_in_shell:
         prompt.cmdloop(intro="")
+
+
+if __name__ == "__main__":
+    main()

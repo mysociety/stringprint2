@@ -8,7 +8,6 @@ from django.core.files import File
 import os
 from django.conf import settings
 from django.urls import reverse
-from paypal.standard.forms import PayPalPaymentsForm
 
 
 class UserSettings(FlexiBulkModel):

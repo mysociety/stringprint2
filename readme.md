@@ -25,41 +25,13 @@ That sourcefile will contain a `vagrantfile` that will do the below automaticall
 - `publish_dir` can be configured to point to a local directory if you want to output the site directly rather than as a zip (can be blank otherwise). 
 - This can also be extended to connect to multiple source folders (to keep different orgs/project settings seperate). 
 
-## Loading an existing document
-
-- `vagrant up` in the stringprint2 directory. 
-- If that all goes fine ‘script/shell’ to get to basic interface.
-- `listdocs` will show all the docs currently in the source repo
-- `loadall` to populate. 
-- Navigate to 192.168.0.1:8000 in a browser on host machine to see a preview of these documents (should start with vagrant, but `script/server` will start a server - debug using `python manage.py runserver 0.0.0.0:8000`). 
-
-## Creating new document
-
-- Create a new folder in source repo folder (new folder name will be the slug) and copy the settings.yaml from a similar document. 
-- Either place a markdown file in the document and reference it in the settings (document.md is the usual name) or, put any word document in that folder.
-- (Optionally) put two pdfs in the folder, called cover.pdf and contents.pdf
-- `vagrant up` in stringprint2, then open the shell and set the document to this document. 
-- `convertword` will convert the word document into a document.md and extract tables and images as assets. Examine and adjust the document.md
-- If you have pdf files, `pdfpng` will create an image version of the cover that can be referenced as the kindle book cover in settings.yaml (and creates a thumbnail for upload).
-- `mergepdf` will create a pdf to upload from a `cover.pdf` and a `contents.pdf` as `doc-slug.pdf`.
-- `process` will import and process the document. 
-- Running script/server will create a local server: 127.0.0.1:8000 will then allow you to preview the new document. 
-
-## Rendering a document
-
-- Have a local server running (`script/server`) (required for image generation)
-- Using the shell, `setdoc` to the document in question. 
-- Then `process` regenerates from the source document (optional if already loaded)
-- `renderzip` will export a zip file back to the source directory
-- This can then be uploaded through the zip archive setting on the repo site. 
-
 # Command line
 
 There is a basic command line tool to manage document commands. 
 
-This can either be run in the vagrant as `script/shell`
+This can either be run as `script/shell`.
 
-Commands can also be passed as arguments e.g. `script/shell setdoc:document-slug process renderzip continue` will process and render the document and keep the shell up for future commands.
+Commands can also be passed as arguments e.g. `script/shell setdoc:document-slug process publish continue` will process and render the document and keep the shell up for future commands.
 
 All comments that can be applied to a single document can be called without arguments and will be applied to currently selected doc. Multiple slugs can be given as arguments to do several docs, or 'all' will iterate through all unloaded docs. So `render all` will render all documents in the current organisation.
 
@@ -78,7 +50,8 @@ Shell commands:
 - `render` - renders the document out to the render folder location (if the org publish_dir setting is not configured, defaults to `'_publish` in the source directory).
 - `renderzip` - renders a zip file back to the document folder. 
 - `preprocess` - runs any preprocess scripts configured for the org or document
-- `publish` - runs any publish scripts configured for the org or document 
+- `process` - load and processs the source files (includes 'preprocess' steps unless 'no-preprocess' added)
+- `publish` - runs any publish scripts configured for the org or document. WIll also renderzip unless 'no-render-zip' is added as an argument. 
   `[command]` - run a defined commaand for that document or org.
 - `quit` - exits
 
