@@ -788,7 +788,13 @@ class Article(models.Model):
                 last = current_mod
             time.sleep(2)
 
-    def render_to_zip(self, zip_destination, extra_files: List[Tuple[Path, Path]] = [], *args, **kwargs):
+    def render_to_zip(
+        self,
+        zip_destination,
+        extra_files: List[Tuple[Path, Path]] = [],
+        *args,
+        **kwargs,
+    ):
         """
         render the article and return the location of a zip file
         """
@@ -1090,7 +1096,8 @@ class Article(models.Model):
 
         from .views import EbookChapterView
 
-        book = mkepub.Book(title=self.title, authors=self.authors.split(","))
+        authors = self.authors.split(",") if self.authors else ""
+        book = mkepub.Book(title=self.title, authors=authors)
 
         book.set_stylesheet(
             """.asset-long-desc{
@@ -1298,7 +1305,6 @@ class Article(models.Model):
             if callable(result):
                 result()
             return result
-
 
         # prevent execution by restricting to listed fields
         fields = self._meta.fields
