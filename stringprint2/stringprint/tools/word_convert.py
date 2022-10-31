@@ -329,6 +329,8 @@ def markdown_table_contents(x, multi_line=False):
     contents = x.contents
     html = ""
     if contents:
+        if str(contents).count("<p>") > 1:
+            multi_line = True
         for c in contents:
             nhtml = html2markdown.convert(str(c))
             nhtml = nhtml.replace("&nbsp;", " ")
