@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickGrid, QuickText
 from django.utils.text import slugify
+from pathlib import Path
 
 regex = re.compile(
     r"^(?:http|ftp)s?://"  # http:// or https://
@@ -348,6 +349,10 @@ def markdown_table_contents(x, multi_line=False):
 def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = html
 
+    for r in re.findall('<a id="_[\d\w]*"></a>', new_html):
+        new_html = new_html.replace(r, "")
+    new_html = new_html.replace("<br />", "<br/>")
+
     # treat header as row
     new_html = new_html.replace("<th>", "<td>")
     new_html = new_html.replace("</th>", "</td>")
@@ -368,6 +373,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
         slug = slug_format.format(table_count)
         table_data = []
         markdown_header = []
+        table_original_html = str(table)
         for n, row in enumerate(table.find_all("tr")):
             if n == 0:  # header:
                 table_data.append([td.get_text() for td in row.find_all("td")])
@@ -397,6 +403,8 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
                 replacement = replacement.replace("\\[", "[")
                 replacement = replacement.replace("\\]", "]")
                 table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
+                if table_html not in new_html:
+                    raise ValueError("Table html not found to extract.")
                 new_html = new_html.replace(table_html, replacement)
             if len(qg.header) == 2:
                 replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)

@@ -195,6 +195,9 @@ class TextSnip(BaseTextAction):
         return text[:start_position] + text[end_position:]
 
 
+general_find_replace = [("]][[", "]]\n\n[[")]
+
+
 class BasePreprocess:
     google_download: bool = True
     google_download_formats: list = ["contents.pdf", "doc_source.docx"]
@@ -309,10 +312,10 @@ class BasePreprocess:
         """
         do a find and replace on specified strings in the document
         """
-        if self.__class__.find_replace == None:
-            return None
 
-        for old, new in self.__class__.find_replace:
+        find_replace = general_find_replace + (self.__class__.find_replace or [])
+
+        for old, new in find_replace:
             self.qt.text = self.qt.text.replace(old, new)
         print("Ran find replace")
 

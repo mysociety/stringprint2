@@ -119,8 +119,10 @@
 				{% endif %}
 				<div class="subsection subsection-{{g.title|safe|slugify}}">
 				<div class = "content-row">
-					<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a> 
+					<a class="anchor linkable" id="{{s.order}}g{{g.order}}" name="{{g.anchor}}"></a>
+					{% if  g.classes != "extended-row" %}
 					<h{{g.header_level}}>{{g.title|safe}}</h{{g.header_level}}>
+					{% endif %}
 				</div>
 			{% endif %}
 			<a class="noscript-anchor" name = "{{g.combo_key}}"></a>
@@ -129,8 +131,12 @@
 			{% endif %}
 			{{g.anchor_code}}
 			<div class = "content-row {{g.classes}}" id = "r{{g.order}}">
+
 					{% if g.start_tag %}
 					<div id="g{{g.order}}" class="{{g.start_tag_class_type}}">
+						{% if g.title and g.classes == "extended-row" %}
+						<h{{g.header_level}}>{{g.title|safe}}</h{{g.header_level}}>
+						{% endif %}
 					{% endif %}
 					{# blockquotes and notes sections count additional sections of text in the same 'graf' #}
 					{% for p in g.self_and_extras %}
