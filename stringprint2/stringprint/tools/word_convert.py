@@ -254,7 +254,7 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
         toc = toc_find.search(line)
         if l_line and l_line[0] == "_" and l_line[-1] == "_" and len(l_line) > 50:
             # assume this is a blockquote paragraph
-            if "asset:" not in prev:
+            if prev and "asset:" not in prev:
                 line.update(">" + line)
         if l_line and l_line[0] == "_" and l_line[-1] == "]":
             # assume this is a blockquote paragraph ending in a quote
