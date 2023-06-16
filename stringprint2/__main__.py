@@ -725,10 +725,11 @@ class SPPrompt(cmd.Cmd):
         Create hero image for current document
         """
         yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
-        hero_location = yaml_data["header"]["location"]
-        hero_path = Path(self.doc_folder, hero_location)
-        destination = Path(self.doc_folder, "hero.png")
-        create_hero(hero_path, destination)
+        if "header" in yaml_data:
+            hero_location = yaml_data["header"]["location"]
+            hero_path = Path(self.doc_folder, hero_location)
+            destination = Path(self.doc_folder, "hero.png")
+            create_hero(hero_path, destination)
 
     def do_newdoc(self, inp):
         """
