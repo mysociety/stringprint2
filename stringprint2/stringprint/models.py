@@ -1105,7 +1105,7 @@ class Article(models.Model):
                             }"""
         )
 
-        if self.book_cover:
+        if self.book_cover and os.path.exists(self.book_cover.path):
             with open(self.book_cover.path, "rb") as file:
                 book.set_cover(file.read())
 
@@ -1201,7 +1201,7 @@ class Article(models.Model):
             finders.find(os.path.join("css", "kindle.css")),
             os.path.join(css_dir, "kindle.css"),
         )
-        if self.book_cover:
+        if self.book_cover and os.path.exists(self.book_cover.path):
             copyfile(self.book_cover.path, os.path.join(staging, "bookcover.jpg"))
 
         print("generating mobi")
