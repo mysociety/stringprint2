@@ -30,7 +30,6 @@ internal_links_re_statement = re.compile('"#(.*?)"')
 
 
 class RandomAssignment(object):
-
     max = 10000
 
     def __init__(self, seed: int = 13) -> None:
@@ -58,7 +57,6 @@ class RandomAssignment(object):
 
 
 class Footnote(SerialObject):
-
     note_count = 0  # keep track of how many notes we've made
     all = []
 
@@ -252,7 +250,6 @@ class Section(SerialObject):
         return [x for x in self.grafs if x.title]
 
     def search_grafs(self) -> Iterator["Graf"]:
-
         assets = self._version.article.assets.all()
         assets = {x.id: x for x in assets}
 
@@ -299,7 +296,6 @@ class Section(SerialObject):
     def get_grafs(
         self, just_titles: bool = False, change_footnotes: bool = True
     ) -> Iterator["Graf"]:
-
         if hasattr(self, "stored_grafs"):
             if self._version.article.multipage and change_footnotes is False:
                 for t in self.stored_grafs:
@@ -419,7 +415,6 @@ class Section(SerialObject):
 
 
 class Graf(SerialObject):
-
     seed = 13
     NORMAL = "NO"
     EXTENDED_START = "ES"
@@ -605,7 +600,6 @@ class Graf(SerialObject):
         )
 
     def connect_to_footnote(self, text):
-
         for l in text.split("\n"):
             ref = re.search("\[\^[0-9\*]+\]\:", l)
             if ref:
@@ -805,7 +799,6 @@ class Graf(SerialObject):
         return text
 
     def display_kindle(self, remove_links: bool = True) -> SafeText:
-
         text = self.html
         links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
 
@@ -841,7 +834,6 @@ class Graf(SerialObject):
             return "StartNotes"
 
     def block_end(self, next_block: Optional[bool] = None) -> bool:
-
         if self.blockquote and next_block is False:
             return True
         elif self.type == Graf.EXTENDED_END or self.type == Graf.EXTENDED_COMPLETE:
@@ -939,7 +931,6 @@ def get_content(e: Union[NavigableString, Tag]) -> str:
 
 
 def process_ink(version: "Version", content: str) -> None:
-
     Footnote.note_count = 0
 
     processors = [

@@ -6,7 +6,6 @@ import charts.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0004_article_public"),
     ]

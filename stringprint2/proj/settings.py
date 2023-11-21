@@ -133,7 +133,6 @@ CELERY_SEND_TASK_ERROR_EMAILS = True
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
 if DEBUG:
-
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",

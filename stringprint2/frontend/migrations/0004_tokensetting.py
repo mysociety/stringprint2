@@ -6,7 +6,6 @@ import useful_inkleby.useful_django.models.mixins
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("frontend", "0003_usersettings_tokens"),
     ]

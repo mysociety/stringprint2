@@ -42,7 +42,6 @@ def active(v1, v2):
 
 @register.simple_tag
 def alert(message):
-
     if message:
         alert_type = "success"
         if "|" in message:
@@ -56,7 +55,6 @@ def alert(message):
 
 @register.filter
 def display_asset(article, asset_id):
-
     if hasattr(article, "render_basic_assets"):
         basic = True
     else:
@@ -71,7 +69,6 @@ def display_asset(article, asset_id):
 
 @register.filter
 def display_header_asset(article, asset_id):
-
     if hasattr(article, "render_basic_assets"):
         basic = True
     else:
@@ -95,7 +92,6 @@ def display_asset_caption(article, asset_id):
 
 @register.filter
 def display_asset_text(article, asset_id):
-
     asset = [x for x in article.cached_assets if x.id == asset_id]
     if asset:
         return asset[0].render(basic=True, kindle=False)
@@ -105,7 +101,6 @@ def display_asset_text(article, asset_id):
 
 @register.filter
 def display_asset_kindle(article, asset_id):
-
     asset = [x for x in article.cached_assets if x.id == asset_id]
     if asset:
         return asset[0].render(basic=True, kindle=True)

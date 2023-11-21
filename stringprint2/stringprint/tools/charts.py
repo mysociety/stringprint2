@@ -151,7 +151,6 @@ class LineChartOptions(object):
 
 
 class GoogleLineChart(BaseChart):
-
     package_name = "corechart"
     code_template = "charts//line_code.html"
 
@@ -170,7 +169,6 @@ class GoogleLineChart(BaseChart):
 
 
 class GoogleTable(BaseChart):
-
     package_name = "table"
     code_template = "charts//table_code.html"
 

@@ -7,7 +7,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0021_article_display_footnotes_at_foot"),
     ]

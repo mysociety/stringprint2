@@ -126,7 +126,6 @@ class ArticleHeadersView(ArticleEditBase, LoggedInView):
     url_name = "article.headers"
 
     def logic(self):
-
         header = self.article.images.filter(title_image=True)
         if header.exists():
             instance = header[0]
@@ -241,14 +240,12 @@ class ArticlePublishView(ArticleEditBase, LoggedInView):
 
 
 class ArticleSettingsView(ArticleEditBase, LoggedInView):
-
     template = "frontend//document_settings.html"
     url_patterns = [r"^document/([0-9]*)/settings/"]
     url_name = "article.settings"
     form = ff.ArticleEditForm
 
     def logic(self):
-
         if self.request.POST:
             form = self.form(self.request.POST, instance=self.article)
             if form.is_valid():
@@ -289,13 +286,11 @@ class OrgSettingsView(LoggedInView):
 
 
 class RegisterView(ComboView):
-
     template = "registration//register.html"
     url_patterns = [r"^register/"]
     url_name = "register"
 
     def view(self, request):
-
         if request.POST:
             form = ff.RegisterForm(request.POST)
             if form.is_valid():
@@ -324,7 +319,6 @@ class RegisterView(ComboView):
 
 
 class NewDocView(LoggedInView):
-
     template = "frontend//new_doc.html"
     url_patterns = [r"^document/new"]
     url_name = "document.new"
@@ -377,7 +371,6 @@ class NewDocView(LoggedInView):
 
 
 class ReuploadFormView(ArticleEditBase, LoggedInView):
-
     template = "frontend//doc_reupload.html"
     url_patterns = [r"^document/([0-9]*)/reupload"]
     url_name = "document.reupload"
@@ -407,7 +400,6 @@ class ReuploadFormView(ArticleEditBase, LoggedInView):
 
 
 class ChangeOrgView(NewDocView):
-
     url_patterns = [r"^orgs/change/(.*)"]
     url_name = "org.change"
     args = ("org_id",)
@@ -419,7 +411,6 @@ class ChangeOrgView(NewDocView):
 
 
 class HomeView(NewDocView):
-
     template = "frontend//home.html"
     url_patterns = [r"^"]
     url_name = "home"
@@ -432,7 +423,6 @@ class HomeView(NewDocView):
 
 
 class DocListView(HomeView):
-
     template = "frontend//doc_list.html"
     url_patterns = [r"^documents/list", r"^documents/list/(.*)"]
     url_name = "document.list"

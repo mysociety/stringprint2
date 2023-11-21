@@ -6,7 +6,6 @@ import useful_inkleby.useful_django.fields.serial
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0007_asset_image_chart"),
     ]

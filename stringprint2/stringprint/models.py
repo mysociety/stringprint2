@@ -207,7 +207,6 @@ class Organisation(models.Model):
         return mark_safe(self.custom_css)
 
     def display_fonts(self):
-
         for f in self.fonts.split("\n"):
             yield f.strip()
 
@@ -583,7 +582,6 @@ class Article(models.Model):
         Asset.objects.filter(article=self, slug__in=slugs).delete()
         slugs = []
         for a in assets:
-
             no_header = False
             if a["content_type"] == "table-no-header":
                 a["content_type"] = "table"
@@ -748,7 +746,6 @@ class Article(models.Model):
             ni.image.save(internal_name, fi, save=True)
             fi.close()
             if image_vertical:
-
                 header, tail = os.path.splitext(internal_name)
                 vert_file = header + "_vert" + tail
                 fi = get_file(image_vertical)
@@ -962,7 +959,6 @@ class Article(models.Model):
         paragraph_lookup = c.paragraph_lookup()
 
         for k, v in paragraph_lookup.items():
-
             shorter_link = ".".join(k.split(".")[:6])
 
             class BakeRedirectLinkView(RedirectLink):
@@ -1093,7 +1089,6 @@ class Article(models.Model):
             self.create_ebook(destination)
 
     def create_ebook(self, destination: Path) -> None:
-
         from .views import EbookChapterView
 
         authors = self.authors.split(",") if self.authors else ""
@@ -1210,7 +1205,6 @@ class Article(models.Model):
 
         if staging != destination:
             if os.path.exists(os.path.join(staging, self.slug + ".mobi")):
-
                 print("copying to destination")
                 shutil.copyfile(
                     os.path.join(staging, self.slug + ".mobi"),
@@ -1239,7 +1233,6 @@ class Article(models.Model):
                 return "./"
 
         else:
-
             if section:
                 args = (self.slug, section)
             else:
@@ -1345,7 +1338,6 @@ class Article(models.Model):
                 article=self, number=self.current_version
             )[0]
         else:
-
             v = q[0]
         return v
 
@@ -1653,7 +1645,6 @@ class HeaderMixin(object):
 
 
 class HeaderImage(FlexiBulkModel, HeaderMixin):
-
     title_image = models.BooleanField(default=False)
     section_name = models.CharField(max_length=255, null=True, blank=True)
     source_loc = models.CharField(max_length=255, null=True, blank=True)
@@ -2130,7 +2121,6 @@ class Version(models.Model):
         """
 
         class MiniGraf(object):
-
             order = [
                 "para_key_position",
                 "para_key",
@@ -2251,7 +2241,6 @@ class Version(models.Model):
 
 
 class Asset(FlexiBulkModel, HeaderMixin):
-
     RAW_HTML = "h"
     IMAGE = "i"
     CHART = "c"

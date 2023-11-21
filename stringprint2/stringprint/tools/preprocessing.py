@@ -38,7 +38,6 @@ class SectionActionBase:
     def get_sections_order(
         self, qt: QuickText
     ) -> Tuple[Dict[str, List[str]], List[str]]:
-
         sections = {}
         current_header = "start"
         current_section = []
@@ -56,7 +55,6 @@ class SectionActionBase:
         return sections, order
 
     def process_text(self, qt: QuickText) -> QuickText:
-
         return qt
 
     def __call__(self, text: str) -> str:

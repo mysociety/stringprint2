@@ -6,7 +6,6 @@ import stringprint.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0015_organisation_publish_root"),
     ]

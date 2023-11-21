@@ -6,7 +6,6 @@ import stringprint.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0012_auto_20160822_1553"),
     ]

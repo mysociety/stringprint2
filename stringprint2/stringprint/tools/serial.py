@@ -73,7 +73,6 @@ class BasicSerial(object):
             return [cls.restore_object(x) for x in obj]
 
         if isinstance(obj, dict):
-
             try:
                 # object restoration
                 t = obj["_type"]
@@ -87,7 +86,6 @@ class BasicSerial(object):
 
                 return ins
             except KeyError:
-
                 return {x: cls.restore_object(y) for x, y in obj.items()}
 
 

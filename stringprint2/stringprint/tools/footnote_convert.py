@@ -3,7 +3,6 @@ import re
 import codecs
 
 if __name__ == "__main__":
-
     final = []
 
     with codecs.open(

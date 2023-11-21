@@ -7,7 +7,6 @@ import useful_inkleby.useful_django.models.mixins
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0013_auto_20160829_1340"),
         ("frontend", "0001_initial"),

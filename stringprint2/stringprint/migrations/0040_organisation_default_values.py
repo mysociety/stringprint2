@@ -5,7 +5,6 @@ import useful_inkleby.useful_django.fields.serial
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0039_auto_20200727_0838"),
     ]

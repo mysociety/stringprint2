@@ -39,13 +39,11 @@ def compression_callback(
 
 
 class AssetView(ComboView):
-
     template = "ink//asset.html"
     url_patterns = [r"^asset/(.*)/(.*)/(.*)/", r"^asset/(.*)/(.*)/"]
     url_name = "asset_view"
 
     def view(self, request, article_slug, slug, static=None):
-
         from charts import ChartCollection, Chart
 
         a = Asset.objects.get(article__slug=article_slug, slug=slug)
@@ -110,7 +108,6 @@ class KindleView(HomeView):
     def view(
         self, request: WSGIRequest, article_slug: str, paragraph_code: str = ""
     ) -> dict:
-
         a = self.get_article(request, article_slug)
         c = a.display_content()
         c.sections = self.restrict(c.sections, paragraph_code)
@@ -149,7 +146,6 @@ class TOCView(HomeView):
         return Article.objects.get(slug=article_slug)
 
     def view(self, request, article_slug, paragraph_code=""):
-
         a = self.get_article(request, article_slug)
 
         if self.__class__.article_settings_override:
@@ -196,7 +192,6 @@ class TipueSearchView(HomeView):
         return Article.objects.get(slug=article_slug)
 
     def view(self, request, article_slug, paragraph_code=""):
-
         a = self.get_article(request, article_slug)
         if self.__class__.article_settings_override:
             a.__dict__.update(self.__class__.article_settings_override)
@@ -436,7 +431,6 @@ class RedirectLink(HomeView):
         self.graf = graf
 
     def view(self, request, article_slug, paragraph_code):
-
         self.load_article(request, article_slug, paragraph_code)
         self.asset_image = None
         self.alt = ""

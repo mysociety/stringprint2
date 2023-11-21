@@ -7,7 +7,6 @@ import useful_inkleby.useful_django.models.mixins
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("stringprint", "0012_auto_20160822_1553"),

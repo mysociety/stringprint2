@@ -33,7 +33,6 @@ class AdminImageWidget(AdminFileWidget):
 
 
 class PageHeaderImageForm(forms.ModelForm):
-
     image = forms.ImageField(label="Image", widget=AdminImageWidget, required=False)
     image_vertical = forms.ImageField(
         label="Responsive Image",
@@ -85,7 +84,6 @@ class PageHeaderImageForm(forms.ModelForm):
 
 
 class ArticlePublishForm(forms.Form):
-
     publish_url = forms.CharField(
         label="Final URL",
         help_text="Where will this document be visible on the web? (used for social sharing).",
@@ -181,7 +179,6 @@ def validate_file_extension(value):
 
 
 class ReuploadWordForm(HoneyPotForm):
-
     file = forms.FileField(
         label="Upload a Word file (optional)",
         required=False,
@@ -190,7 +187,6 @@ class ReuploadWordForm(HoneyPotForm):
 
 
 class NewDocumentForm(HoneyPotForm):
-
     title = forms.CharField(
         label="Document Title", help_text="Don't worry, this can be changed later."
     )
@@ -223,5 +219,4 @@ class RegisterForm(HoneyPotForm):
             else:
                 return True
         else:
-
             return False

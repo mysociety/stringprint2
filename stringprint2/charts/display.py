@@ -29,7 +29,6 @@ class ChartCollection(object):
     """
 
     def __init__(self, charts: List[Any]) -> None:
-
         if RENDER_TABLES_AS_CHARTS is False:
             charts = [x for x in charts if x.chart_type != "table_chart"]
         self.charts = charts
@@ -110,7 +109,6 @@ class Chart(SerialObject):
     """
 
     def __init__(self, name="", file_name="", chart_type="line_chart"):
-
         self.chart_type = chart_type
         self.name = name
         self.filename = file_name

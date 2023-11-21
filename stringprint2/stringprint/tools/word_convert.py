@@ -367,7 +367,6 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
     asset_format = "<p>[asset:{0}]</p>"
     assets = []
     for table in tables:
-
         table_count += 1
         print(f"getting table {table_count}")
         slug = slug_format.format(table_count)
@@ -471,7 +470,6 @@ def convert_docx(file_path, demote=False) -> QuickText:
 
 
 def extract_assets(q: QuickText) -> None:
-
     folder = os.path.dirname(q.filename)
     asset_folder = os.path.join(folder, "assets")
     if not os.path.exists(asset_folder):

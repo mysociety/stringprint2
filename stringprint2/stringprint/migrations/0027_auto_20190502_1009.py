@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0026_auto_20190502_0952"),
     ]

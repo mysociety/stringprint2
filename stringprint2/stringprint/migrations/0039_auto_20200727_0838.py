@@ -5,7 +5,6 @@ import useful_inkleby.useful_django.fields.serial
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("stringprint", "0038_article_preprocessor"),
     ]

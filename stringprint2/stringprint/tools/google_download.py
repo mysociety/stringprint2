@@ -10,14 +10,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 
 class GoogleDownloader:
-
     mime_types = {
         ".pdf": "application/pdf",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }
 
     def __init__(self):
-
         data = os.environ.get("GDRIVE_SERVICE_USER", None)
         if data is None:
             raise ValueError("GDRIVE_SERVICE_USER env var not set.")
