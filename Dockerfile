@@ -19,7 +19,7 @@ RUN chmod u+x /install/docker-provision && /install/docker-provision
 
 COPY pyproject.toml poetry.loc[k] /
 RUN curl -sSL https://install.python-poetry.org | python - && \
-      echo "export PATH=\"/root/.local/bin:$PATH\"" > ~/.bashrc && \
+      echo 'export PATH="/root/.local/bin:$PATH"' > ~/.bashrc && \
       export PATH="/root/.local/bin:$PATH"  && \
       poetry config virtualenvs.create false && \
       poetry install
