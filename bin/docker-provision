@@ -14,10 +14,19 @@ xargs apt-get install -qq -y < /install/packages
 cd /install/
 # get and setup get chromedriver
 
-VERSION=$( curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$( google-chrome --version | awk '{print $NF}' | cut -d. -f1,2,3 ) )
-wget -q https://chromedriver.storage.googleapis.com/${VERSION}/chromedriver_linux64.zip
-unzip chromedriver_linux64.zip
-mv chromedriver /usr/bin/chromedriver
+
+DOWNLOAD_URL=$(
+    wget -qO- https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json |
+    jq -r '.versions[] |
+        select(.version == "'$(google-chrome --version | awk '{print $NF}' | cut -d. -f1,2,3,4 )'") |
+        .downloads.chromedriver[] |
+        select(.platform == "linux64") |
+        .url'
+)
+
+wget -q "$DOWNLOAD_URL"
+unzip chromedriver-linux64.zip
+mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
 chown root:root /usr/bin/chromedriver
 chmod +x /usr/bin/chromedriver
-rm -f chromedriver_linux64.zip
+rm -f chromedriver-linux64.zip
