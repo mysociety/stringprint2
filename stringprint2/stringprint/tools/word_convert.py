@@ -77,6 +77,43 @@ def fix_footnotes(block: str) -> str:
     return "\n".join(final)
 
 
+def fix_markdown(text:str):
+    """
+    There's a big issue where markdown is landing incorrectly.
+    with whitespace inside the markdown. 
+    For odd instances of '__', we need to check if it's followed by a whitespace character.
+    If so, we need to move the whitespace before it.
+    For even instances, we need to make sure it's not preceeded by a whitespace character.
+    If so, we move the whitespace after it.
+    """
+
+    # get all positions of __ using find
+    positions = []
+    start = 0
+    while True:
+        start = text.find('__', start)
+        if start == -1: break
+        positions.append(start)
+        start += 1
+
+    # iterate through positions and fix
+    for i, pos in enumerate(positions):
+        i = i + 1 # stupid 0 indexing
+        # if odd
+        if i % 2 == 1:
+            # check if whitespace after
+            if text[pos+2] == ' ':
+                # move whitespace before
+                text = text[:pos] + " __" + text[pos+3:]
+        # if even
+        else:
+            # check if whitespace before
+            if text[pos-1] == ' ':
+                # move whitespace after
+                text = text[:pos-1] + "__ " + text[pos+2:]
+
+    return text
+
 def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     """
     given the results of a mammoth conversion:
@@ -140,8 +177,6 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     for r in re.findall("\*(.*?)\*", text):
         if r and r[0] != " " and r[-1] != " ":
             text = text.replace("*{0}*".format(r), "!!SINGLE!!{0}!!SINGLE!!".format(r))
-
-    # remove bad markdown conversion - removes spaces at end of formatting
 
     patterns = [
         ("(\*\*(.*?) \*\*)", "**{0}** "),
@@ -240,6 +275,14 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
 
     for old, new in replace_list:
         qt.text = qt.text.replace(old, new)
+
+    # remove bad markdown conversion - removes spaces at end of formatting
+    lines = qt.text.split("\n")
+    new_lines = []
+    for l in lines:
+        new_lines.append(fix_markdown(l))
+
+    qt.text = "\n".join(new_lines)
 
     for line in qt:
         new_asset = None
