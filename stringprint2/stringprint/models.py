@@ -517,7 +517,8 @@ class Article(models.Model):
         driver = Chrome.get_driver()
         driver.set_page_load_timeout(60)
         print(url)
-        driver.set_window_size(520, 568)
+        # Updated for 1200 x 630 Bluesky/modern social media aspect ratio (1.90:1)
+        driver.set_window_size(1200, 800)
         driver.get(url)
 
         for g in grafs_to_do:
@@ -543,8 +544,9 @@ class Article(models.Model):
 
             screenshot = driver.get_screenshot_as_base64()
             img = Image.open(BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
-            width = 520
-            height = int(width / 1.91)
+            # Updated dimensions for 1200 x 630 aspect ratio for Bluesky social sharing
+            width = 1200
+            height = 630
             left = location["x"] - left_offset
             top = offset - 8
             right = left + 16 + width
