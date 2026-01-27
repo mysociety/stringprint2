@@ -34,6 +34,12 @@ $('#master_expand').on('click touchend', function (event) {
 });
 
 function changeSelected(id, title, nohash) {
+    //if title contains a ':' split and use the first half
+    split_title = title.split(":")
+    if (split_title.length > 1) {
+        title = split_title[0].trim()
+    }
+
     //rename mobile title with section
     if (title.length > 0) {
         $("#mobile-title").text(title);
@@ -96,7 +102,7 @@ $("a.top-nav-item").on("mouseup", function () {
     // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
     send_ga("Top Nav Click", $(this).attr('href'));
     id = $(this).attr('section');
-    title = $("#s" + id + ".section-anchor").text()
+    title = $("#s" + id + ".section-anchor").find("h1").text()
     changeSelected(id, title, true);
 
 })
@@ -112,7 +118,7 @@ var waypoints = $('.section-anchor').waypoint(function (direction) {
         title = $(this.element).text()
     } else {
         id = $(this.element).attr('prev').substring(1);
-        title = $("#s" + id + ".section-anchor").text()
+        title = $("#s" + id + ".section-anchor").find("h1").text()
     };
     if (page_loaded) {
         changeSelected(id, title);
@@ -465,7 +471,7 @@ function gotoTarget(target, addText, internalMove) {
     set_mobile_link(para_id);
     if (page_loaded == false) {
         id = target.attr('parent')
-        title = $("#s" + id + ".section-anchor").text()
+        title = $("#s" + id + ".section-anchor").find("h1").text()
         changeSelected(id, title, true);
     }
 }
@@ -754,7 +760,7 @@ $(window).on("load", function () {
                 hash = hash.replace("#", "")
                 section = $('.anchor[name ="' + hash + '"]').first()
                 id = section.attr("id").substring(1);
-                title = $("#s" + id + ".section-anchor").text()
+                title = $("#s" + id + ".section-anchor").find("h1").text()
                 changeSelected(id, title, true);
             }
         }
