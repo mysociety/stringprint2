@@ -257,7 +257,7 @@ class ArticleView(HomeView):
     url_name = "article_view"
     share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
     twitter_share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
-    share_description = "{% if article.multipage %}{{article.active_section.name}}{%else%}{{article.description}}{% endif %}"
+    share_description = "{% if article.multipage %}Chapter {{article.active_section.order}}. {{article.active_section.name}}{%else%}{{article.description}}{% endif %}"
     share_title = "{{article.title}}"
     share_twitter = "{{article.org.twitter}}"
     share_site_name = "{{article.org.name}}"

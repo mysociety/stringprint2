@@ -58,7 +58,7 @@
 				<ul>
 				{% with content.toc as toc %}
 				{% for s in toc.top_two_levels %}
-					<li><a href="{{s.nav_url}}">{{s.name|safe}}</a>
+					<li><a href="{{s.nav_url}}">{% if article.multipage and s.level == 1 %}Chapter {{s.id}}. {% endif %}{{s.name|safe}}</a>
 					{% if s.reduced_diff == 1 %}
 						<ul>
 					{% elif s.reduced_diff == 0 %}
@@ -95,7 +95,7 @@
 					{% if article.multipage %}
                     <p class="chapter-number">Chapter {{s.order}}</p>
 					{% endif %}
-                    <H1 id = "h.{{s.order}}">{{s.name}}</h1>
+                    <H1 id = "h.{{s.order}}" data-section-title="{{s.name}}">{{s.name}}</h1>
 					{% endblock %}
                 {% endif %}
             {% endwith %}
