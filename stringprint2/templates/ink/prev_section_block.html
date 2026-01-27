@@ -3,12 +3,19 @@
 		{% with s.prev_section as prev %}
 			{% if prev %}
 				<div class = "section_change previous_section">
-				<p>Previous section: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a></p>
 				<p>
-				(<a href="#index">Contents</a>)
+				Table of contents: <a href="#index">Chapter list</a>
 				</p>
+				<p>Previous chapter: <a href="{{prev.nav_url}}">{% if prev.name %}{{prev.name}}{% else %}Introduction{% endif %}</a></p>
+							{% with s.next_section as next %}
+				{% if next %}
+					<p>Next chapter: <a href="{{next.nav_url}}">{{next.name}}</a></p>
+				{% endif %}
+			{% endwith %}
 				</div>
 			{% endif %}
+
 		{% endwith %}
 	{% endif %}
+
 	{% endblock %}

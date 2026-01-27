@@ -33,7 +33,7 @@
 	  {% block other_formats %}
 		  <p class="other-formats-text">
 		  Other formats: <a href="{{SITE_ROOT}}plain.html" class="alt_link" type="plain" >Plain text</a>,
-		  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf" >PDF</a>,{% endif %}
+		  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf">PDF</a>,{% endif %}
 		  {% if kindle %}<a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>{% endif %},
 		  <a href="{{SITE_ROOT}}{{article.slug}}.epub"  class="alt_link" type="epub" >EPUB</a>.</p>
       {% endblock %}
@@ -92,6 +92,9 @@
                     </div>
                 {% else %}
 					{% block section_title_name %}
+					{% if article.multipage %}
+                    <p class="chapter-number">Chapter {{s.order}}</p>
+					{% endif %}
                     <H1 id = "h.{{s.order}}">{{s.name}}</h1>
 					{% endblock %}
                 {% endif %}
