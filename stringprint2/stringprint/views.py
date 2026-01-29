@@ -363,7 +363,7 @@ class ArticleView(HomeView):
         prepare assets for charts and images
         """
         titles_and_images = list(a.headers_and_images())
-        if a.multipage:
+        if a.multipage and hasattr(a, 'active_section'):
             asset_ids = a.active_section.used_assets()
         else:
             asset_ids = c.used_assets()
