@@ -17,7 +17,6 @@ import fitz
 import rich
 from cookiecutter.main import cookiecutter
 from PIL import Image
-from PyPDF2 import PdfFileReader, PdfFileWriter
 from rich.panel import Panel
 from rich.prompt import Prompt
 from ruamel.yaml import YAML
@@ -114,16 +113,15 @@ def merge_pdfs(
     """
     replace front page with proper front page
     """
-    pdf_writer = PdfFileWriter()
+    result = fitz.open()
 
-    front_page = PdfFileReader(front)
-    pdf_writer.addPage(front_page.getPage(0))
+    front_doc = fitz.open(str(front))
+    result.insertPDF(front_doc, from_page=0, to_page=0)
 
-    pdf_reader = PdfFileReader(contents)
-    for page in range(start_page, pdf_reader.getNumPages()):
-        pdf_writer.addPage(pdf_reader.getPage(page))
-    with open(output, "wb") as fh:
-        pdf_writer.write(fh)
+    contents_doc = fitz.open(str(contents))
+    result.insertPDF(contents_doc, from_page=start_page)
+
+    result.save(str(output))
 
 
 def pdf_page_to_png(source_pdf: Union[Path, str], destination: Union[Path, str]):

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
-from PyPDF2 import PdfFileReader, PdfFileWriter
+import fitz
 from stringprint.models import Article
 from stringprint.tools.word_convert import convert_word
 from useful_inkleby.files import QuickText
@@ -22,16 +22,15 @@ def merge_pdfs(
     """
     replace front page with proper front page
     """
-    pdf_writer = PdfFileWriter()
+    result = fitz.open()
 
-    front_page = PdfFileReader(str(front))
-    pdf_writer.addPage(front_page.getPage(0))
+    front_doc = fitz.open(str(front))
+    result.insertPDF(front_doc, from_page=0, to_page=0)
 
-    pdf_reader = PdfFileReader(str(contents))
-    for page in range(start_page, pdf_reader.getNumPages()):
-        pdf_writer.addPage(pdf_reader.getPage(page))
-    with open(output, "wb") as fh:
-        pdf_writer.write(fh)
+    contents_doc = fitz.open(str(contents))
+    result.insertPDF(contents_doc, from_page=start_page)
+
+    result.save(str(output))
 
 
 class SectionActionBase:
