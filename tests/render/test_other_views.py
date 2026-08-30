@@ -136,20 +136,18 @@ class TestAssetView:
         assert "<table" in page
 
     @pytest.mark.parametrize("slug", ["html-one", "image-one"])
-    @pytest.mark.xfail(
-        strict=True,
-        raises=UnboundLocalError,
-        reason=(
-            "Known defect: AssetView.view's else branch reads `charts = "
-            "[charts]`, referencing the local before it is assigned, so any "
-            "asset without a chart raises. Only table assets can be viewed "
-            "this way. See docs/feature-inventory.md."
-        ),
-    )
-    def test_an_asset_without_a_chart_cannot_be_viewed(
+    def test_an_asset_without_a_chart_renders(
         self, client, kitchen_sink, slug: str
     ) -> None:
-        client.get("/preview/asset/kitchen-sink/{0}/".format(slug))
+        assert client.get(
+            "/preview/asset/kitchen-sink/{0}/".format(slug)
+        ).status_code == 200
+
+    def test_an_html_asset_renders_its_content(self, client, kitchen_sink) -> None:
+        page = client.get(
+            "/preview/asset/kitchen-sink/html-one/"
+        ).content.decode("utf-8")
+        assert "embedded-html-asset" in page
 
 
 class TestRedirectLinkView:
@@ -168,15 +166,28 @@ class TestRedirectLinkView:
         assert "ordinary opening paragraph" in page
 
 
-class TestBrokenViews:
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Known defect: HomeView.view filters Article.objects.filter("
-            "public=True) but Article has no `public` field, so the preview "
-            "index has been broken since that column was dropped. "
-            "See docs/feature-inventory.md."
-        ),
-    )
-    def test_the_preview_index_is_broken(self, client) -> None:
+class TestPreviewIndex:
+    def test_the_index_renders(self, client, kitchen_sink) -> None:
         assert client.get("/preview/").status_code == 200
+
+    def test_it_lists_the_loaded_documents(
+        self, client, process_doc
+    ) -> None:
+        for slug in ["kitchen-sink", "minimal-doc"]:
+            process_doc(slug)
+        page = client.get("/preview/").content.decode("utf-8")
+        assert "Kitchen Sink" in page
+        assert "Minimal Document" in page
+
+    def test_each_entry_links_to_the_article(self, client, kitchen_sink) -> None:
+        page = client.get("/preview/").content.decode("utf-8")
+        assert 'href="/preview/kitchen-sink/"' in page
+
+    def test_documents_are_ordered_newest_first(
+        self, client, process_doc
+    ) -> None:
+        for slug in ["kitchen-sink", "legacy-doc"]:
+            process_doc(slug)
+        page = client.get("/preview/").content.decode("utf-8")
+        # kitchen-sink is 2022, legacy-doc is 2016
+        assert page.index("Kitchen Sink") < page.index("Legacy Document")

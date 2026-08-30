@@ -7,6 +7,8 @@ import random
 import string
 from django.template.loader import render_to_string
 from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
+
+from .chart_config import ChartType
 import markdown
 from typing import Any, List
 
@@ -153,6 +155,15 @@ class Chart(SerialObject):
 
         self.rows = qg.data
         return self
+
+    def package_name(self) -> str:
+        """
+        the javascript package this chart's type needs
+        """
+        chart_type = ChartType.registered.get(self.chart_type)
+        if chart_type is None:
+            return "corechart"
+        return chart_type.package_name
 
     def add_column(self, *args, **kwargs):
         column = Column(*args, **kwargs)

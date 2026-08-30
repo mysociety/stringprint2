@@ -163,16 +163,19 @@ class TestChartCollection:
         collection = ChartCollection([Chart(chart_type="table_chart")])
         assert collection.charts == []
 
-    def test_a_non_table_chart_cannot_be_collected(self) -> None:
-        """
-        Known defect: ChartCollection.__init__ calls x.package_name() on each
-        surviving chart, but package_name lives on ChartType (and is a string
-        there, not a method) - Chart has no such attribute. Since table charts
-        are always filtered out, the collection only works when it ends up
-        empty. Pinned rather than fixed; see docs/feature-inventory.md.
-        """
-        with pytest.raises(AttributeError, match="package_name"):
-            ChartCollection([Chart(chart_type="line_chart")])
+    def test_other_chart_types_are_kept(self) -> None:
+        collection = ChartCollection([Chart(chart_type="line_chart")])
+        assert len(collection.charts) == 1
+
+    def test_the_package_set_is_collected(self) -> None:
+        collection = ChartCollection([Chart(chart_type="line_chart")])
+        assert collection.packages == {"corechart"}
+
+    def test_a_registered_type_reports_its_own_package(self) -> None:
+        assert Chart(chart_type="table_chart").package_name() == "table"
+
+    def test_an_unregistered_type_falls_back(self) -> None:
+        assert Chart(chart_type="nonsense_chart").package_name() == "corechart"
 
     def test_make_static_defaults_off(self) -> None:
         assert ChartCollection([]).make_static is False

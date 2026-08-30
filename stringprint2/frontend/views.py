@@ -45,7 +45,7 @@ class GroupedPage(Page):
         max_pages = self.paginator.num_pages
         number = self.number
         full_range = 10
-        h_range = full_range / 2
+        h_range = full_range // 2
         lower = number - h_range
         higher = number + h_range
         start = []

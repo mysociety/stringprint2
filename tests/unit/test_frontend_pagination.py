@@ -42,14 +42,22 @@ class TestReasonableRange:
         assert page(1, 9, []).reasonable_range() == list(range(1, 10))
 
     @pytest.mark.parametrize("num_pages", [10, 11, 20, 100])
-    def test_a_long_paginator_raises(self, num_pages: int) -> None:
-        """
-        Known defect: h_range is full_range / 2, which is a float under Python
-        3, so lower and higher stay floats and range() rejects them. Every
-        branch except the `max_pages < full_range` early return is therefore
-        dead - this helper only ever works for short paginators.
+    def test_a_long_paginator_returns_a_window(self, num_pages: int) -> None:
+        result = page(1, num_pages, []).reasonable_range()
+        assert result
+        assert all(isinstance(value, int) for value in result)
+        assert result == sorted(result)
+        assert result[-1] == num_pages, "the last page is always reachable"
 
-        Pinned rather than fixed; see docs/feature-inventory.md.
-        """
-        with pytest.raises(TypeError, match="integer"):
-            page(1, num_pages, []).reasonable_range()
+    def test_the_window_is_centred_on_the_current_page(self) -> None:
+        assert page(50, 100, []).reasonable_range() == [
+            1, 46, 47, 48, 49, 50, 51, 52, 53, 100
+        ]
+
+    def test_the_first_page_is_linked_once_out_of_range(self) -> None:
+        assert page(1, 20, []).reasonable_range() == [1, 2, 3, 4, 20]
+
+    def test_near_the_end_the_last_page_is_not_duplicated(self) -> None:
+        result = page(18, 20, []).reasonable_range()
+        assert result == [1, 14, 15, 16, 17, 18, 19]
+        assert len(result) == len(set(result))

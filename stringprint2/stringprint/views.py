@@ -51,7 +51,7 @@ class AssetView(ComboView):
         if a.chart:
             charts = [a.chart]
         else:
-            charts = [charts]
+            charts = []
 
         c = ChartCollection(charts)
         if static:
@@ -74,7 +74,7 @@ class HomeView(ComboView):
 
     def view(self, request):
         return {
-            "books": Article.objects.filter(public=True),
+            "books": Article.objects.all().order_by("-publish_date"),
         }
 
 
