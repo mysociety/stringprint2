@@ -1,0 +1,6 @@
+#!/bin/sh
+# Run the test suite. Any pytest arguments are passed through, e.g.
+#   script/test -m ""            everything, including the external tier
+#   script/test tests/unit -v    just the fast units
+cd "$(dirname "$0")/.." || exit 1
+exec python -m pytest "$@"
