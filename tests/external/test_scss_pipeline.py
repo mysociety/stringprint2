@@ -27,8 +27,8 @@ def compiled(org):
     """
     Compile the org stylesheet through the app's own compiler registration.
 
-    Output lands in static/COMPILED, which is gitignored - the same place a
-    normal run puts it.
+    Output lands in COMPILED under the session's own STATIC_ROOT (see
+    stringprint_test_env), not the real stringprint2/static/ tree.
     """
     import static_precompiler.settings
     from static_precompiler.registry import get_compiler_by_path

@@ -6,6 +6,8 @@ which the root conftest sets before Django is configured. This module only
 layers on test-only overrides.
 """
 
+import os
+
 import stringprint_test_env
 
 # must run before proj.settings is imported - see that module's docstring
@@ -14,6 +16,12 @@ stringprint_test_env.bootstrap()
 from proj.settings import *  # noqa: E402,F401,F403
 
 DEBUG = False
+
+# settings.py points these at the real stringprint2/static/ dir; overridden
+# here so compressor/static_precompiler write compiled CSS/JS into the
+# session's own temp directory instead - see stringprint_test_env.STATIC_ROOT.
+STATIC_ROOT = str(stringprint_test_env.STATIC_ROOT) + os.sep
+COMPRESS_ROOT = STATIC_ROOT
 
 # settings.py captures DEBUG by value when it builds TEMPLATES, before its own
 # later DEBUG = True reassignment, so this has to be set explicitly.

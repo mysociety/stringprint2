@@ -11,7 +11,7 @@ import os
 from django.conf import settings
 from django.template.loader import get_template
 
-from stringprint_test_env import CONFIG_FILE, DOC_SOURCE, MEDIA_ROOT
+from stringprint_test_env import CONFIG_FILE, DOC_SOURCE, MEDIA_ROOT, STATIC_ROOT
 
 
 def test_config_override_is_in_use() -> None:
@@ -36,6 +36,41 @@ def test_media_root_points_at_the_session_directory() -> None:
     assert settings.MEDIA_ROOT == str(MEDIA_ROOT) + os.sep
     # create_responsive and create_tiny concatenate onto this
     assert settings.MEDIA_ROOT.endswith(os.sep)
+
+
+def test_static_root_points_at_the_session_directory() -> None:
+    """
+    Regression test: STATIC_ROOT/COMPRESS_ROOT used to default to the real
+    stringprint2/static/ dir even under pytest (only MEDIA_ROOT was
+    session-scoped), so the bake/scss tests wrote compiled CSS there -
+    gitignored, so invisible to git, but a real dev server run afterwards in
+    the same working tree would serve that stale output (test fixtures use
+    org slug "default" too) instead of recompiling, with no error to say so.
+    """
+    assert settings.STATIC_ROOT == str(STATIC_ROOT) + os.sep
+    # COMPRESS_ROOT is AppConf-derived (compressor/conf.py's configure_root),
+    # which runs os.path.abspath() on it - normalised, so no trailing sep
+    assert os.path.normcase(os.path.abspath(settings.COMPRESS_ROOT)) == (
+        os.path.normcase(os.path.abspath(settings.STATIC_ROOT))
+    )
+
+
+def test_static_root_still_carries_the_real_hand_authored_assets() -> None:
+    """
+    CompressorFinder and StaticPrecompilerFinder are both BaseStorageFinders
+    rooted at COMPRESS_ROOT/STATIC_ROOT - that is how a git-tracked file like
+    stringprint2/static/css/tipuesearch.css gets found by finders.find() even
+    though it is nowhere in STATICFILES_DIRS. Article.render depends on
+    finding files like this one (models.py's `files` list in `render`), so
+    the session's isolated STATIC_ROOT has to start as a copy of the real
+    tree, not an empty directory - this caught a real regression the first
+    time the isolation was added.
+    """
+    from django.contrib.staticfiles import finders
+
+    assert finders.find("css/tipuesearch.css") == str(
+        STATIC_ROOT / "css" / "tipuesearch.css"
+    )
 
 
 def test_org_static_dir_is_derived_from_storage_dir() -> None:
