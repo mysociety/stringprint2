@@ -601,7 +601,7 @@ class Graf(SerialObject):
 
     def connect_to_footnote(self, text):
         for l in text.split("\n"):
-            ref = re.search("\[\^[0-9\*]+\]\:", l)
+            ref = re.search(r"\[\^[0-9A-Za-z*_-]+\]\:", l)
             if ref:
                 ref = ref.group()[:-1]
                 note = l[l.find(":") + 1 :].strip()

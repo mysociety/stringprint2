@@ -129,18 +129,14 @@ class TestFootnotes:
         assert labelled.named_reference == "Labelled Footnote"
         assert labelled.content.startswith("The content of a footnote")
 
-    def test_an_alphabetic_reference_never_finds_its_definition(self, notes) -> None:
+    def test_an_alphabetic_reference_finds_its_definition(self, notes) -> None:
         """
-        Known defect: connect_to_footnote matches definitions with the regex
-        \\[\\^[0-9\\*]+\\]\\:, which accepts digits and stars but no letters. A
-        named reference such as [^scotedit] is therefore parsed as a reference
-        but its definition line is never matched, leaving the note empty.
-        At least one production document uses this syntax.
-
-        Pinned rather than fixed; see docs/feature-inventory.md.
+        The reference syntax has always allowed names; the definition regex
+        did not, so a named footnote parsed as a reference and then never
+        picked up its content.
         """
         named = [n for n in notes if n.local_ref == "[^scotedit]"][0]
-        assert named.content == ""
+        assert named.content == "A footnote referenced by name."
 
     def test_references_are_removed_from_the_paragraph_text(self, html: str) -> None:
         assert "[^" not in html
