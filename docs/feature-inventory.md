@@ -195,36 +195,51 @@ Every construct below is exercised by `tests/fixtures/doc_source/_docs/kitchen-s
   already broken (see below) and unused by the CLI workflow.
 - **TinyPNG's key-present branch** — only the offline PIL fallback runs.
 
+## Defects fixed
+
+Nine defects were repaired once the suite was in place to catch the fallout.
+Each had been pinned by a test first, so the repair is visible as an xfail
+turning into a real assertion.
+
+| Defect | Where | Fix |
+|---|---|---|
+| `JsonBlockField(default={})` handed **every** instance the same dict — seven fields across four models. Rows still saved correctly, because whatever the shared dict held at `save()` was what got serialised, which is why it survived unnoticed; the damage was to any process holding several unsaved instances, which is what `loadall` and `loadunloaded` produce. | `models.py` ×7 | `default=dict`, plus migration `0042` |
+| `HomeView.view` filtered `Article.objects.filter(public=True)`; there is no `public` field, so `/preview/` raised `FieldError`. | `views.py:76` | list all articles, newest first |
+| `ink/base.html` included `ink/cookie.html`, which has never existed in this repository. Only `home.html` extends `base.html`, so this was the second reason the preview index 500'd. | `templates/ink/base.html:92` | include removed. Note `Organisation.ga_cookies` still has no template consumer |
+| `AssetView.view`'s else branch read `charts = [charts]`, referencing the local before assignment, so any asset without a chart raised `UnboundLocalError`. Only table assets could be viewed. | `views.py:54` | `charts = []` |
+| `ChartCollection.__init__` called `x.package_name()` on each chart, but `package_name` is a string attribute on `ChartType`, not a method on `Chart`. Any non-table chart raised `AttributeError`, so the collection only worked when it ended up empty. | `charts/display.py:36` | `Chart.package_name()` looks the type up in the registry and falls back to `corechart` |
+| `GroupedPage.reasonable_range` computed `full_range / 2`, a float under Python 3, so `range()` rejected the bounds. Every branch except the short-paginator early return was dead. | `frontend/views.py:45` | floor division |
+| Footnote definitions were matched with `\[\^[0-9\*]+\]\:` — digits and stars only — while the *reference* syntax has always allowed names. A named footnote such as `[^scotedit]` parsed as a reference and then never picked up its content. At least one production document uses this. | `deepink.py:604` | regex widened to letters, underscore and hyphen |
+| The autoprefixer pass never ran. `postcss-cli` and `autoprefixer` were installed globally but `postcss` itself was an unmet peer dependency, so `npx postcss --use autoprefixer` exited `ERR_MODULE_NOT_FOUND` — and `compile_file` captured the return code without checking it, so published CSS was unprefixed and nothing said so. | `Dockerfile:14`, `compiler.py:99` | `postcss` added to the image; a non-zero exit now raises `StaticCompilationError`. `--no-map` added too, or postcss appends a base64 copy of every stylesheet to itself |
+| `makemigrations --check` had been failing: migration `0005` recorded the chart column as `charts.fields.ChartField` while `models.py` imports it as `stringprint2.charts.fields.ChartField` — an artefact of the doubled path making one module importable under two names. | `migrations/0005` | recorded in migration `0042` |
+
+Fixing the image build means the base image needs a rebuild and a SHA bump
+before the autoprefixer change takes effect in CI; until then `compile_file`
+raises rather than silently producing unprefixed CSS, which is the point.
+
 ## Known defects
 
-None of these were fixed while building the suite. Each is pinned where a test
-can reach it, with `strict=True` xfail wherever the code can be executed, so
-the test flips to a failure the moment the defect is repaired.
+Still outstanding. Each one reachable by a test is pinned, with a
+`strict=True` xfail wherever the code can actually be executed, so the test
+flips to a failure the moment it is repaired.
 
 | # | Defect | Where | Pinned by |
 |---|---|---|---|
-| 1 | `JsonBlockField(default={})` hands **every** instance the same dict. Seven fields across four models. Rows are still written correctly, because whatever the shared dict holds at `save()` is what is serialised — the damage is to long-lived in-memory instances, which is exactly what `loadall`/`loadunloaded` produce. | `models.py:110-112,316-317,1662,2268` | `config/test_shared_field_defaults.py` |
-| 2 | `HomeView.view` filters `Article.objects.filter(public=True)`; there is no `public` field, so `/preview/` raises. | `views.py:76` | `render/test_other_views.py` (xfail) |
-| 3 | `AssetView.view`'s else branch reads `charts = [charts]`, referencing the local before assignment — any asset without a chart raises. Only table assets can be viewed. | `views.py:54` | `render/test_other_views.py` (xfail) |
-| 4 | `ChartCollection.__init__` calls `x.package_name()` on each chart, but `package_name` is a **string attribute on `ChartType`**, not a method on `Chart`. Since table charts are always filtered out, the collection only works when it ends up empty. | `charts/display.py:36` | `unit/test_charts_display.py` |
-| 5 | `render_bootstrap_table`'s `if no_header` block sits **inside** the row loop, inserting the header once and then an empty list per remaining row. The equivalent in `render_html_table` is correctly outside. | `charts/display.py:188` | `unit/test_charts_display.py` |
-| 6 | `GroupedPage.reasonable_range` computes `full_range / 2`, a float under Python 3, so `range()` rejects the bounds. Every branch except the short-paginator early return is dead. | `frontend/views.py:45` | `unit/test_frontend_pagination.py` (xfail) |
-| 7 | Footnote definitions are matched with `\[\^[0-9\*]+\]\:` — digits and stars only. A named reference such as `[^scotedit]` parses as a reference but its definition never attaches, leaving the note empty. At least one production document uses this syntax. | `deepink.py:602` | `pipeline/test_markdown_features.py` |
-| 8 | `Footnote.note_count` and `Footnote.all` are class attributes. `process_ink` resets the first and never the second, so the registry grows for the life of the process — and `connect_to_footnote` scans it for an empty-content entry with a matching ref, so one document's unresolved footnote can capture a later document's definition. | `deepink.py:60-61` | `unit/test_deepink_footnote.py`, `conftest.py` autouse reset |
-| 9 | The autoprefixer pass never runs. `postcss-cli` and `autoprefixer` are installed globally but `postcss` itself is an unmet peer dependency, so `npx postcss --use autoprefixer` exits `ERR_MODULE_NOT_FOUND`. `CustomSCSS.compile_file` captures the return code and **never checks it**, so the failure is silent and published CSS is unprefixed — which matters, because bootstrap relies on it. | `compiler.py:89-99`, `Dockerfile` | `external/test_scss_pipeline.py` (xfail) |
-| 10 | `Article.render` mutates six settings (`MEDIA_URL`, `SITE_ROOT`, `STATIC_URL`, `COMPRESS_URL`, `DEBUG`, `COMPRESS_ENABLED`) and sets `baking` on the instance, restoring none of them. | `models.py:872-878,955` | `bake/test_render_bake.py`, `conftest.py` autouse restore |
-| 11 | `Asset.get_chart_image` calls `contents.decode("base64")` on a `str` (impossible since Python 2) and uses `find_element_by_id` (removed in Selenium 4). | `models.py:2314` | `external/test_known_broken.py` |
-| 12 | `Article.authenticate` references an `Access` model that does not exist. | `models.py:656` | `external/test_known_broken.py` (xfail) |
-| 13 | `frontend/views.py` calls `trigger_reprocess`, `trigger_render`, `trigger_source_import` and a `downloads` relation, none of which exist on `Article`. | `frontend/views.py` | not pinned |
-| 14 | `preprocessing.py` defines `SectionMove` **twice**. The first is shadowed and would raise `AttributeError` on construction — its `__post_init__` reads `self.before`, which is not one of its fields. | `preprocessing.py:88,132` | `external/test_preprocessing.py` |
-| 15 | `run_command` splits the rendered command on single spaces with no quoting, so any templated value containing a space becomes several argv entries, and an unresolved variable leaves an empty one. | `models.py:1313` | `config/test_run_command.py` |
-| 16 | `makemigrations --check` has been failing: migration `0005` records the chart column as `charts.fields.ChartField` but `models.py` now imports it as `stringprint2.charts.fields.ChartField`. An artefact of the doubled `stringprint2/stringprint2` path making one module importable under two names. | `migrations/0005`, `models.py:23` | `config/test_migrations.py` (xfail) |
-| 17 | `script/manage` resolves to `stringprint2/stringprint2/stringprint2/manage.py` — one level too deep. The devcontainer `postCreateCommand` uses it. | `script/manage` | not pinned |
-| 18 | `docker-compose.yml` mounts the config one directory above where `settings.py` reads it, leaving empty directories on disk. `STRINGPRINT_CONFIG` is now the supported way to inject it. | `docker-compose.yml` | not pinned |
-| 19 | `do_process` tests `"--no-preprocess" in refresh`, but `.github/workflows/updater.yml` passes `no-preprocess`, so the preprocess step runs regardless. | `__main__.py:519` | not pinned |
-| 20 | `remove_supports` returns its argument on the first line; the rest of the body is unreachable. | `word_convert.py:361` | `unit/test_word_convert.py` |
-| 21 | `fix_markdown` indexes `text[pos + 2]` with no bounds check, so a document ending in `__` raises `IndexError`. | `word_convert.py:97` | `unit/test_word_convert.py` |
-| 22 | Dead modules: `tools/charts.py`, `tools/serial.py`, `tools/footnote_convert.py`. `frontend/migrations` 0002 and 0004 create `Download` and `TokenSetting`, since deleted. | — | `external/test_known_broken.py` |
+| 1 | `render_bootstrap_table`'s `if no_header` block sits **inside** the row loop, inserting the header once and then an empty list for every remaining row. The equivalent in `render_html_table` is correctly outside. | `charts/display.py:188` | `unit/test_charts_display.py` |
+| 2 | `Footnote.note_count` and `Footnote.all` are class attributes. `process_ink` resets the first and never the second, so the registry grows for the life of the process — and `connect_to_footnote` scans it for an empty-content entry with a matching ref, so one document's unresolved footnote can capture a later document's definition. | `deepink.py:60-61` | `unit/test_deepink_footnote.py`, `conftest.py` autouse reset |
+| 3 | `Article.render` mutates six settings (`MEDIA_URL`, `SITE_ROOT`, `STATIC_URL`, `COMPRESS_URL`, `DEBUG`, `COMPRESS_ENABLED`) and sets `baking` on the instance, restoring none of them. | `models.py:872-878,955` | `bake/test_render_bake.py`, `conftest.py` autouse restore |
+| 4 | `Asset.get_chart_image` calls `contents.decode("base64")` on a `str` (impossible since Python 2) and uses `find_element_by_id` (removed in Selenium 4). | `models.py:2314` | `external/test_known_broken.py` |
+| 5 | `Article.authenticate` references an `Access` model that does not exist. | `models.py:656` | `external/test_known_broken.py` (xfail) |
+| 6 | `frontend/views.py` calls `trigger_reprocess`, `trigger_render`, `trigger_source_import` and a `downloads` relation, none of which exist on `Article`. | `frontend/views.py` | not pinned |
+| 7 | `preprocessing.py` defines `SectionMove` **twice**. The first is shadowed and would raise `AttributeError` on construction — its `__post_init__` reads `self.before`, which is not one of its fields. | `preprocessing.py:88,132` | `external/test_preprocessing.py` |
+| 8 | `run_command` splits the rendered command on single spaces with no quoting, so any templated value containing a space becomes several argv entries, and an unresolved variable leaves an empty one. | `models.py:1313` | `config/test_run_command.py` |
+| 9 | `script/manage` resolves to `stringprint2/stringprint2/stringprint2/manage.py` — one level too deep. The devcontainer `postCreateCommand` uses it. | `script/manage` | not pinned |
+| 10 | `docker-compose.yml` mounts the config one directory above where `settings.py` reads it, leaving empty directories on disk. `STRINGPRINT_CONFIG` is now the supported way to inject it. | `docker-compose.yml` | not pinned |
+| 11 | `do_process` tests `"--no-preprocess" in refresh`, but `.github/workflows/updater.yml` passes `no-preprocess`, so the preprocess step runs regardless. | `__main__.py:519` | not pinned |
+| 12 | `remove_supports` returns its argument on the first line; the rest of the body is unreachable. | `word_convert.py:361` | `unit/test_word_convert.py` |
+| 13 | `fix_markdown` indexes `text[pos + 2]` with no bounds check, so a document ending in `__` raises `IndexError`. | `word_convert.py:97` | `unit/test_word_convert.py` |
+| 14 | Dead modules: `tools/charts.py`, `tools/serial.py`, `tools/footnote_convert.py`. `frontend/migrations` 0002 and 0004 create `Download` and `TokenSetting`, since deleted. | — | `external/test_known_broken.py` |
+
 
 ## Upgrade risk register
 
@@ -319,7 +334,7 @@ rendered against the document's own settings). Anything else lands in
 | Dependency | Used by | Marker | Present in the image |
 |---|---|---|---|
 | `sass` | `CustomSCSS` | `needs_sass` | yes |
-| `npx` + `postcss` + `autoprefixer` | `CustomSCSS` | `needs_sass` | installed but **broken** — defect 9 |
+| `npx` + `postcss` + `autoprefixer` | `CustomSCSS` | `needs_sass` | yes (`postcss` added to the image) |
 | `chromedriver` + `google-chrome` | `export_paragraph_images` | `needs_chrome` | yes (faked in tests) |
 | `cwebp` | `create_responsive` | — | bundled inside `webptools` |
 | PyMuPDF | `merge_pdfs`, `pdf_page_to_png` | `external` | yes |
