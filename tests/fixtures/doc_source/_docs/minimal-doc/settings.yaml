@@ -1,0 +1,12 @@
+title: Minimal Document
+short_title: Minimal
+description: The smallest valid document.
+byline: by Nobody
+authors: Nobody
+cite_as: Nobody
+file_source: document.md
+publish_date: 2021-03-04
+sections_over_pages: false
+display_notes: false
+display_footnotes_at_foot: false
+repo_slug: minimal-doc

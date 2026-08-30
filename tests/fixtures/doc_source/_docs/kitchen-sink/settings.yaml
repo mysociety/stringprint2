@@ -1,0 +1,29 @@
+title: 'Kitchen Sink: A Study'
+subtitle: Every feature in one document
+short_title: Kitchen Sink
+description: A document exercising every supported feature.
+byline: by Ada Example and Grace Example
+copyright: ''
+authors: Ada Example, Grace Example
+cite_as: Example, A. and Example, G.
+file_source: document.md
+publish_date: 2022-04-21
+sections_over_pages: false
+display_notes: true
+display_footnotes_at_foot: true
+pdf: kitchen-sink.pdf
+book_cover: kitchen-sink-cover.png
+google_doc_url: https://docs.google.com/document/d/EXAMPLEDOCID/edit
+unsplash_title_image_url: https://unsplash.com/photos/EXAMPLE1
+seed: -1
+repo_slug: kitchen-sink
+header:
+  location: header.png
+  size: 6
+  unsplash_id: EXAMPLE1
+  alt_text: a placeholder header image
+  source_url: https://unsplash.com/photos/EXAMPLE1
+  credit: '[Photo by Nobody](https://unsplash.com/photos/EXAMPLE1) on Unsplash'
+  description:
+commands:
+  preprocess: module::$doc/preprocess.py:Preprocess

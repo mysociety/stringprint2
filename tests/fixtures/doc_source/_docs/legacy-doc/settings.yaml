@@ -1,0 +1,22 @@
+title: Legacy Document
+short_title: Legacy
+description: A document in the older style.
+byline: Rebecca Example
+authors: Rebecca Example
+cite_as: Example, R.
+copyright: ''
+file_source: document.md
+publish_date: 2016-05-01
+sections_over_pages: false
+display_notes: false
+display_footnotes_at_foot: false
+repo_slug: legacy-doc
+seed: 13
+pdf_location: https://example.invalid/external/legacy.pdf
+bottom_iframe:
+skip_epub: true
+files:
+  - extra_download.pdf
+header:
+  location: header.png
+  size: 6
