@@ -233,6 +233,46 @@ def kindle_source_storage(instance: Article, filename: str) -> str:
     return "kindle/org_{0}/{1}".format(instance.org_id, filename)
 
 
+def relativize_static_urls(html: str, depth: int) -> str:
+    """
+    Baked pages render with STATIC_URL/MEDIA_URL left at their normal
+    (absolute) values - Article.render used to set them to a bare relative
+    string ("static/") before rendering instead, but modern Django's
+    LazySettings always prepends at least "/" to STATIC_URL/MEDIA_URL reads
+    (django.conf.LazySettings._add_script_prefix), so that string never
+    stayed relative, and it made STATIC_URL and COMPRESS_URL disagree
+    (COMPRESS_URL isn't put through the same prefixing) - which is what
+    broke django-compressor's own consistency check.
+
+    Rendering with the normal absolute URLs sidesteps that entirely.
+    Afterwards, this turns those absolute references into paths relative to
+    wherever the file is being written, so the baked output still works
+    from any base path - a local file, a subdirectory, S3, wherever.
+    `depth` is how many directories below the bake root the file being
+    written lives (0 at the top level, 1 for e.g. l/*.html).
+    """
+    prefix = "../" * depth
+    html = html.replace(settings.STATIC_URL, prefix + "static/")
+    html = html.replace(settings.MEDIA_URL, prefix + "media/")
+    return html
+
+
+def write_baked_file(view_cls, path: str, args, destination: str) -> None:
+    """
+    Wraps BakeView.write_file() (useful_inkleby.useful_django.views.bake) to
+    relativize the STATIC_URL/MEDIA_URL references in what it wrote - see
+    relativize_static_urls.
+    """
+    view_cls.write_file(path=path, args=args)
+    rel_dir = os.path.relpath(os.path.dirname(path), destination)
+    depth = 0 if rel_dir == "." else len(rel_dir.split(os.sep))
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    content = relativize_static_urls(content, depth)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 class OrgLinks(models.Model):
     org = models.ForeignKey(
         Organisation, related_name="org_links", on_delete=models.CASCADE
@@ -868,11 +908,11 @@ class Article(models.Model):
             if os.path.isdir(d) is False:
                 os.makedirs(d)
 
-        # set media urls to now be below where we start
-        settings.MEDIA_URL = "media/"
+        # STATIC_URL/MEDIA_URL are deliberately *not* touched here - see
+        # write_baked_file's docstring for why. SITE_ROOT still needs to be
+        # the real target URL so absolute references (OG tags etc) are
+        # correct in the baked output.
         settings.SITE_ROOT = url
-        settings.STATIC_URL = "static/"
-        settings.COMPRESS_URL = "static/"
         settings.DEBUG = False
         settings.COMPRESS_ENABLED = True
 
@@ -980,8 +1020,11 @@ class Article(models.Model):
                     self.paragraph_tag = shorter_link
 
             args = ("blah", "blah")
-            BakeRedirectLinkView.write_file(
-                path=os.path.join(destination, "l", shorter_link + ".html"), args=args
+            write_baked_file(
+                BakeRedirectLinkView,
+                path=os.path.join(destination, "l", shorter_link + ".html"),
+                args=args,
+                destination=destination,
             )
 
         if self.multipage:
@@ -989,25 +1032,45 @@ class Article(models.Model):
             for s in c.sections:
                 args = (self.slug, s.anchor())
                 name = "{0}.html".format(s.anchor())
-                BakeArticleView.write_file(
-                    path=os.path.join(destination, name), args=args
+                write_baked_file(
+                    BakeArticleView,
+                    path=os.path.join(destination, name),
+                    args=args,
+                    destination=destination,
                 )
 
         args = (self.slug,)
-        BakeArticleView.write_file(
-            path=os.path.join(destination, "index.html"), args=args
+        write_baked_file(
+            BakeArticleView,
+            path=os.path.join(destination, "index.html"),
+            args=args,
+            destination=destination,
         )
-        BakeTipueSearchView.write_file(
-            path=os.path.join(destination, "search.html"), args=args
+        write_baked_file(
+            BakeTipueSearchView,
+            path=os.path.join(destination, "search.html"),
+            args=args,
+            destination=destination,
         )
-        BakeTipueContentView.write_file(
-            path=os.path.join(destination, "tipuesearch_content.js"), args=args
+        write_baked_file(
+            BakeTipueContentView,
+            path=os.path.join(destination, "tipuesearch_content.js"),
+            args=args,
+            destination=destination,
         )
-        BakeTOCView.write_file(path=os.path.join(destination, "toc.json"), args=args)
+        write_baked_file(
+            BakeTOCView,
+            path=os.path.join(destination, "toc.json"),
+            args=args,
+            destination=destination,
+        )
 
         if plain:
-            BakePlainView.write_file(
-                path=os.path.join(destination, "plain.html"), args=args
+            write_baked_file(
+                BakePlainView,
+                path=os.path.join(destination, "plain.html"),
+                args=args,
+                destination=destination,
             )
 
         print("moving compressed files")

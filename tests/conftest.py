@@ -73,12 +73,11 @@ def restore_mutated_settings():
     """
     Article.render() sets these on the settings module and never puts them
     back, so without this the tests that follow a render see the baked values.
+
+    MEDIA_URL/STATIC_URL/COMPRESS_URL used to be in this list too, but
+    render() no longer touches them - see write_baked_file in models.py.
     """
     names = [
-        "MEDIA_URL",
-        "MEDIA_ROOT",
-        "STATIC_URL",
-        "COMPRESS_URL",
         "SITE_ROOT",
         "DEBUG",
         "COMPRESS_ENABLED",

@@ -25,10 +25,10 @@ def merge_pdfs(
     result = fitz.open()
 
     front_doc = fitz.open(str(front))
-    result.insertPDF(front_doc, from_page=0, to_page=0)
+    result.insert_pdf(front_doc, from_page=0, to_page=0)
 
     contents_doc = fitz.open(str(contents))
-    result.insertPDF(contents_doc, from_page=start_page)
+    result.insert_pdf(contents_doc, from_page=start_page)
 
     result.save(str(output))
 

@@ -187,14 +187,13 @@ class TestMultipageBake:
 class TestSettingsRestoration:
     def test_settings_are_restored_after_a_bake(self, baked) -> None:
         """
-        Article.render sets MEDIA_URL, SITE_ROOT, STATIC_URL, COMPRESS_URL,
-        DEBUG and COMPRESS_ENABLED on the settings module and never puts them
-        back. compression_enabled and the autouse fixture in tests/conftest.py
-        between them undo that - this checks the undoing actually happens, so
-        neither is quietly dropped.
+        Article.render sets SITE_ROOT, DEBUG and COMPRESS_ENABLED on the
+        settings module and never puts them back. compression_enabled and
+        the autouse fixture in tests/conftest.py between them undo that -
+        this checks the undoing actually happens, so neither is quietly
+        dropped.
         """
         from django.conf import settings as live
 
         assert live.SITE_ROOT != "https://example.invalid/html/kitchen-sink/"
         assert live.COMPRESS_ENABLED is False
-        assert live.MEDIA_URL == "/media/"
