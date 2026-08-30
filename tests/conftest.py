@@ -196,3 +196,70 @@ def minimal_doc(process_doc):
 def legacy_doc(process_doc):
     return process_doc("legacy-doc")
 
+
+class FakeElement:
+    def __init__(self, x: int = 40, y: int = 200):
+        self.location = {"x": x, "y": y}
+        self.size = {"width": 800, "height": 120}
+
+
+class FakeDriver:
+    """
+    Stands in for headless Chrome in export_paragraph_images.
+
+    Chrome.get_driver is the only place the real driver is built, so replacing
+    it lets the surrounding logic - the skip filters, the scroll, the crop
+    arithmetic and the output filenames - run for real with no browser and no
+    preview server listening on 127.0.0.1:8000.
+    """
+
+    def __init__(self, missing_orders=()):
+        self.missing_orders = set(missing_orders)
+        self.requested_url = None
+        self.window_size = None
+        self.scrolled_to = []
+        self.quit_called = False
+
+    def set_page_load_timeout(self, seconds):
+        self.timeout = seconds
+
+    def set_window_size(self, width, height):
+        self.window_size = (width, height)
+
+    def get(self, url):
+        self.requested_url = url
+
+    def find_element_by_xpath(self, xpath):
+        from selenium.common.exceptions import NoSuchElementException
+
+        order = int(xpath.split("'r")[1].split("'")[0])
+        if order in self.missing_orders:
+            raise NoSuchElementException(xpath)
+        return FakeElement()
+
+    def execute_script(self, script):
+        self.scrolled_to.append(script)
+
+    def get_screenshot_as_base64(self):
+        import base64
+        from io import BytesIO
+
+        from PIL import Image
+
+        buffer = BytesIO()
+        Image.new("RGB", (1400, 1000), (255, 255, 255)).save(buffer, "PNG")
+        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    def quit(self):
+        self.quit_called = True
+
+
+@pytest.fixture
+def fake_chrome(monkeypatch):
+    """Install FakeDriver as the Chrome singleton for the duration of a test."""
+    from stringprint.models import Chrome
+
+    driver = FakeDriver()
+    monkeypatch.setattr(Chrome, "driver", None)
+    monkeypatch.setattr(Chrome, "get_driver", classmethod(lambda cls: driver))
+    return driver
