@@ -7,7 +7,7 @@ authors = ["Alex Parsons <alex.parsons@mysociety.org>"]
 [tool.poetry.dependencies]
 python = "^3.14"
 flake8 = ">=3.8.3"
-Django = "4.2.30"
+Django = "5.2.17"
 Markdown = ">=2.6.8"
 Pillow = ">=8.3.2"
 argparse = ">=1.2.1"

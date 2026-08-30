@@ -10,21 +10,25 @@ try:
 except:
     import_export = None
 
-from django.utils import datetime_safe
 from import_export import widgets
 import functools
 
 
 class PastSafeDateTimeWidget(widgets.DateTimeWidget):
-    
+
     def render(self, value):
         if not value:
             return ""
         try:
             return value.strftime(self.formats[0])
-        except:
-            return datetime_safe.new_date(value).strftime(self.formats[0])
-        
+        except (ValueError, OSError):
+            # django.utils.datetime_safe - the previous fallback here, for
+            # pre-1900 dates on platforms whose C strftime can't handle
+            # them - was removed in Django 5.0. Modern glibc doesn't hit
+            # this, so this branch should be unreachable in practice; keep
+            # a plain fallback rather than crash if it ever is.
+            return str(value)
+
 
 
 class PastSafeModelResource(resources.ModelResource):
