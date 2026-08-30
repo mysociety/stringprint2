@@ -46,7 +46,9 @@ def test_org_template_dir_is_derived_from_storage_dir() -> None:
     assert ("default/templates", str(DOC_SOURCE / "_templates")) in (
         settings.ORG_TEMPLATE_DIRS
     )
-    assert settings.ORG_TEMPLATE_DIRS[0] in settings.TEMPLATES[0]["DIRS"]
+    assert settings.ORG_TEMPLATE_DIRS[0] in (
+        settings.TEMPLATES[0]["OPTIONS"]["loaders"][0][1]
+    )
 
 
 def test_namespace_aware_loader_resolves_the_org_template() -> None:

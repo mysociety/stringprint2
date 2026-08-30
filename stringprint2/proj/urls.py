@@ -1,4 +1,4 @@
-from django.conf.urls import url, include
+from django.urls import re_path, include
 from django.contrib import admin
 from stringprint import views
 from django.conf import settings
@@ -12,7 +12,7 @@ urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 urlpatterns += [
-    url(r"^admin/", admin.site.urls),
-    url(r"^preview/", include_view("stringprint.views")),
-    url(r"^", include_view("frontend.views")),
+    re_path(r"^admin/", admin.site.urls),
+    re_path(r"^preview/", include_view("stringprint.views")),
+    re_path(r"^", include_view("frontend.views")),
 ]

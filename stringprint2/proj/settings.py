@@ -81,14 +81,14 @@ for k, v in config["ORGS"].items():
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ORG_TEMPLATE_DIRS
-        + [
-            PROJECT_PATH + "/templates/",
-        ],
+        "DIRS": [PROJECT_PATH + "/templates/"],
         "OPTIONS": {
             "debug": DEBUG,
             "loaders": [
-                "proj.loaders.NamespaceAwareLoader",
+                (
+                    "proj.loaders.NamespaceAwareLoader",
+                    ORG_TEMPLATE_DIRS + [PROJECT_PATH + "/templates/"],
+                ),
                 "django.template.loaders.app_directories.Loader",
             ],
             "context_processors": [

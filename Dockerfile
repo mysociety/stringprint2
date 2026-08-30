@@ -26,4 +26,7 @@ COPY pyproject.toml poetry.loc[k] /
 RUN curl -sSL https://install.python-poetry.org | python - \
       && echo 'export PATH="/root/.local/bin:$PATH"' > ~/.bashrc \
       && poetry config virtualenvs.create false \
-      && poetry install
+      && poetry install \
+      # the cwebp binary bundled inside the webptools wheel installs without
+      # its executable bit; create_responsive raises ValueError otherwise
+      && find / -xdev -iname cwebp -exec chmod +x {} \;
