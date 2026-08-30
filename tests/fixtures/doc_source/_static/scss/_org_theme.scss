@@ -1,6 +1,8 @@
 .org-marker {
   color: $org-brand-colour;
   display: flex;
+  // still vendor-prefixed under the default browserslist, unlike flex
+  user-select: none;
 
   .nested-rule {
     color: $org-text-colour;

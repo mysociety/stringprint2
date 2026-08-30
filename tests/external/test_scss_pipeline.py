@@ -38,7 +38,9 @@ def compiled(org):
     try:
         source = org.org_scss()
         compiler = get_compiler_by_path(source)
-        compiler.compile(source)
+        # compile_file rather than compile: the latter skips when the output is
+        # newer than the entry point, and does not notice a changed partial
+        compiler.compile_file(source)
         yield compiler.get_full_output_path(source)
     finally:
         static_precompiler.settings.DISABLE_AUTO_COMPILE = was_disabled
@@ -60,39 +62,54 @@ def test_nested_rules_are_flattened(compiled) -> None:
     assert ".org-marker .nested-rule" in css
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect: the autoprefixer pass does not run in this image. "
-        "postcss-cli and autoprefixer are installed globally but `postcss` "
-        "itself is an unmet peer dependency, so `npx postcss --use "
-        "autoprefixer` exits with ERR_MODULE_NOT_FOUND. CustomSCSS.compile_file "
-        "captures the return code and never checks it, so the failure is "
-        "silent and the published css is unprefixed - which matters because "
-        "bootstrap relies on it. See docs/feature-inventory.md."
-    ),
-)
 def test_autoprefixer_ran(compiled) -> None:
     """
-    postcss/autoprefixer is a second subprocess after sass - a prefixed
-    display:flex is the cheapest proof it happened.
+    postcss/autoprefixer is a second subprocess after sass. flex needs no
+    prefix under the default browserslist, so the fixture uses user-select,
+    which still does.
     """
     css = open(compiled).read()
-    assert "-ms-flexbox" in css or "-webkit-box" in css
+    assert "-webkit-user-select" in css
 
 
-def test_the_postcss_return_code_is_discarded(compiled) -> None:
+def test_no_inline_sourcemap_is_appended(compiled) -> None:
     """
-    Companion to the xfail above: this is why the breakage is invisible.
+    postcss is run with --no-map; without it, it appends a base64 copy of the
+    whole stylesheet to every compiled file.
     """
-    import inspect
+    assert "sourceMappingURL" not in open(compiled).read()
 
-    from stringprint.compiler import CustomSCSS
 
-    source = inspect.getsource(CustomSCSS.compile_file)
-    assert "return_code, out, errors = utils.run_command(post_process" in source
-    tail = source.split("post_process")[-1]
-    assert "raise" not in tail, "a failing postcss run would now be reported"
+def test_a_failing_postcss_run_is_reported(monkeypatch, org) -> None:
+    """
+    The return code used to be captured and discarded, so a missing postcss
+    or autoprefixer produced unprefixed css silently.
+    """
+    import static_precompiler.exceptions
+    import static_precompiler.settings
+    from static_precompiler.registry import get_compiler_by_path
+    from static_precompiler import utils
+
+    real_run_command = utils.run_command
+
+    def failing(args, *rest, **kwargs):
+        if args and args[0] == "npx":
+            return 1, "", "boom"
+        return real_run_command(args, *rest, **kwargs)
+
+    monkeypatch.setattr(
+        "stringprint.compiler.utils.run_command", failing
+    )
+    monkeypatch.setattr(
+        static_precompiler.settings, "DISABLE_AUTO_COMPILE", False
+    )
+
+    source = org.org_scss()
+    compiler = get_compiler_by_path(source)
+    with pytest.raises(
+        static_precompiler.exceptions.StaticCompilationError, match="autoprefixer"
+    ):
+        compiler.compile_file(source)
 
 
 def test_svg_data_uris_survive_minification(compiled) -> None:

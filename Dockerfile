@@ -11,7 +11,9 @@ RUN apt-get -qq update \
       --no-install-recommends \
       && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g sass postcss-cli autoprefixer
+# postcss is a peer dependency of postcss-cli and autoprefixer; without it
+# `npx postcss --use autoprefixer` exits with ERR_MODULE_NOT_FOUND
+RUN npm install -g sass postcss postcss-cli autoprefixer
 
 COPY bin/chrome_setup.bash bin/docker-provision script/config/packages /install/
 
