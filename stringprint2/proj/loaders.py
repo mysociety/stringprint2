@@ -11,9 +11,29 @@ from django.template.loaders.filesystem import (
 
 
 class NamespaceAwareLoader(Loader):
+    def raw_dirs(self):
+        """
+        The dirs this loader was configured with - settings.py passes it
+        ORG_TEMPLATE_DIRS, a list of (namespace, path) tuples, as its own
+        `dirs` via the (loader_path, dirs) OPTIONS["loaders"] form. That's
+        a different contract from get_dirs() below.
+        """
+        return self.dirs if self.dirs is not None else self.engine.dirs
+
+    def get_dirs(self):
+        """
+        Overrides the base Loader.get_dirs(), which callers outside this
+        class - django.template.autoreload.get_template_directories(),
+        used by the dev server's autoreload watcher, for one - expect to
+        return plain paths. Unpack any (namespace, path) tuples down to
+        just the path; namespace_aware_dirs() below is what keeps the
+        namespace for get_template_sources()'s own use.
+        """
+        for d in self.raw_dirs():
+            yield d[1] if isinstance(d, tuple) else d
+
     def namespace_aware_dirs(self):
-        dirs = self.get_dirs()
-        for d in dirs:
+        for d in self.raw_dirs():
             if isinstance(d, tuple):
                 namespace, template_dir = d
             else:

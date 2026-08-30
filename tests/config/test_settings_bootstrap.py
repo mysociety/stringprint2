@@ -56,6 +56,23 @@ def test_namespace_aware_loader_resolves_the_org_template() -> None:
     assert "ORG_TEMPLATE_OVERRIDE_MARKER" in template.template.source
 
 
+def test_autoreload_can_enumerate_template_directories() -> None:
+    """
+    Regression test for a script/server crash: NamespaceAwareLoader is
+    configured with ORG_TEMPLATE_DIRS as its own `dirs` (see settings.py's
+    TEMPLATES), which holds (namespace, path) tuples - fine for
+    get_template_sources()/namespace_aware_dirs(), which know to unpack
+    them, but django.template.autoreload.get_template_directories() (used
+    by the dev server's autoreload watcher) calls every loader's
+    get_dirs() expecting plain paths, and TypeErrors on a tuple.
+    """
+    from django.template.autoreload import get_template_directories
+
+    directories = list(get_template_directories())
+    assert directories
+    assert all(not isinstance(d, tuple) for d in directories)
+
+
 def test_test_only_overrides_are_applied() -> None:
     assert settings.DEBUG is False
     assert settings.TEMPLATES[0]["OPTIONS"]["debug"] is False
