@@ -133,12 +133,8 @@ def loaded_articles(org, django_db_blocker, doc_folder) -> Dict[str, Any]:
             article.load_from_file()
             articles[slug] = article
 
-        # Re-read every article, because JsonBlockField(default={}) hands every
-        # unsaved instance the *same* dict object - so after the loop all four
-        # in-memory articles share one extra_values holding the last document's
-        # values. Each database row is written correctly at its own save(), so
-        # a round trip through the database is what separates them again.
-        # See tests/config/test_shared_field_defaults.py.
+        # Re-read every article, so the tests work from persisted state
+        # rather than whatever the loader happened to leave in memory.
         articles = {
             slug: Article.objects.get(pk=article.pk)
             for slug, article in articles.items()

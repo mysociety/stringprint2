@@ -40,16 +40,7 @@ def test_the_custom_fields_survive_a_round_trip(load_doc) -> None:
 
 
 @pytest.mark.django_db
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known drift: migration 0005 records the column as "
-        "charts.fields.ChartField, but models.py now imports it as "
-        "stringprint2.charts.fields.ChartField, so Django sees a field change. "
-        "An artefact of the doubled stringprint2/stringprint2 path making the "
-        "same module importable under two names. See docs/feature-inventory.md."
-    ),
-)
 def test_the_schema_matches_the_models() -> None:
+    """No model change has been left without a migration."""
     out = StringIO()
     call_command("makemigrations", "--check", "--dry-run", stdout=out, verbosity=1)

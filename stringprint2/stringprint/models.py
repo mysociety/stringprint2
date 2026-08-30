@@ -107,9 +107,9 @@ class Organisation(models.Model):
     publish_root = models.URLField(max_length=255, blank=True, null=True)
     include_favicon = models.BooleanField(default=True)
     icon = models.CharField(max_length=255, blank=True, null=True)
-    default_values = JsonBlockField(default={})
-    commands = JsonBlockField(default={})
-    extra_values = JsonBlockField(default={})
+    default_values = JsonBlockField(default=dict)
+    commands = JsonBlockField(default=dict)
+    extra_values = JsonBlockField(default=dict)
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -313,8 +313,8 @@ class Article(models.Model):
     display_footnotes_at_foot = models.BooleanField(default=True)
     display_toc = models.BooleanField(default=False)
     include_citation = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
-    commands = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
+    commands = JsonBlockField(default=dict)
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -1659,7 +1659,7 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
     size = models.IntegerField(default=0)
     queue_responsive = models.BooleanField(default=False)
     queue_tiny = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
 
 
 class Version(models.Model):
@@ -2265,7 +2265,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
     code_content = models.TextField(null=True)
     no_header = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
 
     def search_name(self):
         txt = ""
