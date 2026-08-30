@@ -101,15 +101,15 @@ def baked(tmp_path_factory, django_db_blocker, request) -> Path:
     """
     article = request.getfixturevalue("kitchen_sink")
     driver = FakeDriver()
-    Chrome.driver = None
-    original = Chrome.get_driver
-    Chrome.get_driver = classmethod(lambda cls: driver)
+    Chrome.page = None
+    original = Chrome.get_page
+    Chrome.get_page = classmethod(lambda cls: driver)
     try:
         with django_db_blocker.unblock():
             return bake(article, tmp_path_factory.mktemp("bake") / "baked")
     finally:
-        Chrome.get_driver = original
-        Chrome.driver = None
+        Chrome.get_page = original
+        Chrome.page = None
 
 
 class TestOutputFiles:

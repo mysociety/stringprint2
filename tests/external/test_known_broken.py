@@ -9,8 +9,6 @@ building the suite; the catalogue lives in docs/feature-inventory.md.
 
 from __future__ import annotations
 
-import inspect
-
 import pytest
 
 pytestmark = [pytest.mark.django_db, pytest.mark.external]
@@ -29,21 +27,6 @@ def test_article_authenticate_references_a_missing_model(load_doc) -> None:
     article = load_doc("kitchen-sink")
     user = User(username="someone", is_staff=False)
     article.authenticate(user, None)
-
-
-def test_asset_get_chart_image_is_broken_on_python_three() -> None:
-    """
-    Two independent breakages, checked by reading the source rather than by
-    running it - it needs geckodriver, which is not installed.
-
-    str has had no .decode since Python 2, and find_element_by_id was removed
-    in Selenium 4, so this cannot work on any modern stack.
-    """
-    from stringprint.models import Asset
-
-    source = inspect.getsource(Asset.get_chart_image)
-    assert 'contents.decode("base64")' in source
-    assert "find_element_by_id" in source
 
 
 def test_the_legacy_google_charts_module_is_unreferenced() -> None:

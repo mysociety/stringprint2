@@ -228,17 +228,17 @@ flips to a failure the moment it is repaired.
 | 1 | `render_bootstrap_table`'s `if no_header` block sits **inside** the row loop, inserting the header once and then an empty list for every remaining row. The equivalent in `render_html_table` is correctly outside. | `charts/display.py:188` | `unit/test_charts_display.py` |
 | 2 | `Footnote.note_count` and `Footnote.all` are class attributes. `process_ink` resets the first and never the second, so the registry grows for the life of the process — and `connect_to_footnote` scans it for an empty-content entry with a matching ref, so one document's unresolved footnote can capture a later document's definition. | `deepink.py:60-61` | `unit/test_deepink_footnote.py`, `conftest.py` autouse reset |
 | 3 | `Article.render` mutates three settings (`SITE_ROOT`, `DEBUG`, `COMPRESS_ENABLED`) and sets `baking` on the instance, restoring none of them. It used to also mutate `MEDIA_URL`/`STATIC_URL`/`COMPRESS_URL` to relative strings before rendering, to make baked output relocatable - that stopped working once Django started forcing `STATIC_URL`/`MEDIA_URL` reads through `_add_script_prefix` (which never returns less than `/`), so `write_baked_file` (`models.py`) now renders with those settings untouched and relativizes the *output* afterwards instead. | `models.py` (`Article.render`, `relativize_static_urls`, `write_baked_file`) | `bake/test_render_bake.py`, `conftest.py` autouse restore |
-| 4 | `Asset.get_chart_image` calls `contents.decode("base64")` on a `str` (impossible since Python 2) and uses `find_element_by_id` (removed in Selenium 4). | `models.py:2314` | `external/test_known_broken.py` |
-| 5 | `Article.authenticate` references an `Access` model that does not exist. | `models.py:656` | `external/test_known_broken.py` (xfail) |
-| 6 | `frontend/views.py` calls `trigger_reprocess`, `trigger_render`, `trigger_source_import` and a `downloads` relation, none of which exist on `Article`. | `frontend/views.py` | not pinned |
-| 7 | `preprocessing.py` defines `SectionMove` **twice**. The first is shadowed and would raise `AttributeError` on construction — its `__post_init__` reads `self.before`, which is not one of its fields. | `preprocessing.py:88,132` | `external/test_preprocessing.py` |
-| 8 | `run_command` splits the rendered command on single spaces with no quoting, so any templated value containing a space becomes several argv entries, and an unresolved variable leaves an empty one. | `models.py:1313` | `config/test_run_command.py` |
-| 9 | `script/manage` resolves to `stringprint2/stringprint2/stringprint2/manage.py` — one level too deep. The devcontainer `postCreateCommand` uses it. | `script/manage` | not pinned |
-| 10 | `docker-compose.yml` mounts the config one directory above where `settings.py` reads it, leaving empty directories on disk. `STRINGPRINT_CONFIG` is now the supported way to inject it. | `docker-compose.yml` | not pinned |
-| 11 | `do_process` tests `"--no-preprocess" in refresh`, but `.github/workflows/updater.yml` passes `no-preprocess`, so the preprocess step runs regardless. | `__main__.py:519` | not pinned |
-| 12 | `remove_supports` returns its argument on the first line; the rest of the body is unreachable. | `word_convert.py:361` | `unit/test_word_convert.py` |
-| 13 | `fix_markdown` indexes `text[pos + 2]` with no bounds check, so a document ending in `__` raises `IndexError`. | `word_convert.py:97` | `unit/test_word_convert.py` |
-| 14 | Dead modules: `tools/charts.py`, `tools/serial.py`, `tools/footnote_convert.py`. `frontend/migrations` 0002 and 0004 create `Download` and `TokenSetting`, since deleted. | — | `external/test_known_broken.py` |
+| 4 | `Article.authenticate` references an `Access` model that does not exist. | `models.py:656` | `external/test_known_broken.py` (xfail) |
+| 5 | `frontend/views.py` calls `trigger_reprocess`, `trigger_render`, `trigger_source_import` and a `downloads` relation, none of which exist on `Article`. | `frontend/views.py` | not pinned |
+| 6 | `preprocessing.py` defines `SectionMove` **twice**. The first is shadowed and would raise `AttributeError` on construction — its `__post_init__` reads `self.before`, which is not one of its fields. | `preprocessing.py:88,132` | `external/test_preprocessing.py` |
+| 7 | `run_command` splits the rendered command on single spaces with no quoting, so any templated value containing a space becomes several argv entries, and an unresolved variable leaves an empty one. | `models.py:1313` | `config/test_run_command.py` |
+| 8 | `script/manage` resolves to `stringprint2/stringprint2/stringprint2/manage.py` — one level too deep. The devcontainer `postCreateCommand` uses it. | `script/manage` | not pinned |
+| 9 | `do_process` tests `"--no-preprocess" in refresh`, but `.github/workflows/updater.yml` passes `no-preprocess`, so the preprocess step runs regardless. | `__main__.py:519` | not pinned |
+| 10 | `remove_supports` returns its argument on the first line; the rest of the body is unreachable. | `word_convert.py:361` | `unit/test_word_convert.py` |
+| 11 | `fix_markdown` indexes `text[pos + 2]` with no bounds check, so a document ending in `__` raises `IndexError`. | `word_convert.py:97` | `unit/test_word_convert.py` |
+| 12 | Dead modules: `tools/charts.py`, `tools/serial.py`, `tools/footnote_convert.py`. `frontend/migrations` 0002 and 0004 create `Download` and `TokenSetting`, since deleted. | — | `external/test_known_broken.py` |
+
+Removed rather than fixed: `Asset.get_chart_image` (used to be #4 here) called `contents.decode("base64")` on a `str` - impossible since Python 2 - and needed `geckodriver`, never installed in the image, so nothing could ever have called it successfully. Deleted along with its call site in `prepare_assets` and the test that pinned it (`external/test_known_broken.py`). `docker-compose.yml`'s config mount (used to be #10) is fixed - it dropped the stale volume mount entirely; `STRINGPRINT_CONFIG` (or the default seed-on-first-run path) is the supported way to inject config now.
 
 
 ## Upgrade risk register
@@ -335,10 +335,9 @@ rendered against the document's own settings). Anything else lands in
 |---|---|---|---|
 | `sass` | `CustomSCSS` | `needs_sass` | yes |
 | `npx` + `postcss` + `autoprefixer` | `CustomSCSS` | `needs_sass` | yes (`postcss` added to the image) |
-| `chromedriver` + `google-chrome` | `export_paragraph_images` | `needs_chrome` | yes (faked in tests) |
+| Playwright's Chromium | `export_paragraph_images` (`Chrome`) | `needs_chrome` | yes (`playwright install --with-deps chromium`; faked in tests) |
 | `cwebp` | `create_responsive` | — | bundled inside `webptools` |
 | PyMuPDF | `merge_pdfs`, `pdf_page_to_png` | `external` | yes |
-| `geckodriver` | `Asset.get_chart_image` | — | **no** (and the code is broken anyway) |
 | `kindlegen` | `create_kindle` | — | **no**, and out of scope |
 | Google Drive API | `google_download.py` | `needs_network` | needs `GDRIVE_SERVICE_USER` |
 | TinyPNG API | `create_tiny` | `needs_network` | offline fallback used |

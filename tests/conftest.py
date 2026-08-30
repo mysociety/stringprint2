@@ -65,7 +65,7 @@ def reset_global_state():
     yield
     Footnote.note_count = 0
     Footnote.all = []
-    Chrome.driver = None
+    Chrome.page = None
 
 
 @pytest.fixture(autouse=True)
@@ -192,17 +192,22 @@ def legacy_doc(process_doc):
     return process_doc("legacy-doc")
 
 
-class FakeElement:
-    def __init__(self, x: int = 40, y: int = 200):
-        self.location = {"x": x, "y": y}
-        self.size = {"width": 800, "height": 120}
+class FakeLocator:
+    def __init__(self, x: int = 40, y: int = 200, missing: bool = False):
+        self._box = None if missing else {"x": x, "y": y, "width": 800, "height": 120}
+
+    def count(self) -> int:
+        return 0 if self._box is None else 1
+
+    def bounding_box(self):
+        return self._box
 
 
 class FakeDriver:
     """
-    Stands in for headless Chrome in export_paragraph_images.
+    Stands in for a headless Playwright page in export_paragraph_images.
 
-    Chrome.get_driver is the only place the real driver is built, so replacing
+    Chrome.get_page is the only place the real page is built, so replacing
     it lets the surrounding logic - the skip filters, the scroll, the crop
     arithmetic and the output filenames - run for real with no browser and no
     preview server listening on 127.0.0.1:8000.
@@ -213,40 +218,30 @@ class FakeDriver:
         self.requested_url = None
         self.window_size = None
         self.scrolled_to = []
-        self.quit_called = False
+        self.closed = False
 
-    def set_page_load_timeout(self, seconds):
-        self.timeout = seconds
+    def set_viewport_size(self, size):
+        self.window_size = (size["width"], size["height"])
 
-    def set_window_size(self, width, height):
-        self.window_size = (width, height)
-
-    def get(self, url):
+    def goto(self, url, timeout=None):
         self.requested_url = url
 
-    def find_element_by_xpath(self, xpath):
-        from selenium.common.exceptions import NoSuchElementException
+    def locator(self, selector):
+        order = int(selector.lstrip("#r"))
+        return FakeLocator(missing=order in self.missing_orders)
 
-        order = int(xpath.split("'r")[1].split("'")[0])
-        if order in self.missing_orders:
-            raise NoSuchElementException(xpath)
-        return FakeElement()
-
-    def execute_script(self, script):
+    def evaluate(self, script):
         self.scrolled_to.append(script)
 
-    def get_screenshot_as_base64(self):
-        import base64
-        from io import BytesIO
-
+    def screenshot(self, path, clip):
         from PIL import Image
 
-        buffer = BytesIO()
-        Image.new("RGB", (1400, 1000), (255, 255, 255)).save(buffer, "PNG")
-        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+        width = max(int(clip["width"]), 1)
+        height = max(int(clip["height"]), 1)
+        Image.new("RGB", (width, height), (255, 255, 255)).save(path, "PNG")
 
-    def quit(self):
-        self.quit_called = True
+    def close(self):
+        self.closed = True
 
 
 @pytest.fixture
@@ -255,6 +250,6 @@ def fake_chrome(monkeypatch):
     from stringprint.models import Chrome
 
     driver = FakeDriver()
-    monkeypatch.setattr(Chrome, "driver", None)
-    monkeypatch.setattr(Chrome, "get_driver", classmethod(lambda cls: driver))
+    monkeypatch.setattr(Chrome, "page", None)
+    monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
     return driver

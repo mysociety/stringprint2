@@ -6,8 +6,4 @@ libffi-dev
 libfreetype6
 libfreetype6-dev
 zlib1g-dev
-unzip
-zip
 libxi6
-google-chrome-stable
-jq

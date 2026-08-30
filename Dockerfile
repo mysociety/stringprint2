@@ -30,3 +30,10 @@ RUN curl -sSL https://install.python-poetry.org | python - \
       # the cwebp binary bundled inside the webptools wheel installs without
       # its executable bit; create_responsive raises ValueError otherwise
       && find / -xdev -iname cwebp -exec chmod +x {} \;
+
+# Article.export_paragraph_images (stringprint/models.py, Chrome) uses
+# Playwright rather than Selenium+chromedriver - one command installs its own
+# version-matched Chromium plus whatever OS libraries it needs to run
+# headless, replacing the apt-key dance and the chrome-for-testing/
+# chromedriver version-matching that used to live in docker-provision.
+RUN playwright install --with-deps chromium

@@ -27,7 +27,13 @@ parsimonious = ">=0.8.1"
 jsmin = ">=3.0.1"
 dirsync = ">=2.2.3"
 html2text = ">=2020.1.16"
-selenium = ">=3.13"
+# used by Article.export_paragraph_images (Chrome, in models.py) to drive a
+# headless browser for the per-paragraph social-card screenshots. Used to be
+# Selenium + a separately version-matched chromedriver; Asset.get_chart_image
+# was the only other Selenium user and was dead/broken code, removed rather
+# than fixed - so this replaced Selenium outright rather than sitting
+# alongside it.
+playwright = ">=1.40"
 tinify = ">=1.5.1"
 invoke = ">=1.7.0"
 unicodecsv = ">=0.14.1"

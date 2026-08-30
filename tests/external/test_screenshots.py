@@ -1,10 +1,10 @@
 """
 Article.export_paragraph_images - the per-paragraph social cards.
 
-In production this drives headless Chrome against a preview server the CLI
-spawns on 127.0.0.1:8000. Chrome.get_driver is the only place the driver is
-built, so replacing it lets the surrounding logic run for real: the skip
-filters, the scroll, the crop arithmetic and the output filenames.
+In production this drives a headless Playwright browser against a preview
+server the CLI spawns on 127.0.0.1:8000. Chrome.get_page is the only place
+the page is built, so replacing it lets the surrounding logic run for real:
+the skip filters, the scroll, the crop arithmetic and the output filenames.
 
 The BAKE_SERVER address is a local inside the method, so there is no seam for
 pointing it at a live_server; a real end-to-end run is out of scope here.
@@ -110,8 +110,8 @@ class TestSkipRules:
 
         first_graf = kitchen_sink.content().sections[0].grafs[0]
         driver = FakeDriver(missing_orders=[first_graf.order])
-        monkeypatch.setattr(Chrome, "driver", None)
-        monkeypatch.setattr(Chrome, "get_driver", classmethod(lambda cls: driver))
+        monkeypatch.setattr(Chrome, "page", None)
+        monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
 
         kitchen_sink.export_paragraph_images(str(folder))
 

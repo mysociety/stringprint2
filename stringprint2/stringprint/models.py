@@ -38,9 +38,8 @@ from django.urls import reverse
 from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
+from playwright.sync_api import sync_playwright
 from ruamel.yaml import YAML
-from selenium import common, webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
 from useful_inkleby.useful_django.models import FlexiBulkModel
@@ -49,8 +48,6 @@ from webptools import webplib as webp
 from stringprint.tools.deepink import Graf, Section
 
 from .tools.deepink import process_ink
-
-chrome_driver_path = settings.CHROME_DRIVER
 
 
 class OverwriteStorage(FileSystemStorage):
@@ -284,36 +281,36 @@ class OrgLinks(models.Model):
 
 class Chrome(object):
     """
-    stores selenium driver to reduce time spent after
-    first start up
+    Owns a single headless Playwright browser/page, reused across calls in
+    one process to avoid paying the browser startup cost per paragraph
+    image. Playwright manages its own browser binary (installed via
+    `playwright install chromium`) rather than needing a separately
+    version-matched chromedriver.
     """
 
-    driver = None
+    _playwright = None
+    _browser = None
+    page = None
 
     @classmethod
-    def get_driver(cls) -> WebDriver:
-        if cls.driver:
-            return cls.driver
+    def get_page(cls):
+        if cls.page:
+            return cls.page
 
-        options = webdriver.ChromeOptions()
-        options.add_argument("headless")
-        options.add_argument("hide-scrollbars")
-        options.add_argument("--no-sandbox")
-        cls.driver = webdriver.Chrome(
-            executable_path=chrome_driver_path, options=options
-        )
-        return cls.driver
+        cls._playwright = sync_playwright().start()
+        cls._browser = cls._playwright.chromium.launch()
+        cls.page = cls._browser.new_page()
+        return cls.page
 
     @classmethod
     def quit(cls) -> None:
-        if cls.driver:
-            cls.driver.quit()
-        cls.driver = None
-
-    def __del__(self):
-        if self.driver:
-            self.driver.quit()
-        super(Chrome, self).__del__()
+        if cls._browser:
+            cls._browser.close()
+        if cls._playwright:
+            cls._playwright.stop()
+        cls._playwright = None
+        cls._browser = None
+        cls.page = None
 
 
 class Article(models.Model):
@@ -532,9 +529,6 @@ class Article(models.Model):
         exports a folder of images - 1 for each element labeled with the
         combo key
         """
-        import base64
-        from io import BytesIO
-
         BAKE_SERVER = "http://127.0.0.1:8000"
 
         url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
@@ -554,47 +548,50 @@ class Article(models.Model):
         if len(grafs_to_do) == 0:
             return None
 
-        driver = Chrome.get_driver()
-        driver.set_page_load_timeout(60)
+        page = Chrome.get_page()
         print(url)
         # Updated for 1200 x 630 Bluesky/modern social media aspect ratio (1.90:1)
-        driver.set_window_size(1200, 800)
-        driver.get(url)
+        page.set_viewport_size({"width": 1200, "height": 800})
+        page.goto(url, timeout=60_000)
 
         for g in grafs_to_do:
             print(g.order, g.combo_key())
-            try:
-                element = driver.find_element_by_xpath(
-                    "//div[@id='r{0}']".format(g.order)
-                )
-            except common.exceptions.NoSuchElementException:
+            locator = page.locator("#r{0}".format(g.order))
+            if locator.count() == 0:
                 print("skipping - element {0} not found".format(g.order))
                 continue
-            location = element.location
-            size = element.size
+            box = locator.bounding_box()
+            if box is None:
+                print("skipping - element {0} not found".format(g.order))
+                continue
 
             offset = 50
             left_offset = 30
             # if g.blockquote:
             #    left_offset += 30
 
-            driver.execute_script(
-                "window.scrollTo(0, {0});".format(location["y"] - offset)
-            )
+            page.evaluate("window.scrollTo(0, {0});".format(box["y"] - offset))
 
-            screenshot = driver.get_screenshot_as_base64()
-            img = Image.open(BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
             # Updated dimensions for 1200 x 630 aspect ratio for Bluesky social sharing
             width = 1200
             height = 630
-            left = location["x"] - left_offset
+            left = box["x"] - left_offset
             top = offset - 8
             right = left + 16 + width
-            bottom = top + height  # size['height'] + 2
+            bottom = top + height
 
-            elements = (int(left), int(top), int(right), int(bottom))
-            im = img.crop(elements)
-            im.save(g.destination_location)
+            # Playwright clips and writes the PNG directly - no base64/PIL
+            # round-trip needed, unlike the old full-viewport-screenshot-
+            # then-crop approach.
+            page.screenshot(
+                path=g.destination_location,
+                clip={
+                    "x": left,
+                    "y": top,
+                    "width": right - left,
+                    "height": bottom - top,
+                },
+            )
         Chrome.quit()
 
     def reprocessing(self):
@@ -679,11 +676,15 @@ class Article(models.Model):
     def prepare_assets(self) -> None:
         """
         if assets have a chart - produce the image
+
+        Used to call Asset.get_chart_image() here, which loaded the chart in
+        a Selenium-driven Firefox to screenshot it. That method was already
+        broken on Python 3 (contents.decode("base64") - impossible since
+        Python 2 - and find_element_by_id, removed in Selenium 4) and needed
+        geckodriver, which was never installed in the image, so nothing was
+        ever actually calling it successfully - removed rather than fixed.
         """
-        for a in self.assets.filter(regenerate_image_chart=True):
-            if a.chart and a.chart.chart_type != "table_chart":
-                print("making image for {0}".format(a.slug))
-                a.get_chart_image()
+        pass
 
     def tinify_headers(self) -> None:
         """
@@ -2347,47 +2348,6 @@ class Asset(FlexiBulkModel, HeaderMixin):
         txt = txt.encode("ascii", "ignore")
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
         return txt.decode("utf-8")
-
-    def get_chart_image(self):
-        """
-        loads the chart in selenium so we can fetch the image version
-        """
-        import io
-        import tempfile
-
-        from selenium import webdriver
-
-        from .views import AssetView
-
-        temp_dir = tempfile._get_default_tempdir()
-        temp_name = next(tempfile._get_candidate_names())
-        file_destination = os.path.join(temp_dir, temp_name + ".html")
-        address = "file:///" + file_destination.replace("\\", "/")
-        AssetView.write_file(
-            args=(self.article.slug, self.slug, "yes"), path=file_destination
-        )
-        driver = webdriver.Firefox()
-        driver.get(address)
-        elem = driver.find_element_by_id(self.chart.ident)
-        contents = elem.get_attribute("innerHTML")
-        contents = contents.replace('<img src="data:image/png;base64,', "")[:-2]
-        driver.quit()
-        image_output = io.StringIO()
-        # Write decoded image to buffer
-        image_output.write(contents.decode("base64"))
-        image_output.seek(0)  # seek beginning of the image string
-
-        suf = SimpleUploadedFile(
-            "{0}.png".format(self.chart.ident),
-            image_output.read(),
-            content_type="image/png",
-        )
-
-        self.image_chart = suf
-        self.regenerate_image_chart = False
-        self.save()
-
-        os.remove(file_destination)
 
     def add_image(self, file_location):
         """
