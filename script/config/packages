@@ -9,6 +9,5 @@ zlib1g-dev
 unzip
 zip
 libxi6
-libgconf-2-4
 google-chrome-stable
 jq

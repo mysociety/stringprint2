@@ -1,32 +1,63 @@
-curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add
-echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+#!/bin/sh
+#
+# Install the system packages and chromedriver.
+#
+# set -e matters: without it a failed apt or download used to be ignored and
+# the image was built anyway, missing whatever had failed.
+set -eu
 
-apt-get update
-
-
-#fix dpkg-preconfigure error
 export DEBIAN_FRONTEND=noninteractive
 
-# Install the packages
+# apt-key was removed in Debian 12, so the signing key goes in its own keyring
+# and the source refers to it explicitly
+curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub \
+    | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+    > /etc/apt/sources.list.d/google-chrome.list
+
+apt-get update -qq
+
 echo "Installing packages"
-xargs apt-get install -qq -y < /install/packages
+xargs apt-get install -qq -y --no-install-recommends < /install/packages
 
 cd /install/
-# get and setup get chromedriver
 
+# chromedriver has to match the installed chrome, major version at minimum
+CHROME_VERSION=$(google-chrome --version | awk '{print $NF}')
+echo "Fetching chromedriver for chrome ${CHROME_VERSION}"
 
+wget -qO- https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json > /install/cft.json
+
+# prefer the exact build, but fall back to the newest release sharing chrome's
+# major version - google does not publish a chromedriver for every stable build,
+# and an unmatched version used to leave DOWNLOAD_URL empty and fail obscurely
 DOWNLOAD_URL=$(
-    wget -qO- https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json |
-    jq -r '.versions[] |
-        select(.version == "'$(google-chrome --version | awk '{print $NF}' | cut -d. -f1,2,3,4 )'") |
-        .downloads.chromedriver[] |
-        select(.platform == "linux64") |
-        .url'
+    jq -r --arg v "${CHROME_VERSION}" --arg m "${CHROME_VERSION%%.*}" '
+        [ .versions[]
+          | select(.downloads.chromedriver != null)
+          | select(.version == $v or (.version | split(".")[0]) == $m)
+        ]
+        | sort_by(.version == $v, (.version | split(".") | map(tonumber)))
+        | last
+        | .downloads.chromedriver[]?
+        | select(.platform == "linux64")
+        | .url
+    ' /install/cft.json
 )
 
+if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
+    echo "no chromedriver published for chrome ${CHROME_VERSION}" >&2
+    exit 1
+fi
+echo "Using ${DOWNLOAD_URL}"
+
 wget -q "$DOWNLOAD_URL"
-unzip chromedriver-linux64.zip
+unzip -q chromedriver-linux64.zip
 mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
 chown root:root /usr/bin/chromedriver
 chmod +x /usr/bin/chromedriver
-rm -f chromedriver-linux64.zip
+rm -rf chromedriver-linux64.zip chromedriver-linux64 /install/cft.json
+
+chromedriver --version
+
+rm -rf /var/lib/apt/lists/*
