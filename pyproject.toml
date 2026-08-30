@@ -7,12 +7,7 @@ authors = ["Alex Parsons <alex.parsons@mysociety.org>"]
 [tool.poetry.dependencies]
 python = "^3.14"
 flake8 = ">=3.8.3"
-Django = "3.2.25"
-# Django 3.2's django/http/request.py does `import cgi`, which stdlib removed in
-# Python 3.13. This is a pure interpreter-compatibility shim, not a feature
-# dependency - drop it once Django is bumped past 3.2 (later Django series
-# don't import cgi) or if Django backports the fix.
-legacy-cgi = ">=2.6"
+Django = "4.2.30"
 Markdown = ">=2.6.8"
 Pillow = ">=8.3.2"
 argparse = ">=1.2.1"
@@ -46,6 +41,9 @@ watchdog = ">=0.9"
 webptools = ">=0.0.2"
 python-Levenshtein = ">=0.12.0"
 mkepub = ">=1.2"
+# mkepub calls puremagic.what(), which puremagic 2.0 renamed/removed; mkepub
+# itself only declares puremagic>=1.30 with no upper bound, so pin it here.
+puremagic = ">=1.30,<2.0"
 django-static-precompiler = ">=2.1"
 xlwt = ">=1.3.0"
 openpyxl = ">=2.6.4"
@@ -58,8 +56,12 @@ cookiecutter = ">=1.7.3"
 google-api-python-client = ">=2.42.0"
 oauth2client = ">=4.1.3"
 django-pipeline-csscompressor = {git = "https://github.com/mysociety/django-pipeline-csscompressor.git"}
-useful-inkleby = {git = "https://github.com/ajparsons/useful_inkleby.git", rev = "d2"}
 python-unsplash = {git = "https://github.com/ajparsons/python-unsplash.git"}
+# useful-inkleby was previously a git dependency (ajparsons/useful_inkleby@d2).
+# It supplied the view framework, serialisers and two custom model fields with
+# no maintained Django 5 story, so it's vendored at stringprint2/useful_inkleby
+# instead - same import path, sourced locally, one url() call fixed for
+# Django 4.0's removal of django.conf.urls.url.
 [tool.poetry.dev-dependencies]
 pytest = "^7.4"
 pytest-django = "^4.9"
