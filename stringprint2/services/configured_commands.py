@@ -6,14 +6,30 @@ from __future__ import annotations
 
 import importlib.util
 import subprocess
+from contextlib import contextmanager
+from contextvars import ContextVar
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Protocol
+from typing import Iterator, Protocol
 
 from django.template import Context, Template
 from pydantic import BaseModel, ConfigDict
 
 CommandRunner = Callable[[list[str], str], int]
+active_command_runner: ContextVar[CommandRunner | None] = ContextVar(
+    "active_command_runner",
+    default=None,
+)
+
+
+@contextmanager
+def command_runner_context(runner: CommandRunner) -> Iterator[None]:
+    """Use one command runner for nested publication service calls."""
+    token = active_command_runner.set(runner)
+    try:
+        yield
+    finally:
+        active_command_runner.reset(token)
 
 
 def run_subprocess_command(arguments: list[str], working_directory: str) -> int:
@@ -143,7 +159,7 @@ def run_configured_command(
     if command.template.startswith("module::"):
         return run_module_command(publication, command)
 
-    resolved_runner = runner or run_subprocess_command
+    resolved_runner = runner or active_command_runner.get() or run_subprocess_command
     rendered = Template(command.template).render(
         Context({"article": dict(template_values)})
     )

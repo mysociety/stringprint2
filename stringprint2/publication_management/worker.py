@@ -21,7 +21,9 @@ from publication_management.operation_store import (
     update_publication_operation_progress,
 )
 from publication_management.publication_lock import PublicationLock
+from publication_management.subprocess_runner import OperationSubprocessRunner
 from stringprint.models import Article
+from stringprint2.services.configured_commands import command_runner_context
 from stringprint2.services.publication_operations import (
     ProgressReporter,
     PublicationOperationStage,
@@ -81,6 +83,7 @@ def execute_publication_operation(
             redirect_stdout(log),
             redirect_stderr(log),
             OperationHeartbeat(operation),
+            command_runner_context(OperationSubprocessRunner(operation, log)),
         ):
             result = run_publication_operation(
                 request,
