@@ -53,7 +53,6 @@ from playwright.sync_api import sync_playwright
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickText
 from useful_inkleby.useful_django.fields import JsonBlockField
-from useful_inkleby.useful_django.models import FlexiBulkModel
 from webptools import webplib as webp
 
 from stringprint.tools.deepink import Graf, Section
@@ -1714,7 +1713,7 @@ class HeaderMixin(object):
                     )
 
 
-class HeaderImage(FlexiBulkModel, HeaderMixin):
+class HeaderImage(models.Model, HeaderMixin):
     title_image = models.BooleanField(default=False)
     section_name = models.CharField(max_length=255, null=True, blank=True)
     source_loc = models.CharField(max_length=255, null=True, blank=True)
@@ -2310,7 +2309,7 @@ class Version(models.Model):
         super(Version, self).save(*args, **kwargs)
 
 
-class Asset(FlexiBulkModel, HeaderMixin):
+class Asset(models.Model, HeaderMixin):
     RAW_HTML = "h"
     IMAGE = "i"
     CHART = "c"
