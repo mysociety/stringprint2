@@ -7,6 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
+PACKAGE_ROOT = str(Path(__file__).parent)
+if PACKAGE_ROOT not in sys.path:
+    sys.path.insert(0, PACKAGE_ROOT)
+
 import django
 import rich
 from cookiecutter.main import cookiecutter
@@ -53,8 +57,6 @@ print = rich.print
 os.environ.pop("DJANGO_SETTINGS_MODULE", None)
 
 
-# add the stringprint dir to the working directory
-sys.path.append(str(Path(__file__).parent))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proj.settings")
 django.setup()
 
