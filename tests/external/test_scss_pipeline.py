@@ -116,8 +116,8 @@ def test_svg_data_uris_survive_minification(compiled) -> None:
     assert "svg xmlns=" in minified
 
 
-def test_default_publication_stylesheet_bootstrap_4_baseline(tmp_path) -> None:
-    """Default publication CSS retains its selective component and size baseline."""
+def test_default_publication_stylesheet_bootstrap_5_baseline(tmp_path) -> None:
+    """Bootstrap 5 publication CSS retains a selective component and size budget."""
     from django.conf import settings
     from static_precompiler import utils
 
@@ -138,14 +138,15 @@ def test_default_publication_stylesheet_bootstrap_4_baseline(tmp_path) -> None:
 
     assert status == 0, errors
     css = output.read_text()
-    assert 110_000 <= len(css.encode()) <= 120_000
+    assert 80_000 <= len(css.encode()) <= 90_000
     for selector in [
         ".navbar-expand-md",
-        ".dropdown-menu-right",
-        ".input-group-append",
+        ".dropdown-menu-end",
+        ".input-group",
         ".table-striped",
-        ".mr-auto",
-        ".ml-auto",
+        ".me-auto",
+        ".ms-auto",
+        ".fixed-top",
     ]:
         assert selector in css
     assert ".modal" not in css

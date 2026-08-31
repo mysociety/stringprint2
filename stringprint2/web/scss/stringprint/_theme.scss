@@ -88,6 +88,13 @@ p.other-formats-text,
   padding-bottom: 0.25rem;
 }
 
+.table > thead {
+  --bs-table-color: #{$stringprint-table-heading-color};
+  --bs-table-bg: #{$stringprint-table-heading-background};
+  color: $stringprint-table-heading-color;
+  background-color: $stringprint-table-heading-background;
+}
+
 #article_title {
   margin-bottom: 0;
   text-align: center;

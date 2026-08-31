@@ -34,6 +34,7 @@ Organisation publication themes may set the variables below before importing `st
 | `$stringprint-container-sm` | Container width from the small breakpoint. |
 | `$stringprint-container-md` | Container width from the medium breakpoint. |
 | `$stringprint-container-lg` | Container width from the large breakpoint. |
+| `$stringprint-print-min-width` | Minimum body/container width used for print layout. |
 
 ## Compatibility
 

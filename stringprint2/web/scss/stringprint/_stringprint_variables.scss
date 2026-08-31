@@ -64,6 +64,7 @@ $stringprint-heading-font: $stringprint-body-font !default;
 $stringprint-container-sm: 750px !default;
 $stringprint-container-md: 970px !default;
 $stringprint-container-lg: 1170px !default;
+$stringprint-print-min-width: 992px !default;
 
 // Bootstrap consumes these aliases. New themes should use the API above.
 $dark: $stringprint-navbar-background;

@@ -1,18 +1,38 @@
-/* Import bootstrap */
+/* Selective Bootstrap imports for publication display. */
 
 @import "functions";
 @import "variables";
+@import "variables-dark";
+@import "maps";
 @import "mixins";
+@import "utilities";
+
+// Generate only utility classes used by publication templates.
+$stringprint-utility-names: (
+  "display",
+  "margin-end",
+  "margin-bottom",
+  "margin-start",
+  "background-color"
+);
+$stringprint-utilities: ();
+@each $name in $stringprint-utility-names {
+  $stringprint-utilities: map-merge(
+    $stringprint-utilities,
+    ($name: map-get($utilities, $name))
+  );
+}
+$utilities: $stringprint-utilities;
+
 @import "root";
 @import "reboot";
 @import "tables";
-
-
 @import "buttons";
 @import "transitions";
 @import "dropdown";
-@import "input-group";
+@import "forms/input-group";
 @import "nav";
 @import "navbar";
-@import "utilities";
-@import "print";
+@import "helpers/position";
+
+@import "utilities/api";

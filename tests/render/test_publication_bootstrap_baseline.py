@@ -14,11 +14,11 @@ BOOTSTRAP_SCSS = PROJECT_ROOT / "stringprint2" / "vendor" / "bootstrap" / "scss"
 STRINGPRINT_SCSS = PROJECT_ROOT / "stringprint2" / "web" / "scss" / "stringprint"
 
 
-def test_publication_pipeline_starts_from_bootstrap_4_5() -> None:
-    """The migration baseline records the framework currently being replaced."""
-    bootstrap = (BOOTSTRAP_SCSS / "bootstrap.scss").read_text()
+def test_publication_pipeline_uses_bootstrap_5_3_8() -> None:
+    """Publication SCSS is built from the pinned Bootstrap 5 release."""
+    bootstrap = (BOOTSTRAP_SCSS.parent / "README.md").read_text()
 
-    assert "Bootstrap v4.5.0" in bootstrap
+    assert "Bootstrap 5.3.8" in bootstrap
 
 
 def test_publication_pipeline_imports_only_required_bootstrap_components() -> None:
@@ -33,21 +33,25 @@ def test_publication_pipeline_imports_only_required_bootstrap_components() -> No
     assert imports == [
         "functions",
         "variables",
+        "variables-dark",
+        "maps",
         "mixins",
+        "utilities",
         "root",
         "reboot",
         "tables",
         "buttons",
         "transitions",
         "dropdown",
-        "input-group",
+        "forms/input-group",
         "nav",
         "navbar",
-        "utilities",
-        "print",
+        "helpers/position",
+        "utilities/api",
     ]
     assert "modal" not in source
     assert "carousel" not in source
+    assert '@import "print"' not in source
 
 
 def test_publication_templates_record_bootstrap_4_component_contract() -> None:
