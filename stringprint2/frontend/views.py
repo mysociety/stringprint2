@@ -1,8 +1,8 @@
-from useful_inkleby.useful_django.views import (
-    ComboView,
+from stringprint2.view_framework import (
     RedirectException,
-    prelogic,
-    postlogic,
+    StringprintView,
+    after_logic,
+    before_logic,
 )
 from . import forms as ff
 import os
@@ -81,14 +81,14 @@ class GroupedPaginator(Paginator):
         return GroupedPage(*args, **kwargs)
 
 
-class LoggedInView(ComboView):
+class LoggedInView(StringprintView):
     require_login = False
 
-    @prelogic
+    @before_logic
     def generic(self):
         self.url_name = self.__class__.url_name
 
-    @prelogic
+    @before_logic
     def get_org(self):
         if self.request.user.is_authenticated is False:
             admin_user = get_admin_user()
@@ -99,14 +99,14 @@ class LoggedInView(ComboView):
         raise RedirectException(reverse("login"))
 
 
-class ArticleEditBase(ComboView):
+class ArticleEditBase(StringprintView):
     """
     article based editing views
     """
 
     args = ["article_id"]
 
-    @prelogic
+    @before_logic
     def get_article(self):
         org = UserSettings.get_org(self.request.user)
         try:
@@ -285,7 +285,7 @@ class OrgSettingsView(LoggedInView):
         self.form = form
 
 
-class RegisterView(ComboView):
+class RegisterView(StringprintView):
     template = "registration//register.html"
     url_patterns = [r"^register/"]
     url_name = "register"
@@ -323,7 +323,7 @@ class NewDocView(LoggedInView):
     url_patterns = [r"^document/new"]
     url_name = "document.new"
 
-    @prelogic
+    @before_logic
     def new_doc_form_logic(self):
         def short_title(v):
             if ":" in v:
@@ -375,7 +375,7 @@ class ReuploadFormView(ArticleEditBase, LoggedInView):
     url_patterns = [r"^document/([0-9]*)/reupload"]
     url_name = "document.reupload"
 
-    @prelogic
+    @before_logic
     def new_doc_form_logic(self):
         request = self.request
         form = ff.ReuploadWordForm

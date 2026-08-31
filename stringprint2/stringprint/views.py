@@ -8,7 +8,6 @@ from django.utils.http import urlencode
 from django.utils.html import mark_safe
 from django.core.cache import cache
 from charts import ChartCollection
-from useful_inkleby.useful_django.views.functional import postlogic
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.template import Template, Context
@@ -17,7 +16,7 @@ from compressor.signals import post_compress
 
 
 from .models import Article, Asset
-from useful_inkleby.useful_django.views import ComboView
+from stringprint2.view_framework import StringprintView
 from django.core.handlers.wsgi import WSGIRequest
 from stringprint.models import Article, Version
 from stringprint.tools.deepink import Section
@@ -38,7 +37,7 @@ def compression_callback(
     article.compressed_files.append(context["compressed"]["url"])
 
 
-class AssetView(ComboView):
+class AssetView(StringprintView):
     template = "ink//asset.html"
     url_patterns = [r"^asset/(.*)/(.*)/(.*)/", r"^asset/(.*)/(.*)/"]
     url_name = "asset_view"
@@ -60,7 +59,7 @@ class AssetView(ComboView):
         return {"asset": a, "chart_collection": c}
 
 
-class HomeView(ComboView):
+class HomeView(StringprintView):
     share_image = settings.SHARE_IMAGE
     twitter_share_image = settings.TWITTER_SHARE_IMAGE
     share_description = settings.SITE_DESCRIPTION
@@ -363,7 +362,7 @@ class ArticleView(HomeView):
         prepare assets for charts and images
         """
         titles_and_images = list(a.headers_and_images())
-        if a.multipage and hasattr(a, 'active_section'):
+        if a.multipage and hasattr(a, "active_section"):
             asset_ids = a.active_section.used_assets()
         else:
             asset_ids = c.used_assets()
