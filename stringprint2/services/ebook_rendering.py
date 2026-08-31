@@ -55,7 +55,7 @@ def render_epub(
     Render publication chapters and active media into one EPUB file.
     """
 
-    from stringprint2.stringprint.views import EbookChapterView
+    from stringprint.views import EbookChapterView  # type: ignore[import-not-found]
 
     authors = publication.authors.split(",") if publication.authors else ""
     book = mkepub.Book(title=publication.title, authors=authors)

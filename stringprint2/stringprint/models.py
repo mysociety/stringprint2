@@ -9,7 +9,6 @@ import shutil
 import time
 from collections import OrderedDict
 from pathlib import Path
-from tempfile import mkdtemp
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import markdown
@@ -21,11 +20,9 @@ from stringprint2.configuration import (
     load_publication_config,
 )
 from stringprint2.services import (
-    StaticRenderTarget,
     build_asset_import_plan,
     build_publication_load_plan,
     write_baked_file,
-    write_static_view,
 )
 from stringprint2.services.paragraph_links import (
     ParagraphLinkState,
@@ -34,6 +31,7 @@ from stringprint2.services.paragraph_links import (
 from stringprint2.services.configured_commands import run_configured_command
 from stringprint2.services.publication_sources import load_publication_source
 from stringprint2.services.ebook_rendering import EbookRenderResult, render_epub
+from stringprint2.services.kindle_rendering import KindleRenderResult, render_kindle
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -1075,91 +1073,20 @@ class Article(models.Model):
             chart_asset_type=Asset.CHART,
         )
 
-    def create_kindle(self, destination: Path, use_temp: bool = False) -> None:
+    def create_kindle(
+        self, destination: Path, use_temp: bool = False
+    ) -> KindleRenderResult:
         """
-        export views and supporting files to location and generate kindle file
+        Render this publication using the configured Kindle generator.
         """
 
-        from shutil import copyfile
-
-        from .views import KindleNCX, KindleOPF, KindleView
-
-        if use_temp:
-            staging = mkdtemp()
-        else:
-            staging = destination
-
-        if not os.path.exists(destination):
-            os.makedirs(destination)
-        if not os.path.exists(staging):
-            os.makedirs(staging)
-
-        # set media urls to now be below where we start
-
-        self.prepare_assets()
-        self.tinify_headers()
-
-        settings.STATIC_URL = "./"
-        settings.DEBUG = False
-
-        args = (self.slug,)  # (self.short_title.replace(" ","-").lower(),)
-
-        css_dir = os.path.join(staging, "css")
-        if not os.path.exists(css_dir):
-            os.makedirs(css_dir)
-
-        media_dir = os.path.join(staging, "media")
-        if not os.path.exists(media_dir):
-            os.makedirs(media_dir)
-
-        opf = os.path.join(staging, self.slug + ".opf")
-
-        media_files = []
-        for a in self.assets.filter(active=True):
-            if a.type == Asset.IMAGE:
-                media_files.append(a.get_image_name(1200))
-            if a.type == Asset.CHART:
-                if a.chart.chart_type != "table_chart":
-                    media_files.append(a.image_chart.name)
-
-        for f in media_files:
-            copyfile(os.path.join(settings.MEDIA_ROOT, f), os.path.join(media_dir, f))
-
-        kindle_targets = [
-            (KindleView, Path(staging) / "text.html"),
-            (KindleOPF, Path(opf)),
-            (KindleNCX, Path(staging) / "toc.ncx"),
-        ]
-        for view, output_path in kindle_targets:
-            write_static_view(
-                view,
-                StaticRenderTarget(
-                    destination=output_path,
-                    request_path=str(output_path),
-                    minimise=False,
-                ),
-                args,
-            )
-        copyfile(
-            finders.find(os.path.join("css", "kindle.css")),
-            os.path.join(css_dir, "kindle.css"),
+        return render_kindle(
+            self,
+            destination,
+            use_temporary_directory=use_temp,
+            image_asset_type=Asset.IMAGE,
+            chart_asset_type=Asset.CHART,
         )
-        if self.book_cover and os.path.exists(self.book_cover.path):
-            copyfile(self.book_cover.path, os.path.join(staging, "bookcover.jpg"))
-
-        print("generating mobi")
-        com = settings.KINDLEGEN_LOC + " " + opf
-        os.system(com)
-
-        if staging != destination:
-            if os.path.exists(os.path.join(staging, self.slug + ".mobi")):
-                print("copying to destination")
-                shutil.copyfile(
-                    os.path.join(staging, self.slug + ".mobi"),
-                    os.path.join(destination, self.slug + ".mobi"),
-                )
-            else:
-                print("error! kindle file not present")
 
     def social_url(self) -> str:
         """
