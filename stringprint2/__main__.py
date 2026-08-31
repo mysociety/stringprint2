@@ -25,6 +25,11 @@ from stringprint2.media_files import (
     merge_pdfs,
     pdf_page_to_png,
 )
+from stringprint2.services.publication_workflow import (
+    load_publication,
+    process_publication,
+    run_publication_command,
+)
 from stringprint2.text_files import TextFile
 
 print = rich.print
@@ -356,7 +361,7 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder, refresh_header)
+        load_publication(doc, self.doc_folder, refresh_header=refresh_header)
 
     def do_loadall(self, inp):
         """
@@ -465,16 +470,17 @@ class SPPrompt(cmd.Cmd):
             refresh_header = False
         else:
             refresh_header = True
-        if not "--no-preprocess" in refresh:
-            self.do_preprocess("")
+        preprocess = "--no-preprocess" not in refresh
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder, refresh_header)
-        doc.import_assets(Path(self.doc_folder, "assets"), refresh_header)
-        doc.load_from_file()
-        doc.process()
-        print("Finished Processing: {0}".format(doc.title))
+        result = process_publication(
+            doc,
+            self.doc_folder,
+            refresh_header=refresh_header,
+            preprocess=preprocess,
+        )
+        print(f"Finished Processing: {result.title}")
         self.print_status()
 
     @select_doc
@@ -486,9 +492,8 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command(command)
-        print("Finished command {1}: {0}".format(doc.title, command))
+        result = run_publication_command(doc, self.doc_folder, command)
+        print(f"Finished command {command}: {result.title}")
 
     @select_doc
     def do_preprocess(self, inp):
@@ -501,9 +506,8 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command("preprocess")
-        print("Finished pre-processing: {0}".format(doc.title))
+        result = run_publication_command(doc, self.doc_folder, "preprocess")
+        print(f"Finished pre-processing: {result.title}")
 
     @select_doc
     def do_publish(self, inp):
@@ -518,9 +522,8 @@ class SPPrompt(cmd.Cmd):
             org=self.current_org, slug=self.current_doc
         )
         doc = cast(Article, doc)
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command("publish")
-        print("Finished publishing: {0}".format(doc.title))
+        result = run_publication_command(doc, self.doc_folder, "publish")
+        print(f"Finished publishing: {result.title}")
 
     def do_quit(self, inp):
         """
