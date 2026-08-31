@@ -19,6 +19,8 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from ruamel.yaml import YAML
 from stringprint2.cli_arguments import parse_shell_options
+from stringprint2.configuration.loaders import validate_config
+from stringprint2.configuration.models import PublicationConfig
 from stringprint2.media_files import (
     create_hero,
     create_thumbnail,
@@ -34,6 +36,7 @@ from stringprint2.services.publication_catalog import (
     PublicationCatalog,
     discover_publications,
 )
+from stringprint2.services.publication_freshness import publication_needs_update
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     render_publication,
@@ -420,28 +423,10 @@ class SPPrompt(cmd.Cmd):
         if document file or settings has been updated since last upload
         return true
         """
-        import subprocess
-
         doc_folder = Path(self.doc_folder)
-        root = doc_folder.parent.parent
-        upload_time_file = doc_folder / "upload_time.txt"
-
-        if upload_time_file.exists():
-            txt_date = upload_time_file.open().read()
-            upload_time = datetime.fromisoformat(txt_date)
-        else:
-            return False
-
         settings_file = doc_folder / "settings.yaml"
-        data = get_yaml(settings_file)
-        doc_file = doc_folder / data["file_source"]
-
-        cmd = f"git log -1 --format=%ct -- {str(settings_file.relative_to(root))} {str(doc_file.relative_to(root))}"
-        p = subprocess.check_output([cmd], shell=True)
-        if p:
-            last_commit = datetime.fromtimestamp(float(p))
-            return last_commit > upload_time
-        return False
+        config = validate_config(settings_file, PublicationConfig)
+        return publication_needs_update(doc_folder, config)
 
     @select_doc
     def do_convertword(self, demote=None):
