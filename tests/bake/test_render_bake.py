@@ -198,3 +198,48 @@ class TestSettingsRestoration:
 
         assert live.SITE_ROOT != "https://example.invalid/html/kitchen-sink/"
         assert live.COMPRESS_ENABLED is False
+
+
+class TestBootstrap5PublicationOutput:
+    """The final baked artefact, not just source templates, uses Bootstrap 5."""
+
+    def test_baked_navigation_uses_bootstrap_5_markup(self, baked: Path) -> None:
+        page = (baked / "index.html").read_text()
+
+        assert "dropdown-menu-end" in page
+        assert "data-menu-toggle" in page
+        assert "me-auto" in page
+        assert "ms-auto" in page
+        for legacy in [
+            "dropdown-menu-right",
+            "data-toggle=",
+            "data-target=",
+            "mr-auto",
+            "ml-auto",
+        ]:
+            assert legacy not in page
+
+    def test_baked_search_uses_bootstrap_5_input_group(self, baked: Path) -> None:
+        page = (baked / "search.html").read_text()
+
+        assert 'class="input-group mb-3"' in page
+        assert "input-group-append" not in page
+
+    def test_baked_css_contains_selective_bootstrap_5_contract(
+        self,
+        baked: Path,
+        kitchen_sink,
+    ) -> None:
+        stylesheets = [
+            (baked / "static" / name).read_text()
+            for name in kitchen_sink.compressed_files
+            if name.endswith(".css")
+        ]
+        css = "\n".join(stylesheets)
+
+        assert "--bs-table-bg" in css
+        assert ".dropdown-menu-end" in css
+        assert ".fixed-top" in css
+        assert "min-width:992px!important" in css.replace(" ", "")
+        assert ".modal" not in css
+        assert ".carousel" not in css
