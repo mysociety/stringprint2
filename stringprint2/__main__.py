@@ -34,6 +34,10 @@ from stringprint2.services.publication_catalog import (
     PublicationCatalog,
     discover_publications,
 )
+from stringprint2.services.publication_rendering import (
+    PublicationRenderFormat,
+    render_publication,
+)
 from stringprint2.text_files import TextFile
 
 print = rich.print
@@ -546,41 +550,38 @@ class SPPrompt(cmd.Cmd):
             print("Need preview server to render documents")
             return None
         refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.render(path, refresh_all=refresh_all)
+        render_publication(
+            doc,
+            path,
+            PublicationRenderFormat.WEB,
+            refresh=refresh_all,
+        )
 
     @select_doc
     def do_renderebook(self, inp):
         """
         render ebook file of current document
         """
-        refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.create_ebook(path)
+        render_publication(doc, path, PublicationRenderFormat.EPUB)
 
     @select_doc
     def do_renderkindle(self, inp):
         """
         render kindle file of current document
         """
-        refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.create_kindle(path)
+        render_publication(doc, path, PublicationRenderFormat.KINDLE)
 
     @select_doc
     def do_renderzip(self, inp):
