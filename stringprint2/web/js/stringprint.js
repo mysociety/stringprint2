@@ -1,7 +1,6 @@
 var hide_state = true;
 var page_loaded = false;
 var current_section = "";
-$(".noscript-anchor").remove()
 
 if (!String.prototype.startsWith) {
     String.prototype.startsWith = function (searchString, position) {
@@ -10,20 +9,6 @@ if (!String.prototype.startsWith) {
     };
 }
 
-// opens or closes all notes
-$('#master_expand').on('click touchend', function (event) {
-    event.preventDefault();
-    $(".extended-row").toggle();
-    $(".extended").fadeToggle();
-    hide_state = !hide_state;
-    if (hide_state == true) {
-        $('#master_expand_link').text("Show All Notes");
-        $(".expand-link").slideDown();
-    } else {
-        $('#master_expand_link').text("Hide All Notes");
-        $(".expand-link").slideUp();
-    };
-});
 
 function changeSelected(id, title, nohash) {
     //if title contains a ':' split and use the first half
@@ -108,79 +93,6 @@ var waypoints = $('.section-anchor').waypoint(function (direction) {
 );
 
 
-function scrollToView(element) {
-    var offset = element.offset().top + 20;
-    if (!element.is(":visible")) {
-        element.css({ "visibility": "hidden" }).show();
-        var offset = element.offset().top;
-        element.css({ "visibility": "", "display": "" });
-    }
-
-    var visible_area_start = $(window).scrollTop();
-    var visible_area_end = visible_area_start + window.innerHeight;
-
-    if (offset < visible_area_start || offset > visible_area_end) {
-        // Not in view so scroll to it
-        $('html,body').animate({ scrollTop: offset - window.innerHeight / 3 }, 1000);
-        return false;
-    }
-    return true;
-}
-
-//shows an individual footnote
-$('.expand-footnotes').on('click touchend', function (event) {
-    event.preventDefault();
-    id = $(this).attr('id');
-    name = $(this).attr('name');
-    footnotes_window = $("#f" + id + ".footnotes")
-    footnotes_window.animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
-    window.setTimeout(Waypoint.refreshAll, 500);
-    if (footnotes_window.is(':visible')) {
-        scrollToView($("p#" + name));
-    }
-    send_ga("Show Footnote", id)
-});
-
-//hides an individual footnote
-$('.hide-footnotes').on('click touchend', function (event) {
-    event.preventDefault();
-    id = $(this).parent().parent().attr('id').substring(1);
-    $("#f" + id + ".footnotes").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
-    window.setTimeout(Waypoint.refreshAll, 500);
-});
-
-//shows an individual note
-$('.expand-link').on('click touchend', function (event) {
-    event.preventDefault();
-    $(this).fadeOut();
-    id = $(this).attr('id').substring(1);
-    $("#r" + id + ".extended-row").show();
-    $("#g" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
-    window.setTimeout(Waypoint.refreshAll, 500);
-    send_ga("Show Note", id)
-});
-
-//hides an individual note
-$('.hide-link').on('click touchend', function (event) {
-    event.preventDefault();
-    id = $(this).attr('id').substring(1);
-    $("#r" + id + ".extended-row").hide();
-    $("#g" + id + ".extended").animate({ height: 'toggle', opacity: 'toggle' }, 'slow');
-    $("#e" + id + ".expand-link").fadeIn();
-    window.setTimeout(Waypoint.refreshAll, 500);
-});
-
-//show citation link as hovering over text
-$(".content-row").on('mouseenter',
-    function () {
-        id = $(this).attr('id');
-        if (typeof id != 'undefined') {
-            id = id.substring(1);
-            $(".cite-link").not(".manual_paragraph").hide();
-            $('#c' + id + ".cite-link").show();
-            set_mobile_link(id);
-        };
-    });
 
 var last_id = 1
 var default_past = 1
