@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import signal
+from subprocess import TimeoutExpired
 
 import pytest
 
@@ -39,6 +41,15 @@ class FakeProcess:
     def wait(self, timeout=None):
         if self.terminated:
             self.return_code = -15
+        return self.return_code
+
+
+class StubbornProcess(FakeProcess):
+    """Ignore graceful termination until the supervisor escalates."""
+
+    def wait(self, timeout=None):
+        if not self.killed:
+            raise TimeoutExpired(self.arguments, timeout)
         return self.return_code
 
 
@@ -81,6 +92,16 @@ def test_duplicate_live_process_is_rejected(tmp_path, monkeypatch) -> None:
 def test_stop_all_terminates_in_reverse_startup_order(tmp_path, monkeypatch) -> None:
     """The preview server stops before the worker that supports its actions."""
     monkeypatch.setattr("stringprint2.services.process_supervisor.Popen", FakeProcess)
+
+    def terminate_group(process_id, signal_number):
+        process = next(
+            item for item in supervisor.processes.values() if item.pid == process_id
+        )
+        process.terminated = True
+
+    monkeypatch.setattr(
+        "stringprint2.services.process_supervisor.os.killpg", terminate_group
+    )
     supervisor = LocalProcessSupervisor()
     supervisor.start(specification(tmp_path, "worker"))
     supervisor.start(specification(tmp_path, "server"))
@@ -91,3 +112,30 @@ def test_stop_all_terminates_in_reverse_startup_order(tmp_path, monkeypatch) -> 
     assert all(not status.running for status in statuses)
     assert supervisor.processes["server"].terminated
     assert supervisor.processes["worker"].terminated
+
+
+def test_stop_escalates_only_the_owned_process_group(tmp_path, monkeypatch) -> None:
+    """A stuck child group receives TERM followed by a bounded KILL."""
+    monkeypatch.setattr(
+        "stringprint2.services.process_supervisor.Popen", StubbornProcess
+    )
+    supervisor = LocalProcessSupervisor()
+    supervisor.start(specification(tmp_path))
+    process = supervisor.processes["worker"]
+    signals = []
+
+    def signal_group(process_id, signal_number):
+        assert process_id == process.pid
+        signals.append(signal_number)
+        if signal_number == signal.SIGKILL:
+            process.killed = True
+            process.return_code = -signal.SIGKILL
+
+    monkeypatch.setattr(
+        "stringprint2.services.process_supervisor.os.killpg", signal_group
+    )
+
+    status = supervisor.stop("worker", timeout=0.01)
+
+    assert signals == [signal.SIGTERM, signal.SIGKILL]
+    assert not status.running

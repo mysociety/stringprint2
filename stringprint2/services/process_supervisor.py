@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import signal
 from pathlib import Path
 from subprocess import DEVNULL, Popen, TimeoutExpired
 from typing import NamedTuple
@@ -24,6 +26,14 @@ class ManagedProcessStatus(NamedTuple):
     process_id: int | None
     return_code: int | None
     log_path: Path
+
+
+def signal_process_group(process_id: int, signal_number: int) -> None:
+    """Signal only the process group created for one managed child."""
+    try:
+        os.killpg(process_id, signal_number)
+    except ProcessLookupError:
+        return
 
 
 class LocalProcessSupervisor:
@@ -78,11 +88,11 @@ class LocalProcessSupervisor:
         process = self.processes.get(name)
         if process is None or process.poll() is not None:
             return self.status(name)
-        process.terminate()
+        signal_process_group(process.pid, signal.SIGTERM)
         try:
             process.wait(timeout=timeout)
         except TimeoutExpired:
-            process.kill()
+            signal_process_group(process.pid, signal.SIGKILL)
             process.wait(timeout=timeout)
         return self.status(name)
 
