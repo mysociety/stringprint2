@@ -68,7 +68,9 @@ python-unsplash = {git = "https://github.com/ajparsons/python-unsplash.git"}
 # no maintained Django 5 story, so it's vendored at stringprint2/useful_inkleby
 # instead - same import path, sourced locally, one url() call fixed for
 # Django 4.0's removal of django.conf.urls.url.
-[tool.poetry.dev-dependencies]
+pydantic = "^2.12"
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4"
 pytest-django = "^4.9"
 
