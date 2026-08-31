@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Document publishing package"
 authors = ["Alex Parsons <alex.parsons@mysociety.org>"]
 
+[tool.poetry.scripts]
+stringprint-validate = "stringprint2.configuration.cli:main"
+
 [tool.poetry.dependencies]
 python = "^3.14"
 flake8 = ">=3.8.3"

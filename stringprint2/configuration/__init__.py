@@ -15,6 +15,7 @@ from .models import (
     PublicationConfig,
     RepositoryConfig,
 )
+from .validator import ValidationIssue, ValidationReport, validate_document_source
 
 __all__ = [
     "AssetCollection",
@@ -22,8 +23,11 @@ __all__ = [
     "OrganisationConfig",
     "PublicationConfig",
     "RepositoryConfig",
+    "ValidationIssue",
+    "ValidationReport",
     "load_assets_config",
     "load_organisation_config",
     "load_publication_config",
     "load_repository_config",
+    "validate_document_source",
 ]
