@@ -13,6 +13,15 @@ a {
   color: $stringprint-link-color;
 }
 
+.toc_content a {
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+  }
+}
+
 .large-menu {
   padding-top: 0;
   padding-bottom: 0;

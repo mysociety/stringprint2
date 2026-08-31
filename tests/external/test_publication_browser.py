@@ -95,6 +95,11 @@ def check_desktop_navigation_dropdown_and_escape(
 
     response = page.goto(f"{publication_browser.base_url}/")
     assert response is not None and response.ok
+    toc_link = page.locator(".toc_content a").first
+    assert (
+        toc_link.evaluate("element => getComputedStyle(element).textDecorationLine")
+        == "none"
+    )
     assert (
         page.locator("nav.large-menu").evaluate(
             "element => getComputedStyle(element).display"
