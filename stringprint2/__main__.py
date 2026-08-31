@@ -38,6 +38,10 @@ from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     render_publication,
 )
+from stringprint2.services.document_selection import (
+    DocumentSelectionScope,
+    parse_document_selection,
+)
 
 print = rich.print
 
@@ -102,25 +106,18 @@ def select_doc(func: Callable) -> Callable:
     """
 
     def inner(self, inp):
-        protected_terms = ["refresh"]
-        inp = inp.strip().lower()
-        inp = inp.split(" ")
-        pass_down = " ".join([x for x in inp if x in protected_terms or "no-" in x])
-        inp = [x for x in inp if x not in protected_terms + [""] and "no-" not in x]
-        # use current doc
-        if not inp:
-            func(self, pass_down)
-        # apply to all
-        elif "all" in inp:
+        selection = parse_document_selection(inp)
+        if selection.scope is DocumentSelectionScope.CURRENT:
+            func(self, selection.option_text)
+        elif selection.scope is DocumentSelectionScope.ALL:
             print("running for all")
             for slug in self.loaded_docs():
                 self.do_setdoc(slug)
-                func(self, pass_down)
+                func(self, selection.option_text)
         else:
-            # apply to space seperated names
-            for i in inp:
-                self.do_setdoc(i)
-                func(self, pass_down)
+            for slug in selection.slugs:
+                self.do_setdoc(slug)
+                func(self, selection.option_text)
 
     inner.__doc__ = func.__doc__
 
