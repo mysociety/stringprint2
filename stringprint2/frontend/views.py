@@ -13,10 +13,7 @@ from django.contrib.auth import authenticate, login
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils.timezone import now
-from markdown import markdown
-from django.utils.safestring import mark_safe
 from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
-import html2text
 from wsgiref.util import FileWrapper
 from django.shortcuts import HttpResponse
 from django.conf import settings
@@ -143,31 +140,6 @@ class ArticleHeadersView(ArticleEditBase, LoggedInView):
 
         self.form = form
         self.submit_text = "Change Title Image"
-
-
-class ArticleEditView(ArticleEditBase, LoggedInView):
-    template = "frontend//doc_edit.html"
-    url_patterns = [r"^document/(.*)/edit"]
-    url_name = "article.edit"
-
-    def logic(self):
-        """
-        edit the text of the document
-        """
-        if self.request.POST:
-            new_text = self.request.POST["new_text"]
-            html_2_markdown = html2text.HTML2Text()
-            new_text = html_2_markdown.handle(new_text)
-            c = self.article.content()
-            c.raw = new_text
-            c.save()
-            self.article.trigger_reprocess()
-
-        raw = self.article.content().raw
-        if raw:
-            self.raw = mark_safe(markdown(raw))
-        else:
-            self.raw = ""
 
 
 class ArticlePublishView(ArticleEditBase, LoggedInView):
