@@ -198,11 +198,19 @@ def create_operation(
         raise Http404("Publication source does not exist")
     operation_request: PublicationOperationRequest
     if operation_name == "load":
-        operation_request = LoadPublicationRequest(
-            organisation_slug=organisation.slug,
-            publication_slug=publication_slug,
-            refresh_header=request.POST.get("refresh_header") == "on",
-        )
+        if article is None:
+            operation_request = ProcessPublicationRequest(
+                organisation_slug=organisation.slug,
+                publication_slug=publication_slug,
+                refresh_header=request.POST.get("refresh_header") == "on",
+                preprocess=True,
+            )
+        else:
+            operation_request = LoadPublicationRequest(
+                organisation_slug=organisation.slug,
+                publication_slug=publication_slug,
+                refresh_header=request.POST.get("refresh_header") == "on",
+            )
     elif operation_name == "process":
         operation_request = ProcessPublicationRequest(
             organisation_slug=organisation.slug,

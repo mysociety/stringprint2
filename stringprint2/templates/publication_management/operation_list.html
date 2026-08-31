@@ -3,14 +3,30 @@
 {% block title %}<title>Publication operations</title>{% endblock %}
 
 {% block content %}
-<h1 class="page-header">Publication operations</h1>
-{% if worker_available %}<div class="alert alert-success">Operation worker available</div>{% else %}<div class="alert alert-danger">Operation worker unavailable</div>{% endif %}
-<p><a href="{% url 'publication_management:publication_list' %}">Manage publications</a></p>
-<form method="get">
-    <label>State <select name="state"><option value="">All</option>{% for value, label in state_choices %}<option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Operation <input name="operation" value="{{ selected_operation }}"></label>
-    <label>Publication <input name="publication" value="{{ selected_publication }}"></label>
-    <button type="submit">Filter</button>
-</form>
+<div class="page-header">
+    <a class="btn btn-default pull-right" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-book" aria-hidden="true"></span> Manage publications</a>
+    <h1>Publication operations</h1>
+</div>
+{% if worker_available %}<div class="alert alert-success" role="status"><span class="fa fa-check-circle" aria-hidden="true"></span> Operation worker available</div>{% else %}<div class="alert alert-danger" role="alert"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span> Operation worker unavailable</div>{% endif %}
+<div class="panel panel-default">
+    <div class="panel-heading"><h2 class="panel-title">Filter history</h2></div>
+    <div class="panel-body">
+        <form class="form-inline" method="get">
+            <div class="form-group">
+                <label for="operation-state">State</label>
+                <select class="form-control" id="operation-state" name="state"><option value="">All</option>{% for value, label in state_choices %}<option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group">
+                <label for="operation-name">Operation</label>
+                <input class="form-control" id="operation-name" name="operation" value="{{ selected_operation }}">
+            </div>
+            <div class="form-group">
+                <label for="publication-slug">Publication</label>
+                <input class="form-control" id="publication-slug" name="publication" value="{{ selected_publication }}">
+            </div>
+            <button class="btn btn-primary" type="submit"><span class="fa fa-filter" aria-hidden="true"></span> Filter</button>
+        </form>
+    </div>
+</div>
 {% include "publication_management/operation_table.html" %}
 {% endblock %}

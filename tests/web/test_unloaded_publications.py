@@ -30,10 +30,13 @@ def test_dashboard_lists_unloaded_source_and_enqueues_initial_load(client, org) 
     operation = PublicationOperation.objects.get(publication_slug="minimal-doc")
     assert listing.status_code == 200
     assert b"minimal-doc" in listing.content
-    assert b"not loaded" in listing.content
+    assert b"Not loaded" in listing.content
+    assert b"Load and process" in listing.content
+    assert b"table table-striped table-hover" in listing.content
     assert response.status_code == 302
     assert operation.article is None
-    assert operation.operation_name == "load"
+    assert operation.operation_name == "process"
+    assert operation.parameters["preprocess"] is True
 
 
 @pytest.mark.django_db

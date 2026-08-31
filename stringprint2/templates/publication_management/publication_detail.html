@@ -3,47 +3,68 @@
 {% block title %}<title>Manage {{ article.title }}</title>{% endblock %}
 
 {% block content %}
-<h1 class="page-header">{{ article.title }}</h1>
-<p><a href="{% url 'publication_management:publication_list' %}">All publications</a></p>
+<div class="page-header">
+    <a class="btn btn-default pull-right" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-arrow-left" aria-hidden="true"></span> All publications</a>
+    <h1>{{ article.title }} <small>{{ article.slug }}</small></h1>
+</div>
 
-<h2>Actions</h2>
-<form method="post" action="{% url 'publication_management:create_operation' article.slug 'load' %}">
-    {% csrf_token %}
-    <label><input type="checkbox" name="refresh_header"> Refresh header</label>
-    <button type="submit">Load configuration</button>
-</form>
-<form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
-    {% csrf_token %}
-    <label><input type="checkbox" name="refresh_header" checked> Refresh assets and header</label>
-    <label><input type="checkbox" name="preprocess" checked> Run preprocessor</label>
-    <button type="submit">Process</button>
-</form>
-<form method="post" action="{% url 'publication_management:create_operation' article.slug 'render' %}">
-    {% csrf_token %}
-    <label>Format
-        <select name="output_format">
-            <option value="web">Web</option>
-            <option value="epub">EPUB</option>
-            <option value="kindle">Kindle</option>
-        </select>
-    </label>
-    <label><input type="checkbox" name="refresh"> Full refresh</label>
-    <button type="submit">Render</button>
-</form>
-<form method="post" action="{% url 'publication_management:create_operation' article.slug 'archive' %}">
-    {% csrf_token %}
-    <label><input type="checkbox" name="refresh"> Full refresh</label>
-    <button type="submit">Create ZIP archive</button>
-</form>
+<div class="row">
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h2 class="panel-title">Load and process</h2></div>
+            <div class="panel-body">
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'load' %}">
+                    {% csrf_token %}
+                    <div class="checkbox"><label><input type="checkbox" name="refresh_header"> Refresh header configuration</label></div>
+                    <button class="btn btn-default" type="submit"><span class="fa fa-download" aria-hidden="true"></span> Load configuration</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
+                    {% csrf_token %}
+                    <div class="checkbox"><label><input type="checkbox" name="refresh_header" checked> Refresh assets and header</label></div>
+                    <div class="checkbox"><label><input type="checkbox" name="preprocess" checked> Run preprocessor</label></div>
+                    <button class="btn btn-primary" type="submit"><span class="fa fa-cogs" aria-hidden="true"></span> Process publication</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h2 class="panel-title">Generate output</h2></div>
+            <div class="panel-body">
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'render' %}">
+                    {% csrf_token %}
+                    <div class="form-group"><label for="output-format">Format</label><select class="form-control" id="output-format" name="output_format"><option value="web">Web</option><option value="epub">EPUB</option><option value="kindle">Kindle</option></select></div>
+                    <div class="checkbox"><label><input type="checkbox" name="refresh"> Full refresh</label></div>
+                    <button class="btn btn-primary" type="submit"><span class="fa fa-file" aria-hidden="true"></span> Render</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'archive' %}">
+                    {% csrf_token %}
+                    <div class="checkbox"><label><input type="checkbox" name="refresh"> Full refresh</label></div>
+                    <button class="btn btn-default" type="submit"><span class="fa fa-file-archive-o" aria-hidden="true"></span> Create ZIP archive</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if publish_allowed %}
-<form method="post" action="{% url 'publication_management:create_operation' article.slug 'publish' %}">
-    {% csrf_token %}
-    <label><input type="checkbox" name="refresh"> Full refresh</label>
-    <button type="submit">Publish</button>
-</form>
+<div class="panel panel-warning">
+    <div class="panel-heading"><h2 class="panel-title">Publish</h2></div>
+    <div class="panel-body">
+        <p>Build the publication archive and run its configured publishing command.</p>
+        <form method="post" action="{% url 'publication_management:create_operation' article.slug 'publish' %}">
+            {% csrf_token %}
+            <div class="checkbox"><label><input type="checkbox" name="refresh"> Full refresh</label></div>
+            <button class="btn btn-warning" type="submit"><span class="fa fa-cloud-upload" aria-hidden="true"></span> Publish</button>
+        </form>
+    </div>
+</div>
 {% endif %}
 
-<h2>Recent operations</h2>
-{% include "publication_management/operation_table.html" %}
+<div class="panel panel-default">
+    <div class="panel-heading"><h2 class="panel-title">Recent operations</h2></div>
+    {% include "publication_management/operation_table.html" %}
+</div>
 {% endblock %}

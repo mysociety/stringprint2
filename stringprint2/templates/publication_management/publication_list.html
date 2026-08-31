@@ -3,27 +3,37 @@
 {% block title %}<title>Manage publications</title>{% endblock %}
 
 {% block content %}
-<h1 class="page-header">Manage publications</h1>
-{% if worker_available %}<div class="alert alert-success">Operation worker available</div>{% else %}<div class="alert alert-danger">Operation worker unavailable; queued work will remain pending.</div>{% endif %}
-<p><a href="{% url 'publication_management:operation_list' %}">Operation history</a></p>
-<ul>
-{% for publication in publications %}
-    {% if publication.loaded %}
-    <li>
-        <a href="{% url 'publication_management:publication_detail' publication.slug %}">{{ publication.title }}</a>
-        — {% if publication.configuration_error %}<span class="text-danger">{{ publication.configuration_error }}</span>{% elif publication.needs_update %}update available{% else %}current or not yet published{% endif %}
-        {% if publication.latest_operation_id %}— <a href="{% url 'publication_management:operation_detail' publication.latest_operation_id %}">{{ publication.latest_operation_state }}</a>{% endif %}
-    </li>
-    {% else %}
-    <li>
-        {{ publication.title }} — not loaded
-        <form method="post" action="{% url 'publication_management:create_operation' publication.slug 'load' %}" style="display:inline">
-            {% csrf_token %}<button type="submit">Load</button>
-        </form>
-    </li>
-    {% endif %}
-{% empty %}
-    <li>No loaded publications.</li>
-{% endfor %}
-</ul>
+<div class="page-header">
+    <a class="btn btn-default pull-right" href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operation history</a>
+    <h1>Manage publications</h1>
+</div>
+{% if worker_available %}<div class="alert alert-success" role="status"><span class="fa fa-check-circle" aria-hidden="true"></span> Operation worker available</div>{% else %}<div class="alert alert-danger" role="alert"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span> Operation worker unavailable; queued work will remain pending.</div>{% endif %}
+<div class="panel panel-default">
+    <div class="panel-heading"><h2 class="panel-title">Publications</h2></div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead><tr><th>Publication</th><th>Source status</th><th>Latest operation</th><th class="text-right">Actions</th></tr></thead>
+            <tbody>
+            {% for publication in publications %}
+                <tr>
+                    <td>{% if publication.loaded %}<a href="{% url 'publication_management:publication_detail' publication.slug %}"><strong>{{ publication.title }}</strong></a>{% else %}<strong>{{ publication.title }}</strong>{% endif %}<br><small class="text-muted">{{ publication.slug }}</small></td>
+                    <td>
+                        {% if not publication.loaded %}<span class="label label-default">Not loaded</span>
+                        {% elif publication.configuration_error %}<span class="text-danger"><span class="fa fa-exclamation-circle" aria-hidden="true"></span> {{ publication.configuration_error }}</span>
+                        {% elif publication.needs_update %}<span class="label label-warning">Update available</span>
+                        {% else %}<span class="label label-success">Current</span>{% endif %}
+                    </td>
+                    <td>{% if publication.latest_operation_id %}<a href="{% url 'publication_management:operation_detail' publication.latest_operation_id %}">{{ publication.latest_operation_state|title }}</a>{% else %}<span class="text-muted">No operations</span>{% endif %}</td>
+                    <td class="text-right">
+                        {% if publication.loaded %}<a class="btn btn-primary btn-sm" href="{% url 'publication_management:publication_detail' publication.slug %}"><span class="fa fa-cog" aria-hidden="true"></span> Manage</a>
+                        {% else %}<form method="post" action="{% url 'publication_management:create_operation' publication.slug 'load' %}" style="display: inline">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit"><span class="fa fa-play" aria-hidden="true"></span> Load and process</button></form>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td class="text-muted text-center" colspan="4">No publications found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

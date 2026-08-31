@@ -109,3 +109,26 @@ def test_pending_retry_and_terminal_cancel_return_bad_request(
 
     assert retry.status_code == 400
     assert cancel.status_code == 400
+
+
+@pytest.mark.django_db
+def test_active_operation_detail_refreshes_until_terminal(
+    client,
+    operation_user,
+    org,
+) -> None:
+    """Active logs refresh every five seconds and terminal history stays still."""
+    operation = enqueue_process(org, "minimal-doc")
+    url = reverse("publication_management:operation_detail", args=(operation.pk,))
+
+    active = client.get(url)
+    operation.state = PublicationOperationState.SUCCEEDED
+    operation.save(update_fields=("state",))
+    terminal = client.get(url)
+
+    assert active.status_code == 200
+    assert b'http-equiv="refresh"' in active.content
+    assert b'content="5"' in active.content
+    assert b"refreshes every five seconds" in active.content
+    assert b"panel panel-default" in active.content
+    assert b'http-equiv="refresh"' not in terminal.content
