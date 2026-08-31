@@ -45,10 +45,7 @@ from stringprint2.services.document_selection import (
 
 print = rich.print
 
-try:
-    os.environ.pop("DJANGO_SETTINGS_MODULE")
-except Exception:
-    pass
+os.environ.pop("DJANGO_SETTINGS_MODULE", None)
 
 
 # add the stringprint dir to the working directory
@@ -371,19 +368,16 @@ class SPPrompt(cmd.Cmd):
 
     def do_publish_updated(self, inp):
         """
-        ### unfinished
-        republish any that have been updated since last time
-        they were published
+        Process and republish documents changed since their last publication.
         """
         for f in self.get_valid_doc_folders():
             self.do_setdoc(f.name, silent=True)
             needs_update = self.do_check_for_update(inp)
             if needs_update:
                 print(f"Republishing {f.name}")
-                # self.do_load()
-                # self.do_process()
-                # self.do_renderzip("refresh")
-                # self.do_publish()
+                self.do_process("refresh")
+                self.do_renderzip("refresh")
+                self.do_publish("no-render-zip")
 
     def do_check_for_update(self, inp=""):
         """

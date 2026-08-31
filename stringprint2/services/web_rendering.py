@@ -49,13 +49,6 @@ class WebPublication(Protocol):
 
         ...
 
-    def prepare_assets(self) -> None:
-        """
-        Prepare publication assets for rendering.
-        """
-
-        ...
-
     def tinify_headers(self) -> None:
         """
         Prepare small header images.
@@ -176,7 +169,6 @@ def render_web_publication_staging(
     if not target_url:
         raise ValueError("No valid sharing URL stated.")
 
-    publication.prepare_assets()
     publication.tinify_headers()
     organisation_static = create_web_directories(publication, destination)
     settings.SITE_ROOT = target_url

@@ -33,13 +33,6 @@ class KindlePublication(Protocol):
     book_cover: Any
     slug: str
 
-    def prepare_assets(self) -> None:
-        """
-        Prepare derived publication assets.
-        """
-
-        ...
-
     def tinify_headers(self) -> None:
         """
         Prepare small header derivatives.
@@ -88,7 +81,6 @@ def render_kindle_staging(
         KindleView,
     )
 
-    publication.prepare_assets()
     publication.tinify_headers()
     settings.STATIC_URL = "./"
     settings.DEBUG = False

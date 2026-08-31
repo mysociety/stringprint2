@@ -599,19 +599,6 @@ class Article(models.Model):
             print("saving {0}".format(f.slug))
             f.save()
 
-    def prepare_assets(self) -> None:
-        """
-        if assets have a chart - produce the image
-
-        Used to call Asset.get_chart_image() here, which loaded the chart in
-        a Selenium-driven Firefox to screenshot it. That method was already
-        broken on Python 3 (contents.decode("base64") - impossible since
-        Python 2 - and find_element_by_id, removed in Selenium 4) and needed
-        geckodriver, which was never installed in the image, so nothing was
-        ever actually calling it successfully - removed rather than fixed.
-        """
-        pass
-
     def tinify_headers(self) -> None:
         """
         creates tiny version of headers if needed
