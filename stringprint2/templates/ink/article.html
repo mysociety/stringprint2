@@ -245,15 +245,12 @@
 {% compress js file base_js %}
      <script type="text/javascript"  src="{% static 'vendor/misc/jquery-3.5.1.min.js' %}" ></script>
     <script type="text/javascript"  src="{% static 'vendor/misc/jquery.waypoints.min.js' %}" ></script>
-    <script type="text/javascript" src="{% static 'vendor/misc/popper.min.js' %}"></script>
-	<script type="text/javascript"  src="{% static 'vendor/bootstrap/js/dist/util.js' %}" ></script>
-    <script type="text/javascript"  src="{% static 'vendor/bootstrap/js/dist/dropdown.js' %}" ></script>
-    <script type="text/javascript"  src="{% static 'vendor/bootstrap/js/dist/collapse.js' %}" ></script>
     <script type="text/javascript" src="{% static 'vendor/misc/clipboard.js' %}"></script>
     <script type="text/javascript" src="{% static 'vendor/misc/modernizr-custom.js' %}"></script>
 	<script type="text/javascript" src="{% static 'js/document_analytics.js' %}"></script>
 	<script type="text/javascript" src="{% static 'js/document_notes.js' %}"></script>
 	<script type="text/javascript" src="{% static 'js/document_citations.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/document_menus.js' %}"></script>
 	<script type="text/javascript" src="{% static 'js/stringprint.js' %}"></script>
 	{% block extra_js %}
 	{% endblock %}

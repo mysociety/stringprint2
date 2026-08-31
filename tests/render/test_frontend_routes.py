@@ -20,3 +20,13 @@ def test_search_template_uses_native_search_module() -> None:
     assert "document_search.js" in source
     assert "tipuesearch.min.js" not in source
     assert "tipuesearch_set.js" not in source
+
+
+def test_article_template_uses_native_menu_module() -> None:
+    """Published menus no longer load Bootstrap's jQuery plugins or Popper."""
+    source = get_template("ink/article.html").template.source
+
+    assert "document_menus.js" in source
+    assert "popper.min.js" not in source
+    assert "bootstrap/js/dist/dropdown.js" not in source
+    assert "bootstrap/js/dist/collapse.js" not in source

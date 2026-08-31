@@ -464,22 +464,6 @@ $('#menu-prev').on('click touchend', local_link_handler);
 $('#menu-next').on('click touchend', local_link_handler);
 
 
-$("a.dropdown-toggle").attr('href', 'javascript:void(0)');
-
-
-$(".dropdown-menu a").click(function () {
-    $(this).closest(".dropdown").find("[data-toggle='dropdown']").dropdown("toggle");
-});
-
-
-$('.mobile-menu-list>li>a').on('click', function () {
-    $('.navbar-collapse').collapse('hide');
-});
-
-$('body').on('click', function () {
-    $('.navbar-collapse').collapse('hide');
-});
-
 var dragging = false;
 
 $(".nav-link").on("touchmove", function () {
@@ -585,6 +569,5 @@ window.onresize = window_resize;
 window.onhashchange = followHash;
 window_resize()
 set_mobile_link(1)
-
 
 
