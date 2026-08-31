@@ -52,8 +52,9 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 from ruamel.yaml import YAML
 from useful_inkleby.files import QuickText
-from useful_inkleby.useful_django.fields import JsonBlockField
 from webptools import webplib as webp
+
+from stringprint2.serialization import JsonBlockField
 
 from stringprint.tools.deepink import Graf, Section
 

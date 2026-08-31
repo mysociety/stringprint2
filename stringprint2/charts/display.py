@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 import random
 import string
 from django.template.loader import render_to_string
-from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
+from stringprint2.serialization import SerialObject
 
 from .chart_config import ChartType
 import markdown

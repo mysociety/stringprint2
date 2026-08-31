@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import ClassVar
 
-from useful_inkleby.useful_django.serialisers import SerialBase
+from stringprint2.serialization import SerialBase
 
 
 class ChartType(SerialBase):

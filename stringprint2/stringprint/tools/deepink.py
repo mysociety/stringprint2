@@ -3,6 +3,7 @@
 Deep Ink Processor
 classes and object
 """
+
 import markdown
 import math
 import base64
@@ -10,7 +11,7 @@ import hashlib
 import re
 from bs4 import BeautifulSoup, NavigableString
 
-from useful_inkleby.useful_django.serialisers import SerialObject
+from stringprint2.serialization import SerialObject
 from django.utils.html import mark_safe, escape
 import random
 import string
