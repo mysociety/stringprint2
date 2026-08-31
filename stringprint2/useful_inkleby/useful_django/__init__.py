@@ -1,5 +1,1 @@
-'''
-Created on 1 Apr 2016
-
-@author: Alex
-'''
+"""Compatibility namespace retained for historical Django migrations only."""

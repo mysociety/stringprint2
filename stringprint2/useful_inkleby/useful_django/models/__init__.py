@@ -1,7 +1,5 @@
-from .mixins import *
-from .flexi import *
+"""Historical model-base imports used by migrations."""
 
-class FlexiBulkModel(FlexiModel,EasyBulkModel,StockModelHelpers):
-    
-    class Meta:
-        abstract = True
+from .mixins import StockModelHelpers
+
+__all__ = ["StockModelHelpers"]

@@ -66,11 +66,8 @@ google-api-python-client = ">=2.42.0"
 oauth2client = ">=4.1.3"
 django-pipeline-csscompressor = {git = "https://github.com/mysociety/django-pipeline-csscompressor.git"}
 python-unsplash = {git = "https://github.com/ajparsons/python-unsplash.git"}
-# useful-inkleby was previously a git dependency (ajparsons/useful_inkleby@d2).
-# It supplied the view framework, serialisers and two custom model fields with
-# no maintained Django 5 story, so it's vendored at stringprint2/useful_inkleby
-# instead - same import path, sourced locally, one url() call fixed for
-# Django 4.0's removal of django.conf.urls.url.
+# Historical migrations retain a six-file useful_inkleby import shim. Runtime
+# views, serialization, model helpers, and file handling are project-owned.
 pydantic = "^2.12"
 
 [tool.poetry.group.dev.dependencies]
