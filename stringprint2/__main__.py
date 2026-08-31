@@ -28,7 +28,10 @@ from stringprint2.services.publication_catalog import (
 )
 from stringprint2.services.publication_freshness import publication_needs_update
 from stringprint2.services.publication_rendering import PublicationRenderFormat
-from publication_management.foreground import run_foreground_publication_operation
+from publication_management.foreground import (
+    run_foreground_publication_operation,
+    run_locked_publication_action,
+)
 from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,
     LoadPublicationRequest,
@@ -461,7 +464,9 @@ class SPPrompt(cmd.Cmd):
         else:
             docx = Path(f, docxs[0])
             dest = Path(f, "document.md")
-            convert_word(docx, dest, demote)
+            run_locked_publication_action(
+                self.doc_folder, lambda: convert_word(docx, dest, demote)
+            )
 
     @select_doc
     def do_process(self, refresh: str):
@@ -500,7 +505,10 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        result = run_publication_command(doc, self.doc_folder, command)
+        result = run_locked_publication_action(
+            self.doc_folder,
+            lambda: run_publication_command(doc, self.doc_folder, command),
+        )
         print(f"Finished command {command}: {result.title}")
 
     @select_doc
@@ -514,7 +522,10 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        result = run_publication_command(doc, self.doc_folder, "preprocess")
+        result = run_locked_publication_action(
+            self.doc_folder,
+            lambda: run_publication_command(doc, self.doc_folder, "preprocess"),
+        )
         print(f"Finished pre-processing: {result.title}")
 
     @select_doc
@@ -668,7 +679,9 @@ class SPPrompt(cmd.Cmd):
         front_page = Path(df, "cover.pdf")
         contents = Path(df, "contents.pdf")
         output = Path(df, "{0}.pdf".format(self.current_doc))
-        merge_pdfs(front_page, contents, output)
+        run_locked_publication_action(
+            self.doc_folder, lambda: merge_pdfs(front_page, contents, output)
+        )
 
     @select_doc
     def do_pdfpng(self, inp):
@@ -686,8 +699,12 @@ class SPPrompt(cmd.Cmd):
                 )
             )
             return None
-        pdf_page_to_png(front_page, output)
-        create_thumbnail(output, thumb)
+
+        def create_images() -> None:
+            pdf_page_to_png(front_page, output)
+            create_thumbnail(output, thumb)
+
+        run_locked_publication_action(self.doc_folder, create_images)
 
     @select_doc
     def do_hero(self, inp):
@@ -701,7 +718,9 @@ class SPPrompt(cmd.Cmd):
         if config.header is not None:
             hero_path = self.doc_folder / config.header.location
             destination = Path(self.doc_folder, "hero.png")
-            create_hero(hero_path, destination)
+            run_locked_publication_action(
+                self.doc_folder, lambda: create_hero(hero_path, destination)
+            )
 
     def do_newdoc(self, inp):
         """
@@ -723,8 +742,10 @@ class SPPrompt(cmd.Cmd):
                 org=self.current_org, slug=self.current_doc
             )
         if first in self.current_org.commands or first in doc.commands:
-            doc.load_from_yaml(self.doc_folder)
-            doc.run_command(line)
+            run_locked_publication_action(
+                self.doc_folder,
+                lambda: run_publication_command(doc, self.doc_folder, line),
+            )
             print("Finished command {1}: {0}".format(doc.title, line))
         else:
             return super().default(line)
