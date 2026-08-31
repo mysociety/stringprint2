@@ -35,6 +35,7 @@ from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,
     LoadPublicationRequest,
     ProcessPublicationRequest,
+    PublishPublicationRequest,
     RenderPublicationRequest,
     run_publication_operation,
 )
@@ -531,7 +532,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        result = run_publication_command(doc, self.doc_folder, "publish")
+        request = PublishPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            render_archive=False,
+        )
+        result = run_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
         print(f"Finished publishing: {result.title}")
 
     def do_quit(self, inp):

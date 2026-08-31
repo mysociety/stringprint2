@@ -36,6 +36,14 @@
     <button type="submit">Create ZIP archive</button>
 </form>
 
+{% if publish_allowed %}
+<form method="post" action="{% url 'publication_management:create_operation' article.slug 'publish' %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="refresh"> Full refresh</label>
+    <button type="submit">Publish</button>
+</form>
+{% endif %}
+
 <h2>Recent operations</h2>
 {% include "publication_management/operation_table.html" %}
 {% endblock %}

@@ -19,6 +19,7 @@ from stringprint2.services.publication_workflow import (
     PublicationDocument,
     load_publication,
     process_publication,
+    run_publication_command,
 )
 
 
@@ -29,6 +30,7 @@ class PublicationOperationName(StrEnum):
     PROCESS = "process"
     RENDER = "render"
     ARCHIVE = "archive"
+    PUBLISH = "publish"
 
 
 class PublicationOperationStage(StrEnum):
@@ -39,6 +41,7 @@ class PublicationOperationStage(StrEnum):
     PROCESSING = "processing"
     RENDERING = "rendering"
     ARCHIVING = "archiving"
+    PUBLISHING = "publishing"
     COMPLETE = "complete"
 
 
@@ -121,11 +124,26 @@ class ArchivePublicationRequest(BaseModel):
     refresh: bool = False
 
 
+class PublishPublicationRequest(BaseModel):
+    """Request the fixed configured publication workflow."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.PUBLISH] = (
+        PublicationOperationName.PUBLISH
+    )
+    organisation_slug: str
+    publication_slug: str
+    render_archive: bool = True
+    refresh: bool = False
+
+
 PublicationOperationRequest: TypeAlias = Annotated[
     LoadPublicationRequest
     | ProcessPublicationRequest
     | RenderPublicationRequest
-    | ArchivePublicationRequest,
+    | ArchivePublicationRequest
+    | PublishPublicationRequest,
     Field(discriminator="operation"),
 ]
 
@@ -173,11 +191,24 @@ class ArchivePublicationResult(BaseModel):
     location: Path
 
 
+class PublishPublicationResult(BaseModel):
+    """Describe a completed configured publish and optional archive artefact."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.PUBLISH] = (
+        PublicationOperationName.PUBLISH
+    )
+    title: str
+    archive_location: Path | None = None
+
+
 PublicationOperationResult: TypeAlias = (
     LoadPublicationResult
     | ProcessPublicationResult
     | RenderPublicationResult
     | ArchivePublicationResult
+    | PublishPublicationResult
 )
 PublicationOperationHandler: TypeAlias = Callable[
     [PublicationOperationRequest, PublicationOperationContext],
@@ -261,6 +292,39 @@ def run_archive_operation(
     return ArchivePublicationResult(location=result.location.with_suffix(".zip"))
 
 
+def run_publish_operation(
+    request: PublicationOperationRequest,
+    context: PublicationOperationContext,
+) -> PublicationOperationResult:
+    """Execute the fixed configured publish workflow."""
+    if not isinstance(request, PublishPublicationRequest):
+        raise TypeError("The publish handler requires a publish request")
+    archive_location = None
+    if request.render_archive:
+        context.progress.update(
+            PublicationOperationStage.ARCHIVING, request.publication_slug
+        )
+        archive = render_publication_archive(
+            context.publication,
+            context.source_folder,
+            request.publication_slug,
+            refresh=request.refresh,
+        )
+        archive_location = archive.location.with_suffix(".zip")
+    context.progress.update(
+        PublicationOperationStage.PUBLISHING, request.publication_slug
+    )
+    published = run_publication_command(
+        context.publication,
+        context.source_folder,
+        "publish",
+    )
+    return PublishPublicationResult(
+        title=published.title,
+        archive_location=archive_location,
+    )
+
+
 class PublicationOperationRegistry:
     """Resolve the fixed set of publication operations to typed handlers."""
 
@@ -303,6 +367,7 @@ def create_publication_operation_registry() -> PublicationOperationRegistry:
     registry.register(PublicationOperationName.PROCESS, run_process_operation)
     registry.register(PublicationOperationName.RENDER, run_render_operation)
     registry.register(PublicationOperationName.ARCHIVE, run_archive_operation)
+    registry.register(PublicationOperationName.PUBLISH, run_publish_operation)
     return registry
 
 

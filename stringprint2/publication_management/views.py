@@ -23,9 +23,21 @@ from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,
     LoadPublicationRequest,
     ProcessPublicationRequest,
+    PublishPublicationRequest,
     RenderPublicationRequest,
 )
 from stringprint2.services.publication_rendering import PublicationRenderFormat
+
+
+def publication_web_operation_allowed(
+    article: Article,
+    operation_name: str,
+) -> bool:
+    """Require an authored allow-list entry and matching configured command."""
+    allowed = article.extra_values.get("web_operations", [])
+    if not isinstance(allowed, list) or operation_name not in allowed:
+        return False
+    return operation_name in article.commands or operation_name in article.org.commands
 
 
 def organisation_for_request(request: HttpRequest) -> Organisation:
@@ -76,7 +88,12 @@ def publication_detail(
     return render(
         request,
         "publication_management/publication_detail.html",
-        {"org": organisation, "article": article, "operations": operations},
+        {
+            "org": organisation,
+            "article": article,
+            "operations": operations,
+            "publish_allowed": publication_web_operation_allowed(article, "publish"),
+        },
     )
 
 
@@ -157,6 +174,15 @@ def create_operation(
         operation_request = ArchivePublicationRequest(
             organisation_slug=organisation.slug,
             publication_slug=article.slug,
+            refresh=request.POST.get("refresh") == "on",
+        )
+    elif operation_name == "publish":
+        if not publication_web_operation_allowed(article, "publish"):
+            raise PermissionDenied("Web publishing is not enabled for this publication")
+        operation_request = PublishPublicationRequest(
+            organisation_slug=organisation.slug,
+            publication_slug=article.slug,
+            render_archive=True,
             refresh=request.POST.get("refresh") == "on",
         )
     else:

@@ -109,6 +109,7 @@ class PublicationConfig(ConfigurationModel):
     production_url: str | None = None
     repo_entry: str | None = None
     commands: dict[str, str] = Field(default_factory=dict)
+    web_operations: list[Literal["publish"]] = Field(default_factory=list)
     google_doc_url: str | None = None
     unsplash_title_image_url: str | None = None
     bottom_iframe: str | None = None
