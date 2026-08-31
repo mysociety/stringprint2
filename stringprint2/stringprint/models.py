@@ -20,6 +20,11 @@ import markdown
 import mkepub
 import tinify
 from stringprint2.charts import Chart
+from stringprint2.configuration import (
+    load_assets_config,
+    load_organisation_config,
+    load_publication_config,
+)
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -157,7 +162,10 @@ class Organisation(models.Model):
         return self.org_scss("screenshot.scss")
 
     def load_from_yaml(self) -> None:
-        data = get_yaml(os.path.join(self.storage_dir, "_conf", "settings.yaml"))
+        organisation_config = load_organisation_config(
+            Path(self.storage_dir) / "_conf" / "settings.yaml"
+        )
+        data = organisation_config.model_dump(exclude_unset=True)
         ignore = ["orglinks"]
         change = False
 
@@ -417,7 +425,13 @@ class Article(models.Model):
         Load config for the article from the stored file
         """
         print("loading yaml")
-        data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
+        organisation_config = load_organisation_config(
+            Path(self.org.storage_dir) / "_conf" / "settings.yaml"
+        )
+        publication_config = load_publication_config(
+            Path(storage_dir) / "settings.yaml", organisation_config
+        )
+        data = publication_config.model_dump(exclude_unset=True)
         ignore = ["header", "book_cover"]
 
         existing_keys = list(self.extra_values.keys())
@@ -610,11 +624,12 @@ class Article(models.Model):
         yaml_file = os.path.join(asset_folder, "assets.yaml")
         if not os.path.isfile(yaml_file):
             return None
-        data = get_yaml(yaml_file)
+        data = load_assets_config(Path(yaml_file))
         slugs = []
         assets = []
-        for i in data:
-            for k, v in i.items():
+        for item in data.root:
+            for k, asset_config in item.items():
+                v = asset_config.model_dump(exclude_unset=True)
                 v["slug"] = k
                 slugs.append(k)
                 assets.append(v)

@@ -121,7 +121,7 @@ class AssetConfig(ConfigurationModel):
     Define fields shared by every publication asset.
     """
 
-    caption: str | None
+    caption: str | None = None
     alt_text: str | None = None
     longdesc: str | None = None
 
@@ -133,6 +133,7 @@ class ImageAssetConfig(AssetConfig):
 
     content_type: Literal["image"]
     type: Literal["jpeg", "jpg", "png"]
+    size: int = 6
 
 
 class TableAssetConfig(AssetConfig):
