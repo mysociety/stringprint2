@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
 pytestmark = pytest.mark.django_db
@@ -76,9 +77,9 @@ class TestSearchViews:
         assert "An ordinary opening paragraph" in response.content.decode("utf-8")
 
     def test_the_index_is_javascript_shaped(self, client, kitchen_sink) -> None:
-        body = client.get(
-            "/preview/kitchen-sink/search_content.js"
-        ).content.decode("utf-8")
+        body = client.get("/preview/kitchen-sink/search_content.js").content.decode(
+            "utf-8"
+        )
         assert "publicationSearchIndex" in body
 
 
@@ -133,9 +134,7 @@ class TestEpubChapters:
         )
         assert response.status_code == 200
 
-    def test_the_chapter_contains_only_its_own_text(
-        self, client, kitchen_sink
-    ) -> None:
+    def test_the_chapter_contains_only_its_own_text(self, client, kitchen_sink) -> None:
         response = client.get("/preview/kitchen-sink/epub/footnotes/")
         page = response.content.decode("utf-8")
         assert "numbered footnote reference" in page
@@ -148,32 +147,31 @@ class TestAssetView:
         assert response.status_code == 200
 
     def test_a_table_asset_renders_a_table(self, client, kitchen_sink) -> None:
-        page = client.get(
-            "/preview/asset/kitchen-sink/table-one/"
-        ).content.decode("utf-8")
+        page = client.get("/preview/asset/kitchen-sink/table-one/").content.decode(
+            "utf-8"
+        )
         assert "<table" in page
 
     @pytest.mark.parametrize("slug", ["html-one", "image-one"])
     def test_an_asset_without_a_chart_renders(
         self, client, kitchen_sink, slug: str
     ) -> None:
-        assert client.get(
-            "/preview/asset/kitchen-sink/{0}/".format(slug)
-        ).status_code == 200
+        assert (
+            client.get("/preview/asset/kitchen-sink/{0}/".format(slug)).status_code
+            == 200
+        )
 
     def test_an_html_asset_renders_its_content(self, client, kitchen_sink) -> None:
-        page = client.get(
-            "/preview/asset/kitchen-sink/html-one/"
-        ).content.decode("utf-8")
+        page = client.get("/preview/asset/kitchen-sink/html-one/").content.decode(
+            "utf-8"
+        )
         assert "embedded-html-asset" in page
 
 
 class TestRedirectLinkView:
     def test_a_paragraph_link_page_renders(self, client, kitchen_sink) -> None:
         graf = kitchen_sink.content().sections[0].grafs[0]
-        response = client.get(
-            "/preview/kitchen-sink/l/{0}".format(graf.combo_key())
-        )
+        response = client.get("/preview/kitchen-sink/l/{0}".format(graf.combo_key()))
         assert response.status_code == 200
 
     def test_the_page_quotes_the_paragraph(self, client, kitchen_sink) -> None:
@@ -188,9 +186,28 @@ class TestPreviewIndex:
     def test_the_index_renders(self, client, kitchen_sink) -> None:
         assert client.get("/preview/").status_code == 200
 
-    def test_it_lists_the_loaded_documents(
-        self, client, process_doc
+    @pytest.mark.parametrize("debug", [True, False])
+    def test_the_index_uses_local_bootstrap_5_in_every_environment(
+        self, client, kitchen_sink, debug: bool
     ) -> None:
+        with override_settings(DEBUG=debug):
+            page = client.get("/preview/").content.decode("utf-8")
+
+        assert "css/bootstrap5.min.css" in page
+        assert "maxcdn.bootstrapcdn.com" not in page
+        assert "jumbotron" not in page
+        assert "<h1" in page
+        assert "</h1>" in page
+
+    def test_the_index_uses_bootstrap_5_publication_cards(
+        self, client, kitchen_sink
+    ) -> None:
+        page = client.get("/preview/").content.decode("utf-8")
+
+        assert '<article class="card shadow-sm">' in page
+        assert "btn btn-primary" in page
+
+    def test_it_lists_the_loaded_documents(self, client, process_doc) -> None:
         for slug in ["kitchen-sink", "minimal-doc"]:
             process_doc(slug)
         page = client.get("/preview/").content.decode("utf-8")
@@ -201,9 +218,7 @@ class TestPreviewIndex:
         page = client.get("/preview/").content.decode("utf-8")
         assert 'href="/preview/kitchen-sink/"' in page
 
-    def test_documents_are_ordered_newest_first(
-        self, client, process_doc
-    ) -> None:
+    def test_documents_are_ordered_newest_first(self, client, process_doc) -> None:
         for slug in ["kitchen-sink", "legacy-doc"]:
             process_doc(slug)
         page = client.get("/preview/").content.decode("utf-8")

@@ -1,20 +1,28 @@
-{% extends 'ink/base.html' %}
-
+{% extends "ink/base.html" %}
 
 {% block body %}
-
-{% for b in books %}
-    <div class = "row">
-        <h2>{{b.title}}</h2>
-        {% if b.paywall %}
-        <p class="center-text"><a href="{% url 'article_view' b.slug %}">Read Introduction</a> - <a href="{% url 'access_view' b.slug %}">Get Full Access for {{b.display_price}}</a></p>
-        {% else %}
-        <p class="center-text"><a href="{% url 'article_view' b.slug %}">Read For Free</a></p>
-        {% endif %}
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <h2 class="display-6 mb-4">Publications</h2>
+            <div class="vstack gap-3">
+                {% for book in books %}
+                    <article class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <h3 class="card-title h4">{{ book.title }}</h3>
+                            {% if book.paywall %}
+                                <p class="card-text mb-0">
+                                    <a class="btn btn-primary" href="{% url "article_view" book.slug %}">Read introduction</a>
+                                    <a class="btn btn-outline-primary" href="{% url "access_view" book.slug %}">Get full access for {{ book.display_price }}</a>
+                                </p>
+                            {% else %}
+                                <a class="btn btn-primary" href="{% url "article_view" book.slug %}">Read for free</a>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="alert alert-secondary" role="status">No publications are loaded.</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-{% endfor %}
-
-
-
-
 {% endblock %}
