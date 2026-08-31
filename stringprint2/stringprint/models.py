@@ -25,7 +25,12 @@ from stringprint2.configuration import (
     load_organisation_config,
     load_publication_config,
 )
-from stringprint2.services import build_asset_import_plan, build_publication_load_plan
+from stringprint2.services import (
+    StaticRenderTarget,
+    build_asset_import_plan,
+    build_publication_load_plan,
+    write_static_view,
+)
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -272,18 +277,17 @@ def relativize_static_urls(html: str, depth: int) -> str:
 
 def write_baked_file(view_cls, path: str, args, destination: str) -> None:
     """
-    Wraps BakeView.write_file() (useful_inkleby.useful_django.views.bake) to
-    relativize the STATIC_URL/MEDIA_URL references in what it wrote - see
-    relativize_static_urls.
+    Render one view through the project-owned atomic static renderer.
     """
-    view_cls.write_file(path=path, args=args)
     rel_dir = os.path.relpath(os.path.dirname(path), destination)
     depth = 0 if rel_dir == "." else len(rel_dir.split(os.sep))
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
-    content = relativize_static_urls(content, depth)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
+    target = StaticRenderTarget(destination=Path(path), request_path=path)
+    write_static_view(
+        view_cls,
+        target,
+        args,
+        transform=lambda content: relativize_static_urls(content, depth),
+    )
 
 
 class OrgLinks(models.Model):
