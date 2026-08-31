@@ -4,11 +4,9 @@ import time
 import sys
 import codecs
 import datetime
-import importlib
 import io
 import os
 import shutil
-import subprocess
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -34,6 +32,7 @@ from stringprint2.services.paragraph_links import (
     ParagraphLinkState,
     ParagraphLinkStore,
 )
+from stringprint2.services.configured_commands import run_configured_command
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -1291,51 +1290,10 @@ class Article(models.Model):
         python script.py {{article.slug}} - passes the slug
 
         """
-        command_str = None
-        if command in self.org.commands:
-            command_str = self.org.commands[command]
-            working_directory = self.org.storage_dir
-        if command in self.commands:
-            command_str = self.commands[command]
-            working_directory = self.storage_dir
-
-        if not command_str:
-            print("No {0} command configured".format(command))
-            return
-
-        if command_str.startswith("module::"):
-            module_path = command_str.replace("module::", "")
-            module, item = module_path.split(":")
-            if "$doc/" in module:
-                module = module.replace("$doc/", "")
-                file_path = Path(self.storage_dir) / module
-            if "$org/" in module:
-                module = module.replace("$org/", "")
-                file_path = Path(self.org.storage_dir) / module
-            spec = importlib.util.spec_from_file_location("module.name", file_path)
-            my_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(my_module)
-            detected_item = getattr(my_module, item)
-            result = detected_item(self)
-            # allow for classes to be instanced and then run
-            if callable(result):
-                result()
-            return result
-
-        # prevent execution by restricting to listed fields
         fields = self._meta.fields
         lookup_dict = {x.name: getattr(self, x.name) for x in fields if x.name != "org"}
         lookup_dict.update(self.extra_values)
-
-        c_context = Context({"article": lookup_dict})
-
-        rendered_command = Template(command_str).render(c_context)
-
-        commands = rendered_command.split(" ")
-
-        print("Running {0} commands".format(command))
-        subprocess.call(commands, cwd=working_directory)
-        print("{0} complete".format(command))
+        return run_configured_command(self, command, lookup_dict)
 
     def process(self) -> None:
         """
@@ -2098,9 +2056,7 @@ class Version(models.Model):
             )
         )
         current_keys = [
-            graf.long_combo_key()
-            for section in self.sections
-            for graf in section.grafs
+            graf.long_combo_key() for section in self.sections for graf in section.grafs
         ]
         state = store.reconcile(
             ParagraphLinkState.from_legacy(self.paragraph_links),
