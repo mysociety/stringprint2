@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
@@ -15,6 +17,7 @@ from publication_management.cancellation import (
 from publication_management.logs import read_recent_operation_log
 from publication_management.models import PublicationOperation
 from publication_management.operation_store import enqueue_publication_operation
+from publication_management.worker_health import publication_worker_available
 from stringprint.models import Article, Organisation
 from stringprint2.services.publication_operations import (
     ProcessPublicationRequest,
@@ -44,7 +47,11 @@ def publication_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "publication_management/publication_list.html",
-        {"org": organisation, "publications": publications},
+        {
+            "org": organisation,
+            "publications": publications,
+            "worker_available": publication_worker_available(timedelta(seconds=30)),
+        },
     )
 
 
@@ -79,7 +86,11 @@ def operation_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "publication_management/operation_list.html",
-        {"org": organisation, "operations": operations},
+        {
+            "org": organisation,
+            "operations": operations,
+            "worker_available": publication_worker_available(timedelta(seconds=30)),
+        },
     )
 
 

@@ -14,6 +14,11 @@ from publication_management.operation_store import (
     interrupt_stale_publication_operations,
 )
 from publication_management.worker import execute_next_publication_operation
+from publication_management.worker_health import (
+    WorkerHeartbeat,
+    register_publication_worker,
+    stop_publication_worker,
+)
 
 
 class Command(BaseCommand):
@@ -50,9 +55,18 @@ class Command(BaseCommand):
         if interrupted:
             self.stdout.write(f"Interrupted {interrupted} stale operation(s)")
 
-        while True:
-            operation = execute_next_publication_operation(worker_id)
-            if options["once"]:
-                return
-            if operation is None:
-                time.sleep(options["poll_interval"])
+        worker = register_publication_worker(
+            worker_id,
+            socket.gethostname(),
+            os.getpid(),
+        )
+        try:
+            with WorkerHeartbeat(worker):
+                while True:
+                    operation = execute_next_publication_operation(worker_id)
+                    if options["once"]:
+                        return
+                    if operation is None:
+                        time.sleep(options["poll_interval"])
+        finally:
+            stop_publication_worker(worker)

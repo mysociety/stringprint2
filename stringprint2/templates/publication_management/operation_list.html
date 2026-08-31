@@ -4,6 +4,7 @@
 
 {% block content %}
 <h1 class="page-header">Publication operations</h1>
+{% if worker_available %}<div class="alert alert-success">Operation worker available</div>{% else %}<div class="alert alert-danger">Operation worker unavailable</div>{% endif %}
 <p><a href="{% url 'publication_management:publication_list' %}">Manage publications</a></p>
 {% include "publication_management/operation_table.html" %}
 {% endblock %}

@@ -18,6 +18,34 @@ class PublicationOperationState(models.TextChoices):
     INTERRUPTED = "interrupted", "Interrupted"
 
 
+class PublicationWorkerState(models.TextChoices):
+    """Represent whether a registered worker expects to consume operations."""
+
+    ACTIVE = "active", "Active"
+    STOPPED = "stopped", "Stopped"
+
+
+class PublicationWorker(models.Model):
+    """Record worker liveness independently of queued operation state."""
+
+    worker_id = models.CharField(max_length=255, primary_key=True)
+    hostname = models.CharField(max_length=255)
+    process_id = models.PositiveIntegerField()
+    state = models.CharField(
+        max_length=16,
+        choices=PublicationWorkerState.choices,
+        default=PublicationWorkerState.ACTIVE,
+        db_index=True,
+    )
+    started_at = models.DateTimeField()
+    heartbeat_at = models.DateTimeField(db_index=True)
+    stopped_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        """Show worker identity and liveness state in diagnostics."""
+        return f"{self.worker_id} ({self.state})"
+
+
 class PublicationOperation(models.Model):
     """Record a typed publication operation independently of its worker."""
 
