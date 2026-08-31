@@ -1,0 +1,9 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}<title>Publication operations</title>{% endblock %}
+
+{% block content %}
+<h1 class="page-header">Publication operations</h1>
+<p><a href="{% url 'publication_management:publication_list' %}">Manage publications</a></p>
+{% include "publication_management/operation_table.html" %}
+{% endblock %}

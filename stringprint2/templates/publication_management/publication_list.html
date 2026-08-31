@@ -1,0 +1,15 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}<title>Manage publications</title>{% endblock %}
+
+{% block content %}
+<h1 class="page-header">Manage publications</h1>
+<p><a href="{% url 'publication_management:operation_list' %}">Operation history</a></p>
+<ul>
+{% for publication in publications %}
+    <li><a href="{% url 'publication_management:publication_detail' publication.slug %}">{{ publication.title|default:publication.slug }}</a></li>
+{% empty %}
+    <li>No loaded publications.</li>
+{% endfor %}
+</ul>
+{% endblock %}

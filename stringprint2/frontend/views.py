@@ -10,6 +10,7 @@ from stringprint.models import Article, Organisation
 from django.utils.text import slugify
 from .models import UserSettings
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils.timezone import now
@@ -65,21 +66,15 @@ class GroupedPage(Page):
         return start + list(range(lower, higher)) + end
 
 
-def get_admin_user():
-    if User.objects.filter(username="admin").exists() is False:
-        User.objects.create_superuser(
-            "admin", password="admin", email="local@127.0.0.1"
-        )
-    return User.objects.get(username="admin")
-
-
 class GroupedPaginator(Paginator):
     def _get_page(self, *args, **kwargs):
         return GroupedPage(*args, **kwargs)
 
 
 class LoggedInView(StringprintView):
-    require_login = False
+    """Require an authenticated user for legacy management views."""
+
+    view_decorators = (login_required,)
 
     @before_logic
     def generic(self):
@@ -87,9 +82,6 @@ class LoggedInView(StringprintView):
 
     @before_logic
     def get_org(self):
-        if self.request.user.is_authenticated is False:
-            admin_user = get_admin_user()
-            login(self.request, admin_user)
         self.org = UserSettings.get_org(self.request.user)
 
     def access_denied_no_auth(self, request):

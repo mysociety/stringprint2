@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from django.db import models
 
 from django.contrib.auth.models import User
@@ -21,10 +22,10 @@ class UserSettings(models.Model):
 
     @classmethod
     def get_org(cls, user):
-        if cls.objects.filter(user=user).exists() is False:
-            default = Organisation.objects.all()[0]
-            cls(user=user, org=default).save()
-        return cls.objects.get(user=user).org
+        membership = cls.objects.filter(user=user).select_related("org").first()
+        if membership is None:
+            raise PermissionDenied("No organisation is assigned to this user")
+        return membership.org
 
     @classmethod
     def change_org(cls, user, org):

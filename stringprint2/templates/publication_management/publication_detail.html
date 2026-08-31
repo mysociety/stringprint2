@@ -1,0 +1,31 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}<title>Manage {{ article.title }}</title>{% endblock %}
+
+{% block content %}
+<h1 class="page-header">{{ article.title }}</h1>
+<p><a href="{% url 'publication_management:publication_list' %}">All publications</a></p>
+
+<h2>Actions</h2>
+<form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="refresh_header" checked> Refresh assets and header</label>
+    <label><input type="checkbox" name="preprocess" checked> Run preprocessor</label>
+    <button type="submit">Process</button>
+</form>
+<form method="post" action="{% url 'publication_management:create_operation' article.slug 'render' %}">
+    {% csrf_token %}
+    <label>Format
+        <select name="output_format">
+            <option value="web">Web</option>
+            <option value="epub">EPUB</option>
+            <option value="kindle">Kindle</option>
+        </select>
+    </label>
+    <label><input type="checkbox" name="refresh"> Full refresh</label>
+    <button type="submit">Render</button>
+</form>
+
+<h2>Recent operations</h2>
+{% include "publication_management/operation_table.html" %}
+{% endblock %}
