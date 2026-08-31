@@ -15,7 +15,6 @@ from pathlib import Path
 from tempfile import mkdtemp
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
-import Levenshtein as lev
 import markdown
 import mkepub
 import tinify
@@ -30,6 +29,10 @@ from stringprint2.services import (
     build_asset_import_plan,
     build_publication_load_plan,
     write_static_view,
+)
+from stringprint2.services.paragraph_links import (
+    ParagraphLinkState,
+    ParagraphLinkStore,
 )
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
@@ -50,7 +53,6 @@ from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
 from playwright.sync_api import sync_playwright
-from ruamel.yaml import YAML
 from stringprint2.text_files import TextFile
 from webptools import webplib as webp
 
@@ -66,34 +68,6 @@ class OverwriteStorage(FileSystemStorage):
         if self.exists(name):
             os.remove(os.path.join(self.location, name))
         return super().get_available_name(name, max_length)
-
-
-def fix_yaml(ya):
-    if type(ya) == list:
-        items = [fix_yaml(x) for x in ya]
-        di = {}
-        for i in items:
-            di.update(i)
-        return di
-    if type(ya) == dict:
-        return {x: fix_yaml(y) for x, y in ya.items()}
-    return ya
-
-
-def get_yaml(file_path: str) -> dict:
-    yaml = YAML(typ="safe")
-    with open(file_path, "rb") as doc:
-        data = yaml.load(doc)
-    # data = fix_yaml(data)
-    return data
-
-
-def write_yaml(file_path: str, content: dict) -> None:
-    yaml = YAML()
-    yaml.default_flow_style = False
-
-    with open(file_path, "wb") as f:
-        yaml.dump(content, f)
 
 
 def get_file(fi: str) -> File:
@@ -2078,19 +2052,26 @@ class Version(models.Model):
         return files
 
     def load_paragraph_links(self) -> None:
-        para_file = os.path.join(
-            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
         )
-        if os.path.exists(para_file):
-            self.paragraph_links = get_yaml(para_file)
-        else:
-            self.paragraph_links = []
+        self.paragraph_links = store.load().as_legacy()
 
     def save_paragraph_links(self) -> None:
-        para_file = os.path.join(
-            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
         )
-        write_yaml(para_file, self.paragraph_links)
+        store.save(ParagraphLinkState.from_legacy(self.paragraph_links))
 
     def paragraph_lookup(self) -> Dict[str, Optional[Union[bool, str]]]:
         """
@@ -2100,153 +2081,34 @@ class Version(models.Model):
         'reference' = graf this now maps to
         None = no good mappng
         """
-        lookup = {}
-        for r in self.paragraph_links:
-            if r:
-                lookup.update(r)
-        return lookup
+        return ParagraphLinkState.from_legacy(self.paragraph_links).lookup()
 
     def update_paragraph_links(self) -> None:
         """
         upgrade the list of paragraph links (past and present)
         """
 
-        def six_from_seven(key):
-            parts = key.split(".")
-            return ".".join(parts[:6])
-
         self.load_paragraph_links()
-        paragraph_lookup = self.paragraph_lookup()
-
-        existing_grafs = []
-        for s in self.sections:
-            for g in s.grafs:
-                key = g.long_combo_key()
-                existing_grafs.append(key)
-                if paragraph_lookup.get(key, True) == None:
-                    paragraph_lookup[key] = True
-
-        short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]
-
-        from_render = self.source_paragraph_links_from_render()
-        print("{0} previously rendered".format(len(from_render)))
-        new_render = [x for x in from_render if x not in short_keys]
-        print("{0} old links found".format(len(new_render)))
-        for n in new_render:
-            paragraph_lookup[n] = None
-
-        new_existing_grafs = [x for x in existing_grafs if x not in paragraph_lookup]
-
-        orphan_grafs = []
-        for k, v in paragraph_lookup.items():
-            if k not in existing_grafs:
-                if v not in existing_grafs:
-                    orphan_grafs.append(k)
-
-        print("{0} new paragraph links".format(len(new_existing_grafs)))
-
-        orphan_mappings = self.anchor_orphans(existing_grafs, orphan_grafs)
-        paragraph_lookup.update(orphan_mappings)
-
-        new_paragraph_links = []
-
-        for i in self.paragraph_links:
-            if i:
-                key = list(i.keys())[0]
-                new_paragraph_links.append({key: paragraph_lookup[key]})
-
-        for i in new_existing_grafs:
-            new_paragraph_links.append({i: True})
-
-        for i in new_render:
-            new_paragraph_links.append({i: paragraph_lookup[i]})
-
-        self.paragraph_links = new_paragraph_links
-        self.save_paragraph_links()
-
-    def anchor_orphans(self, all_grafs: List[str], orphan_grafs: List[str]) -> dict:
-        """
-        given orphan paragraphs, match to better ones
-        """
-
-        class MiniGraf(object):
-            order = [
-                "para_key_position",
-                "para_key",
-                "letter_key",
-                "start_and_end",
-                "fuzzy_match",
-                "start_and_pos",
-                "end_and_pos",
-                "start_key",
-                "end_key",
-                "pos_and_section",
-            ]
-
-            def __init__(self, key):
-                self.key = key
-                parts = key.split(".")
-                if len(parts) == 5:
-                    parts.extend([None, None])
-                if len(parts) == 6:
-                    parts.extend([None])
-
-                self.section = parts[0]
-                self.para_pos = parts[1]
-                self.para_key = parts[2]
-                self.start_key = parts[3]
-                self.end_key = parts[4]
-                self.letter_key = parts[5]
-                self.letter_seq = parts[6]
-
-                self.para_key_position = self.para_pos + self.para_key
-                self.start_and_end = self.start_key + self.end_key
-                self.start_and_pos = self.start_key + self.para_pos
-                self.end_and_pos = self.end_key + self.para_pos
-                self.pos_and_section = self.section + self.para_pos
-                self.match = None
-
-                self.fuzzy_distance = 7
-
-            def check_match(self, other, key):
-                return getattr(self, key) == getattr(other, key)
-
-            def fuzzy_match(self, candidates):
-                matches = []
-                for c in candidates:
-                    if self.letter_seq and c.letter_seq:
-                        c.distance = lev.distance(self.letter_seq, c.letter_seq)
-                        if c.distance <= self.fuzzy_distance:
-                            matches.append(c)
-                if matches:
-                    print("{0} matched fuzzy".format(self.key))
-                    matches.sort(key=lambda x: x.distance)
-                    self.match = matches[0].key
-
-            def find_match(self, candidates):
-                for s in MiniGraf.order:
-                    if s == "fuzzy_match":
-                        self.fuzzy_match(candidates)
-                        if self.match == None:
-                            continue
-                        else:
-                            return
-                    matches = []
-                    for c in candidates:
-                        if self.check_match(c, s):
-                            matches.append(c.key)
-                    if len(matches) == 1:
-                        print("matched {1} {0}".format(s, self.key))
-                        self.match = matches[0]
-                        return
-
-        candidates = [MiniGraf(x) for x in all_grafs]
-        orphans = [MiniGraf(x) for x in orphan_grafs]
-
-        for o in orphans:
-            o.find_match(candidates)
-
-        return {x.key: x.match for x in orphans}
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
+        )
+        current_keys = [
+            graf.long_combo_key()
+            for section in self.sections
+            for graf in section.grafs
+        ]
+        state = store.reconcile(
+            ParagraphLinkState.from_legacy(self.paragraph_links),
+            current_keys,
+            self.source_paragraph_links_from_render(),
+        )
+        self.paragraph_links = state.as_legacy()
+        store.save(state)
 
     def process(self) -> None:
         """
