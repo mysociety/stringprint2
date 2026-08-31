@@ -18,10 +18,9 @@ function closeDropdowns(except: HTMLElement | null = null): void {
   }
 }
 
-for (const toggle of document.querySelectorAll<HTMLAnchorElement>(
-  "a.dropdown-toggle",
+for (const toggle of document.querySelectorAll<HTMLButtonElement>(
+  "[data-menu-toggle]",
 )) {
-  toggle.href = "#";
   toggle.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -85,4 +84,12 @@ document.body.addEventListener("click", () => {
 
 mobileNavigation?.addEventListener("click", (event) => {
   event.stopPropagation();
+});
+
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeDropdowns();
+    closeMobileNavigation();
+  }
 });

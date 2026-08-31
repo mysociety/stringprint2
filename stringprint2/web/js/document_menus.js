@@ -16,8 +16,7 @@ function closeDropdowns(except = null) {
         }
     }
 }
-for (const toggle of document.querySelectorAll("a.dropdown-toggle")) {
-    toggle.href = "#";
+for (const toggle of document.querySelectorAll("[data-menu-toggle]")) {
     toggle.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -66,4 +65,10 @@ document.body.addEventListener("click", () => {
 });
 mobileNavigation?.addEventListener("click", (event) => {
     event.stopPropagation();
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        closeDropdowns();
+        closeMobileNavigation();
+    }
 });

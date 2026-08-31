@@ -42,6 +42,13 @@ def test_article_template_uses_native_menu_module() -> None:
     assert "jquery-3.5.1.min.js" not in source
     assert "stringprint.js" not in source
 
+    menus = (
+        Path(__file__).resolve().parents[2] / "frontend" / "ts" / "document_menus.ts"
+    ).read_text()
+    assert '"[data-menu-toggle]"' in menus
+    assert 'event.key === "Escape"' in menus
+    assert "data-toggle" not in menus
+
 
 def test_native_document_scripts_control_css_visibility() -> None:
     """Native controls override the stylesheet's initial display state."""

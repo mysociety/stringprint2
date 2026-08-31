@@ -1,108 +1,87 @@
-{% load cache %}
 {% load static %}
 
-{# Desktop Menu #}
-<nav class="d-sm-none d-md-flex d-lg-flex navbar navbar-expand-md fixed-top navbar-dark bg-dark large-menu">
-  <a id="brand" class="navbar-brand short-title" href="{{article.url}}#top">{{article.short_title}}</a>
-
+<nav class="d-none d-md-flex navbar navbar-expand-md fixed-top navbar-dark bg-dark large-menu" aria-label="Publication navigation">
+  <a id="brand" class="navbar-brand short-title" href="{{ article.url }}#top">{{ article.short_title }}</a>
   <div id="desktop-menu" class="collapse navbar-collapse">
-    <ul class="navbar-nav mr-auto">
-		{% block nav_buttons %}
-		<li id = "search-link" class="nav-item action-buttons search_link">
-		    <a class="nav-link search_link" href="{{article.search_url}}"  title="Search Document"><i class="icon-search"></i></a>
-		</li>
- 		<li id ="menu-index" class="nav-item action-buttons"><a class="nav-link" href="#index"  title="View Table of Contents"><i class="icon-th-list"></i></a></li>
-		{% if article.pdf_url %}
-		<li id = "download-link" class="nav-item action-buttons"><a href="{{article.pdf_url}}" title="Download PDF" class="alt_link nav-link" type="pdf" ><i class="icon-download"></i></a></li>
-		{% endif %}
-		{% endblock %}
-        <li class="nav-item"><a class="nav-link" id ="menu-prev" href="#" name="Previous section" aria-label="Previous section"><i class="icon-angle-double-left"></i></a>
-        </li>
-		{% with content.toc as toc %}
-        {% for s in toc.level_1 %}
-			<li class="nav-item top-menu-item {% if s.order not in article.nav_default_range %}hide-item{% endif %}"
-			id ="menu-{{s.id}}"
-			item={{s.id}}>
-				<a class="nav-link top-nav-item {%if s.has_children %}nav-has-child{%endif%}" section={{s.id}}  href="{{s.nav_url}}">{{s.name}}</a></li>
-				{% if s.has_children %}
-					<li id ="caret-menu-{{s.id}}" item={{s.id}} class="nav-item dropdown {% if s.id not in article.nav_default_range %}hide-item{% endif %}" ><a href="#" id="m{{s.id}}" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-hidden="true"></a>
-					<div class="dropdown-menu dropdown-menu-right" aria-labelledby="menu-{{s.id}}">
-						{% for c in s.children %}            
-							<a parent="m{{s.id}}" class="dropdown-item caret-link " href="{{c.nav_url}}">{{c.caret_title}}</a>
-						{% endfor %}
-					</div>
-				{% endif %}
-        {% endfor %}
-		{% endwith %}
-		<li class="nav-item"><a class="nav-link" id ="menu-next" href="#" aria-label="Next section"><i class="icon-angle-double-right"></i></a></li>
-
-		</ul>
-		<ul class="navbar-nav ml-auto">
-
-		{% with article.org_related_links as links %}
-		{% if links|length == 0 %}
-		{% elif links|length == 1 %}
-		<li id = "home-link" class="nav-item action-buttons"><a href="{{links.0.0}}" title="{{links.0.1}}" class="nav-link" id="info-link"><i class="icon-home"></i></a></li>
-		{% else %}
-		<li class="nav-item dropdown" id="home-link">
-		<a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" id="info-link" title="{{article.org.name}}" aria-label="Dropdown for organisational links" role="button" aria-haspopup="true" aria-expanded="false" >
-		{% if article.org.icon %}
-		<img src="{% static article.org.relative_icon_path %}" alt="{{article.org.name}} logo"/>
-		{% else %}
-		<i class="icon-home" ></i>
-		{% endif %}
-		</a>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="info-link">
-			{% for link in links %}
-			<a class="dropdown-item" href="{{link.0}}">{{link.1}}</a>
-			{% endfor %}
-			{% block org_links %}
-			{% endblock %}
+    <ul class="navbar-nav me-auto">
+      {% block nav_buttons %}
+      <li id="search-link" class="nav-item action-buttons search_link">
+        <a class="nav-link search_link" href="{{ article.search_url }}" title="Search document" aria-label="Search document"><i class="icon-search" aria-hidden="true"></i></a>
+      </li>
+      <li id="menu-index" class="nav-item action-buttons">
+        <a class="nav-link" href="#index" title="View table of contents" aria-label="View table of contents"><i class="icon-th-list" aria-hidden="true"></i></a>
+      </li>
+      {% if article.pdf_url %}
+      <li id="download-link" class="nav-item action-buttons">
+        <a href="{{ article.pdf_url }}" title="Download PDF" aria-label="Download PDF" class="alt_link nav-link" type="pdf"><i class="icon-download" aria-hidden="true"></i></a>
+      </li>
+      {% endif %}
+      {% endblock %}
+      <li class="nav-item">
+        <a class="nav-link" id="menu-prev" href="#" aria-label="Previous section"><i class="icon-angle-double-left" aria-hidden="true"></i></a>
+      </li>
+      {% with content.toc as toc %}
+      {% for section in toc.level_1 %}
+      <li class="nav-item top-menu-item {% if section.order not in article.nav_default_range %}hide-item{% endif %}" id="menu-{{ section.id }}" data-item="{{ section.id }}">
+        <a class="nav-link top-nav-item {% if section.has_children %}nav-has-child{% endif %}" data-section="{{ section.id }}" href="{{ section.nav_url }}">{{ section.name }}</a>
+      </li>
+      {% if section.has_children %}
+      <li id="caret-menu-{{ section.id }}" data-item="{{ section.id }}" class="nav-item dropdown {% if section.id not in article.nav_default_range %}hide-item{% endif %}">
+        <button type="button" id="m{{ section.id }}" class="nav-link dropdown-toggle" data-menu-toggle aria-expanded="false" aria-label="Show subsections for {{ section.name }}"></button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="m{{ section.id }}">
+          {% for child in section.children %}
+          <a data-parent="m{{ section.id }}" class="dropdown-item caret-link" href="{{ child.nav_url }}">{{ child.caret_title }}</a>
+          {% endfor %}
         </div>
-		</li>
-		{% endif %}
-		{% endwith %}
-	  </ul>
+      </li>
+      {% endif %}
+      {% endfor %}
+      {% endwith %}
+      <li class="nav-item">
+        <a class="nav-link" id="menu-next" href="#" aria-label="Next section"><i class="icon-angle-double-right" aria-hidden="true"></i></a>
+      </li>
+    </ul>
+    <ul class="navbar-nav ms-auto">
+      {% with article.org_related_links as links %}
+      {% if links|length == 1 %}
+      <li id="home-link" class="nav-item action-buttons">
+        <a href="{{ links.0.0 }}" title="{{ links.0.1 }}" class="nav-link" id="info-link"><i class="icon-home" aria-hidden="true"></i></a>
+      </li>
+      {% elif links|length > 1 %}
+      <li class="nav-item dropdown" id="home-link">
+        <button type="button" class="nav-link dropdown-toggle" data-menu-toggle id="info-link" title="{{ article.org.name }}" aria-label="Show organisational links" aria-expanded="false">
+          {% if article.org.icon %}<img src="{% static article.org.relative_icon_path %}" alt="{{ article.org.name }} logo">{% else %}<i class="icon-home" aria-hidden="true"></i>{% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="info-link">
+          {% for link in links %}<a class="dropdown-item" href="{{ link.0 }}">{{ link.1 }}</a>{% endfor %}
+          {% block org_links %}{% endblock %}
+        </div>
+      </li>
+      {% endif %}
+      {% endwith %}
+    </ul>
   </div>
 </nav>
 
-
-{# Mobile Menu #}
-<nav class="d-sm-flex d-md-none d-lg-none navbar fixed-top navbar-dark bg-dark" id="mobile-navbar-header">
-      <a class="navbar-brand short-title cite-copy mobile-header-link" href="#" name="Copy link to paragraph"><i class="icon-link header-icon"></i></a><a id="mobile-title" class="navbar-brand short-title" href="#">{{article.short_title}}</a>
-	  <ul class="navbar-nav ml-auto">
-	  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" id="mobile-menu-toggle">
+<nav class="d-flex d-md-none navbar fixed-top navbar-dark bg-dark" id="mobile-navbar-header" aria-label="Mobile publication navigation">
+  <a class="navbar-brand short-title cite-copy mobile-header-link" href="#" aria-label="Copy link to paragraph"><i class="icon-link header-icon" aria-hidden="true"></i></a>
+  <a id="mobile-title" class="navbar-brand short-title" href="#top">{{ article.short_title }}</a>
+  <button class="navbar-toggler ms-auto" type="button" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" id="mobile-menu-toggle">
     <span class="navbar-toggler-icon"></span>
-	</ul>
   </button>
-
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
-    <ul class="navbar-nav ml-auto mobile-menu-list">
-<li data-toggle="collapse" data-target="#navbarSupportedContent"><a class="nav-link" data-toggle="collapse" data-target="#navbarSupportedContent" href="#index">Contents</a></li>
-		{% if article.pdf_url %}
-		<li data-toggle="collapse" data-target="#navbarSupportedContent"><a class="nav-link alt_link"  href="{{article.pdf_url}}" type="pdf">Download PDF</a></li>
-		{% endif %}
-		<li ><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse" href="{{article.search_url}}">Search</a></li>
-		<li role="separator" class="divider"></li>
-		{% with content.toc as toc %}
-        {% for s in toc.level_1 %}
-			<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{s.nav_url}}">{{s.name}}</a></li>
-        {% endfor %}
-		{% endwith %}
-		{% if article.repo_entry %}
-		<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{article.repo_entry}}">About this publication</a></li>
-		{% endif %}
-		<li role="separator" class="divider"></li>
-		{% for link in article.org.org_links_ordered %}
-			<li><a class="nav-link" data-toggle="collapse" data-target=".navbar-collapse"  href="{{link.link}}">{{link.name}}</a></li>
-			
-		{% endfor %}
-		{% block mobile_org_links %}
-		{% endblock %}
-        </ul>
-
-
-		</ul>
-		
+    <ul class="navbar-nav ms-auto mobile-menu-list">
+      <li class="nav-item"><a class="nav-link" href="#index">Contents</a></li>
+      {% if article.pdf_url %}<li class="nav-item"><a class="nav-link alt_link" href="{{ article.pdf_url }}" type="pdf">Download PDF</a></li>{% endif %}
+      <li class="nav-item"><a class="nav-link" href="{{ article.search_url }}">Search</a></li>
+      <li><hr class="dropdown-divider"></li>
+      {% with content.toc as toc %}
+      {% for section in toc.level_1 %}<li class="nav-item"><a class="nav-link" href="{{ section.nav_url }}">{{ section.name }}</a></li>{% endfor %}
+      {% endwith %}
+      {% if article.repo_entry %}<li class="nav-item"><a class="nav-link" href="{{ article.repo_entry }}">About this publication</a></li>{% endif %}
+      <li><hr class="dropdown-divider"></li>
+      {% for link in article.org.org_links_ordered %}<li class="nav-item"><a class="nav-link" href="{{ link.link }}">{{ link.name }}</a></li>{% endfor %}
+      {% block mobile_org_links %}{% endblock %}
+    </ul>
   </div>
 </nav>
