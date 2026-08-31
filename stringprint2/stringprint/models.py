@@ -25,7 +25,7 @@ from stringprint2.configuration import (
     load_organisation_config,
     load_publication_config,
 )
-from stringprint2.services import build_publication_load_plan
+from stringprint2.services import build_asset_import_plan, build_publication_load_plan
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -612,37 +612,26 @@ class Article(models.Model):
         yaml_file = os.path.join(asset_folder, "assets.yaml")
         if not os.path.isfile(yaml_file):
             return None
-        data = load_assets_config(Path(yaml_file))
-        slugs = []
-        assets = []
-        for item in data.root:
-            for k, asset_config in item.items():
-                v = asset_config.model_dump(exclude_unset=True)
-                v["slug"] = k
-                slugs.append(k)
-                assets.append(v)
-        Asset.objects.filter(article=self, slug__in=slugs).delete()
-        slugs = []
-        for a in assets:
-            no_header = False
-            if a["content_type"] == "table-no-header":
-                a["content_type"] = "table"
-                no_header = True
-
+        collection = load_assets_config(Path(yaml_file))
+        plan = build_asset_import_plan(collection)
+        Asset.objects.filter(
+            article=self, slug__in=[item.slug for item in plan.items]
+        ).delete()
+        for item in plan.items:
             f = Asset(
                 article=self,
-                slug=a["slug"],
-                type=a["content_type"],
-                alt_text=a.get("alt_text", a.get("caption", "")),
-                caption=a.get("caption", ""),
-                content=markdown.markdown(a.get("longdesc", "").replace("\n", "\n\n")),
-                no_header=no_header,
+                slug=item.slug,
+                type=item.content_type,
+                alt_text=item.alt_text,
+                caption=item.caption,
+                content=markdown.markdown(item.long_description.replace("\n", "\n\n")),
+                no_header=item.no_header,
             )
-            file_name = "{0}.{1}".format(a["slug"], a["type"])
+            file_name = "{0}.{1}".format(item.slug, item.extension)
             file_path = os.path.join(asset_folder, file_name)
-            if a["content_type"] == "image":
+            if item.content_type == "image":
                 reopen = open(file_path, "rb")
-                filename = "{2}_{0}.{1}".format(a["slug"], a["type"], self.id)
+                filename = "{2}_{0}.{1}".format(item.slug, item.extension, self.id)
                 process_images = True
                 if (
                     os.path.exists(os.path.join(settings.MEDIA_ROOT, filename))
@@ -655,7 +644,7 @@ class Article(models.Model):
                 )
                 f.image = suf
                 django_file.close()
-                f.size = a.get("size", 6)
+                f.size = item.size
                 if process_images:
                     f.extra_values = {}
                     f.create_responsive(ignore_first=True)
@@ -665,12 +654,12 @@ class Article(models.Model):
                     f.get_ratio()
                     f.get_average_color()
                     f.header_image_res()
-            if "table" in a["content_type"]:
+            if item.content_type == "table":
                 f.chart = Chart(chart_type="table_chart", file_name=file_path)
-            if a["content_type"] == "html":
+            if item.content_type == "html":
                 f.content_type = "html"
                 f.type = Asset.RAW_HTML
-                file_name = ".".join([a["slug"], a["type"]])
+                file_name = ".".join([item.slug, item.extension])
                 file_path = os.path.join(asset_folder, file_name)
                 f.content = QuickText().open(file_path).text
             print("saving {0}".format(f.slug))
