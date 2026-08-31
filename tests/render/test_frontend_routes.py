@@ -78,8 +78,14 @@ def test_authenticated_layout_uses_responsive_bootstrap_shell() -> None:
     )
     css = css_path.read_text()
 
-    assert "navbar navbar-inverse navbar-static-top" in base
+    assert "navbar navbar-expand-lg navbar-dark bg-dark" in base
     assert "container admin-main" in base
+    assert "css/bootstrap5.min.css" in base
+    assert (
+        'data-bs-toggle="collapse"'
+        in get_template("frontend/top_nav.html").template.source
+    )
+    assert "data-toggle=" not in get_template("frontend/top_nav.html").template.source
     assert 'id="wrapper"' not in base
     assert "publication_management:publication_list" in navigation
     assert "publication_management:operation_list" in navigation

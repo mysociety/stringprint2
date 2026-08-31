@@ -117,7 +117,6 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "compressor",
     "stringprint",
-    "bootstrapform",
     "import_export",
     "frontend",
     "publication_management",

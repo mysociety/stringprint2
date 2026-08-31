@@ -130,5 +130,5 @@ def test_active_operation_detail_refreshes_until_terminal(
     assert b'http-equiv="refresh"' in active.content
     assert b'content="5"' in active.content
     assert b"refreshes every five seconds" in active.content
-    assert b"panel panel-default" in active.content
+    assert b"card mb-4" in active.content
     assert b'http-equiv="refresh"' not in terminal.content

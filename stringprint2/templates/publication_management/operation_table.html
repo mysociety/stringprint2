@@ -7,11 +7,11 @@
             <td>{{ operation.publication_slug }}</td>
             <td><a href="{% url 'publication_management:operation_detail' operation.pk %}">{{ operation.operation_name|title }}</a></td>
             <td>
-                {% if operation.state == "succeeded" %}<span class="label label-success">{{ operation.get_state_display }}</span>
-                {% elif operation.state == "failed" or operation.state == "interrupted" %}<span class="label label-danger">{{ operation.get_state_display }}</span>
-                {% elif operation.state == "cancelled" %}<span class="label label-default">{{ operation.get_state_display }}</span>
-                {% elif operation.state == "running" or operation.state == "cancel_requested" %}<span class="label label-primary">{{ operation.get_state_display }}</span>
-                {% else %}<span class="label label-info">{{ operation.get_state_display }}</span>{% endif %}
+                {% if operation.state == "succeeded" %}<span class="badge text-bg-success">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "failed" or operation.state == "interrupted" %}<span class="badge text-bg-danger">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "cancelled" %}<span class="badge text-bg-secondary">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "running" or operation.state == "cancel_requested" %}<span class="badge text-bg-primary">{{ operation.get_state_display }}</span>
+                {% else %}<span class="badge text-bg-info">{{ operation.get_state_display }}</span>{% endif %}
             </td>
             <td>{{ operation.created_at }}</td>
         </tr>

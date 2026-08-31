@@ -1,93 +1,61 @@
-/* Shared authenticated interface built on the bundled Bootstrap theme. */
+/* Shared authenticated interface built on Bootstrap 5. */
 
-html {
+html,
+body {
     min-height: 100%;
 }
 
 body {
-    min-height: 100%;
     background: #f5f7f9;
     color: #263238;
 }
 
 .admin-navbar {
-    margin-bottom: 0;
-    border: 0;
-    border-radius: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
 }
 
-.admin-navbar .navbar-brand {
+.admin-navbar .navbar-brand,
+.card-title {
     font-weight: 600;
-}
-
-.admin-navbar .navbar-text {
-    color: #d5d9dc;
-}
-
-.admin-navbar .navbar-form {
-    margin: 0;
-    padding: 0;
-}
-
-.admin-navbar .navbar-btn.btn-link {
-    margin: 0;
-    padding: 15px;
-    border: 0;
-    color: #d5d9dc;
-    line-height: 20px;
-    text-decoration: none;
-}
-
-.admin-navbar .navbar-btn.btn-link:hover,
-.admin-navbar .navbar-btn.btn-link:focus {
-    color: #fff;
-    background: #080808;
-    outline: 0;
 }
 
 .admin-main {
     min-height: calc(100vh - 126px);
-    padding-top: 28px;
-    padding-bottom: 48px;
-}
-
-.admin-main > .page-header:first-child,
-.admin-main > .row:first-child .page-header {
-    margin-top: 0;
+    padding-top: 1.75rem;
+    padding-bottom: 3rem;
 }
 
 .page-header {
-    margin-bottom: 24px;
-    border-bottom-color: #dce1e5;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #dce1e5;
 }
 
 .page-header h1,
 .page-header h2 {
-    margin-top: 0;
+    margin: 0;
 }
 
-.panel {
+.page-header small {
+    color: #6c757d;
+    font-size: 0.55em;
+}
+
+.card {
     border-color: #dce1e5;
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 }
 
-.panel-default > .panel-heading {
+.card-header {
     border-color: #dce1e5;
     background: #f8f9fa;
 }
 
-.panel-title {
-    font-weight: 600;
-}
-
-.table {
-    margin-bottom: 0;
+.card-title {
+    font-size: 1.1rem;
 }
 
 .table > thead > tr > th {
-    border-bottom-width: 1px;
     color: #54616a;
     font-size: 0.9em;
     text-transform: uppercase;
@@ -98,19 +66,17 @@ body {
     vertical-align: middle;
 }
 
-.form-inline .form-group {
-    margin-right: 12px;
-}
-
 pre {
-    border-color: #dce1e5;
+    padding: 0.75rem;
+    border: 1px solid #dce1e5;
+    border-radius: 0.375rem;
     background: #f8f9fa;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
 
 .admin-footer {
-    padding: 22px 0;
+    padding: 1.375rem 0;
     border-top: 1px solid #dce1e5;
     background: #fff;
 }
@@ -119,69 +85,13 @@ pre {
     margin: 0;
 }
 
-.huge {
-    font-size: 40px;
-    line-height: normal;
-}
-
-.panel-green {
-    border-color: #5cb85c;
-}
-
-.panel-green > .panel-heading {
-    border-color: #5cb85c;
-    background: #5cb85c;
-    color: #fff;
-}
-
-.panel-red {
-    border-color: #d9534f;
-}
-
-.panel-red > .panel-heading {
-    border-color: #d9534f;
-    background: #d9534f;
-    color: #fff;
-}
-
-.panel-yellow {
-    border-color: #f0ad4e;
-}
-
-.panel-yellow > .panel-heading {
-    border-color: #f0ad4e;
-    background: #f0ad4e;
-    color: #fff;
-}
-
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .admin-main {
-        padding-top: 18px;
+        padding-top: 1.125rem;
     }
 
-    .admin-navbar .navbar-form {
-        padding: 0;
-        border: 0;
-        box-shadow: none;
-    }
-
-    .admin-navbar .navbar-btn.btn-link {
-        width: 100%;
-        padding: 10px 15px;
-        text-align: left;
-    }
-
-    .page-header .pull-right {
+    .page-header .float-end {
         float: none !important;
-        margin-bottom: 16px;
-    }
-
-    .page-header .btn.pull-right {
-        float: none !important;
-        margin-bottom: 16px;
-    }
-
-    .form-inline .form-group {
-        margin-right: 0;
+        margin-bottom: 1rem;
     }
 }

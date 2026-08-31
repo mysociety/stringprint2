@@ -1,21 +1,18 @@
-{% load extra_tags %}
 <div class="collapse navbar-collapse" id="admin-navbar">
-    <ul class="nav navbar-nav">
-        <li {% active url_name 'home' %}><a href="{% url 'home' %}"><span class="fa fa-dashboard" aria-hidden="true"></span> Dashboard</a></li>
-        <li><a href="{% url 'publication_management:publication_list' %}"><span class="fa fa-tasks" aria-hidden="true"></span> Publications</a></li>
-        <li><a href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operations</a></li>
-        <li {% active url_name 'document.list' %}><a href="{% url 'document.list' %}"><span class="fa fa-list" aria-hidden="true"></span> Documents</a></li>
-        <li {% active url_name 'org.settings' %}><a href="{% url 'org.settings' %}"><span class="fa fa-building" aria-hidden="true"></span> Organisation</a></li>
+    <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}"><span class="fa fa-dashboard" aria-hidden="true"></span> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-tasks" aria-hidden="true"></span> Publications</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operations</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'document.list' %}"><span class="fa fa-list" aria-hidden="true"></span> Documents</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'org.settings' %}"><span class="fa fa-building" aria-hidden="true"></span> Organisation</a></li>
         {% if article %}
-        <li {% active url_name 'article.settings' %}><a href="{% url 'article.settings' article.id %}"><span class="fa fa-sliders" aria-hidden="true"></span> Document settings</a></li>
-        <li><a target="_blank" rel="noopener" href="{% url 'article_view' article.slug %}"><span class="fa fa-external-link" aria-hidden="true"></span> Preview</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'article.settings' article.id %}"><span class="fa fa-sliders" aria-hidden="true"></span> Document settings</a></li>
+        <li class="nav-item"><a class="nav-link" target="_blank" rel="noopener" href="{% url 'article_view' article.slug %}"><span class="fa fa-external-link" aria-hidden="true"></span> Preview</a></li>
         {% endif %}
     </ul>
-    <ul class="nav navbar-nav navbar-right">
-        {% if request.user.is_authenticated %}<li class="navbar-text"><span class="fa fa-user" aria-hidden="true"></span> {{ request.user.get_username }}</li>{% endif %}
-        {% if request.user.is_staff %}<li><a href="/admin/"><span class="fa fa-wrench" aria-hidden="true"></span> Django admin</a></li>{% endif %}
-        {% if request.user.is_authenticated %}
-        <li><form class="navbar-form" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-link navbar-btn" type="submit"><span class="fa fa-sign-out" aria-hidden="true"></span> Sign out</button></form></li>
-        {% endif %}
+    <ul class="navbar-nav ms-auto align-items-lg-center">
+        {% if request.user.is_authenticated %}<li class="nav-item"><span class="navbar-text"><span class="fa fa-user" aria-hidden="true"></span> {{ request.user.get_username }}</span></li>{% endif %}
+        {% if request.user.is_staff %}<li class="nav-item"><a class="nav-link" href="/admin/"><span class="fa fa-wrench" aria-hidden="true"></span> Django admin</a></li>{% endif %}
+        {% if request.user.is_authenticated %}<li class="nav-item"><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-link nav-link" type="submit"><span class="fa fa-sign-out" aria-hidden="true"></span> Sign out</button></form></li>{% endif %}
     </ul>
 </div>

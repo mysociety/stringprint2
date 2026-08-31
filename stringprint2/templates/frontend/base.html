@@ -7,13 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% if article and refresh %}<meta http-equiv="refresh" content="15">{% endif %}
     {% block title %}<title>{{ SITE_NAME }}</title>{% endblock %}
-    <link href="{% static 'css/full/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap5.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/font-awesome.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/stringprint-front.css' %}" rel="stylesheet">
     {% block extracss %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-inverse navbar-static-top admin-navbar" role="navigation">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark admin-navbar" aria-label="Management navigation">
         <div class="container">
             {% block top_nav %}{% include "frontend/top_nav.html" %}{% endblock %}
             {% block side_nav %}{% include "frontend/side_nav.html" %}{% endblock %}

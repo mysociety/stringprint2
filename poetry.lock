@@ -706,20 +706,6 @@ cyrillic = ["pytils (>=0.2)"]
 translitcodec = ["translitcodec (>=0.3)"]
 
 [[package]]
-name = "django-bootstrap-form"
-version = "3.4"
-description = "django-bootstrap-form"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "django-bootstrap-form-3.4.tar.gz", hash = "sha256:de3f7893e515352834d446c441c0cb861637f92cebbe59d8229469c6cd3dc640"},
-]
-
-[package.dependencies]
-django = ">=1.5"
-
-[[package]]
 name = "django-compressor"
 version = "4.6.0"
 description = "Compresses linked and inline JavaScript or CSS into single cached files."
@@ -3334,4 +3320,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.14"
-content-hash = "cee7661a82e7bbe3ecc7bd050c3bb086cd8e2b0c1db7fddf4f0790c8cc98de87"
+content-hash = "b367776b616a1ec73ed237ea62225dbd4646bdb707bc5cedd1c011816cedb232"

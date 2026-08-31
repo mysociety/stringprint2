@@ -1,5 +1,5 @@
 function collapseTarget(control: HTMLElement): HTMLElement | null {
-  const selector = control.getAttribute("data-target");
+  const selector = control.getAttribute("data-bs-target");
   if (selector === null) {
     return null;
   }
@@ -11,7 +11,7 @@ function collapseTarget(control: HTMLElement): HTMLElement | null {
 }
 
 for (const control of document.querySelectorAll<HTMLElement>(
-  "[data-toggle='collapse'][data-target]",
+  "[data-bs-toggle='collapse'][data-bs-target]",
 )) {
   control.addEventListener("click", (event) => {
     event.preventDefault();
@@ -19,7 +19,7 @@ for (const control of document.querySelectorAll<HTMLElement>(
     if (target === null) {
       return;
     }
-    const expanded = target.classList.toggle("in");
+    const expanded = target.classList.toggle("show");
     control.setAttribute("aria-expanded", String(expanded));
     target.setAttribute("aria-expanded", String(expanded));
   });
