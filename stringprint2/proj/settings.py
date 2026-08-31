@@ -120,6 +120,7 @@ INSTALLED_APPS = (
     "bootstrapform",
     "import_export",
     "frontend",
+    "publication_management",
     "static_precompiler",
 )
 
