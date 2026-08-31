@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import signal
 import socket
-import time
 from datetime import timedelta
+from threading import Event
+from types import FrameType
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
@@ -55,18 +57,32 @@ class Command(BaseCommand):
         if interrupted:
             self.stdout.write(f"Interrupted {interrupted} stale operation(s)")
 
-        worker = register_publication_worker(
-            worker_id,
-            socket.gethostname(),
-            os.getpid(),
-        )
+        shutdown = Event()
+
+        def request_shutdown(
+            signal_number: int,
+            frame: FrameType | None,
+        ) -> None:
+            shutdown.set()
+
+        previous_sigterm = signal.signal(signal.SIGTERM, request_shutdown)
+        previous_sigint = signal.signal(signal.SIGINT, request_shutdown)
         try:
-            with WorkerHeartbeat(worker):
-                while True:
-                    operation = execute_next_publication_operation(worker_id)
-                    if options["once"]:
-                        return
-                    if operation is None:
-                        time.sleep(options["poll_interval"])
+            worker = register_publication_worker(
+                worker_id,
+                socket.gethostname(),
+                os.getpid(),
+            )
+            try:
+                with WorkerHeartbeat(worker):
+                    while not shutdown.is_set():
+                        operation = execute_next_publication_operation(worker_id)
+                        if options["once"]:
+                            return
+                        if operation is None:
+                            shutdown.wait(options["poll_interval"])
+            finally:
+                stop_publication_worker(worker)
         finally:
-            stop_publication_worker(worker)
+            signal.signal(signal.SIGTERM, previous_sigterm)
+            signal.signal(signal.SIGINT, previous_sigint)
