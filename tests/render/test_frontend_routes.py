@@ -32,3 +32,6 @@ def test_article_template_uses_native_menu_module() -> None:
     assert "bootstrap/js/dist/collapse.js" not in source
     assert "document_navigation.js" in source
     assert "jquery.waypoints" not in source
+    assert "document_links.js" in source
+    assert "jquery-3.5.1.min.js" not in source
+    assert "stringprint.js" not in source

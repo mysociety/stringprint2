@@ -1,4 +1,4 @@
-declare let page_loaded: boolean;
+declare var page_loaded: boolean;
 declare function harmlessHashChange(hash: string | undefined): void;
 
 var current_section = "";

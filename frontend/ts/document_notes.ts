@@ -1,4 +1,4 @@
-declare let hide_state: boolean | string;
+declare var hide_state: boolean | string;
 
 declare function send_ga(action: string, value?: string | null): void;
 declare function set_mobile_link(id: string): void;
