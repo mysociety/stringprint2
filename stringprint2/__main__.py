@@ -18,6 +18,7 @@ from cookiecutter.main import cookiecutter
 from rich.panel import Panel
 from rich.prompt import Prompt
 from ruamel.yaml import YAML
+from stringprint2.cli_arguments import parse_shell_options
 from stringprint2.media_files import (
     create_hero,
     create_thumbnail,
@@ -94,7 +95,7 @@ def get_yaml(yaml_file):
     return data
 
 
-def load_org_details() -> str:
+def load_org_details() -> str | None:
     """
     ingest org details from files
     """
@@ -289,7 +290,7 @@ class SPPrompt(cmd.Cmd):
             return
         self.current_doc = slug
         if silent is False:
-            prompt.print_status()
+            self.print_status()
 
     def loaded_docs(self) -> List[str]:
         dir = Path(self.current_org.storage_dir, "_docs")
@@ -322,7 +323,7 @@ class SPPrompt(cmd.Cmd):
             padding=1,
             style="yellow",
             title="Document list",
-            subtitle="(set document using 'setdoc \[slug or number]')",
+            subtitle=r"(set document using 'setdoc \[slug or number]')",
         )
         print = panel.print
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
@@ -701,48 +702,30 @@ class SPPrompt(cmd.Cmd):
             return super().default(line)
 
 
-args = sys.argv[1:]
+def main(arguments: list[str] | None = None) -> None:
+    """Run requested commands, then optionally enter the interactive shell."""
+    passed_arguments = sys.argv[1:] if arguments is None else arguments
+    options = parse_shell_options(passed_arguments)
 
-if args and len(args) == 0 and args[0] in ["?", "help"]:
-    args = ("--help",)
+    panel = PanelPrint(padding=1, style="green")
+    panel.print(SPPrompt.intro)
+    default_org = load_org_details()
+    if default_org is None:
+        raise RuntimeError("No organisations are configured")
 
-special_args = ["--no-server", "--continue"]
+    prompt = SPPrompt(stdout=CatchOut())
+    if options.start_server:
+        panel.print(prompt.do_startserver("noprint"))
+    panel.print("")
+    panel.print("List available documents with .listdocs.")
+    panel.display()
 
-dont_start_server = "--no-server" in args
-continue_in_shell = "--continue" in args
-do_refresh = "--refresh" in args
-args = [x for x in args if x not in special_args]
-
-instructions = []
-current_instruction = []
-for n, a in enumerate(args):
-    if a.startswith("--"):
-        if current_instruction:
-            instructions.append(current_instruction)
-            current_instruction = []
-        current_instruction.append(a[2:])
-    else:
-        current_instruction.append(a)
-instructions.append(current_instruction)
-
-panel = PanelPrint(padding=1, style="green")
-
-panel.print(SPPrompt.intro)
-default_org = load_org_details()
-prompt = SPPrompt(stdout=CatchOut())
-panel.print(prompt.do_startserver("noprint"))
-panel.print("")
-panel.print("List avaliable documents with 'listdocs'")
-panel.display()
-
-
-def main():
     prompt.do_setorg(default_org)
-    if do_refresh:
+    if options.refresh:
         prompt.do_refresh("")
-    for i in instructions:
-        prompt.onecmd(" ".join(i))
-    if not sys.argv[1:] or continue_in_shell:
+    for command in options.commands:
+        prompt.onecmd(" ".join(command))
+    if not passed_arguments or options.continue_in_shell:
         prompt.cmdloop(intro="")
 
 

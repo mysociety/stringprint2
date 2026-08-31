@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import fitz  # type: ignore[import-untyped]
+import pymupdf
 from PIL import Image
 
 type PathValue = str | Path
@@ -18,9 +18,9 @@ def merge_pdfs(
 ) -> None:
     """Combine the first front-cover page with content pages from start_page."""
     with (
-        fitz.open() as result,
-        fitz.open(front) as front_document,
-        fitz.open(contents) as contents_document,
+        pymupdf.open() as result,  # type: ignore[no-untyped-call]
+        pymupdf.open(front) as front_document,  # type: ignore[no-untyped-call]
+        pymupdf.open(contents) as contents_document,  # type: ignore[no-untyped-call]
     ):
         result.insert_pdf(front_document, from_page=0, to_page=0)
         result.insert_pdf(contents_document, from_page=start_page)
@@ -29,7 +29,7 @@ def merge_pdfs(
 
 def pdf_page_to_png(source_pdf: PathValue, destination: PathValue) -> None:
     """Render the first page of a PDF to a PNG file."""
-    with fitz.open(source_pdf) as document:
+    with pymupdf.open(source_pdf) as document:  # type: ignore[no-untyped-call]
         page = document.load_page(0)
         page.get_pixmap().save(destination)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import fitz
+import pymupdf
 from PIL import Image
 
 from stringprint2.media_files import (
@@ -15,7 +15,7 @@ from stringprint2.media_files import (
 
 def make_pdf(path, pages: int) -> None:
     """Create a small PDF fixture."""
-    with fitz.open() as document:
+    with pymupdf.open() as document:
         for page_number in range(pages):
             page = document.new_page(width=100, height=120)
             page.insert_text((10, 20), f"page {page_number}")
@@ -32,7 +32,7 @@ def test_merge_pdfs_uses_cover_and_requested_content_pages(tmp_path) -> None:
 
     merge_pdfs(front, contents, output, start_page=1)
 
-    with fitz.open(output) as merged:
+    with pymupdf.open(output) as merged:
         assert merged.page_count == 3
         assert "page 0" in merged[0].get_text()
         assert "page 1" in merged[1].get_text()
