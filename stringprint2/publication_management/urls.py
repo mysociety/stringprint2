@@ -29,4 +29,5 @@ urlpatterns = [
         views.create_operation,
         name="create_operation",
     ),
+    path("<path:unmatched>", views.management_not_found, name="not_found"),
 ]

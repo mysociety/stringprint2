@@ -6,13 +6,17 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from frontend.models import UserSettings
 from publication_management.cancellation import (
     request_publication_operation_cancellation,
+)
+from publication_management.dashboard import (
+    build_publication_dashboard,
+    publication_source_exists,
 )
 from publication_management.logs import read_recent_operation_log
 from publication_management.models import PublicationOperation
@@ -40,6 +44,14 @@ def publication_web_operation_allowed(
     return operation_name in article.commands or operation_name in article.org.commands
 
 
+def management_not_found(
+    request: HttpRequest,
+    unmatched: str,
+) -> HttpResponse:
+    """Prevent unmatched management URLs falling through to the legacy catch-all."""
+    raise Http404(f"Unknown management path: {unmatched}")
+
+
 def organisation_for_request(request: HttpRequest) -> Organisation:
     """Return the user's selected organisation without creating permissions."""
     membership = (
@@ -57,7 +69,7 @@ def organisation_for_request(request: HttpRequest) -> Organisation:
 def publication_list(request: HttpRequest) -> HttpResponse:
     """List publications the authenticated user is allowed to manage."""
     organisation = organisation_for_request(request)
-    publications = Article.objects.filter(org=organisation).order_by("title", "slug")
+    publications = build_publication_dashboard(organisation)
     return render(
         request,
         "publication_management/publication_list.html",
@@ -139,15 +151,20 @@ def create_operation(
 ) -> HttpResponse:
     """Create one fixed typed operation for an authorised publication."""
     organisation = organisation_for_request(request)
-    article = get_object_or_404(
-        Article,
+    article = Article.objects.filter(
         org=organisation,
         slug=publication_slug,
-    )
+    ).first()
+    if article is None and operation_name != "load":
+        raise Http404("Publication is not loaded")
+    if article is None and not publication_source_exists(
+        organisation, publication_slug
+    ):
+        raise Http404("Publication source does not exist")
     if operation_name == "load":
         operation_request = LoadPublicationRequest(
             organisation_slug=organisation.slug,
-            publication_slug=article.slug,
+            publication_slug=publication_slug,
             refresh_header=request.POST.get("refresh_header") == "on",
         )
     elif operation_name == "process":

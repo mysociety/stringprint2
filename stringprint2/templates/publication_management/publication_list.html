@@ -8,7 +8,20 @@
 <p><a href="{% url 'publication_management:operation_list' %}">Operation history</a></p>
 <ul>
 {% for publication in publications %}
-    <li><a href="{% url 'publication_management:publication_detail' publication.slug %}">{{ publication.title|default:publication.slug }}</a></li>
+    {% if publication.loaded %}
+    <li>
+        <a href="{% url 'publication_management:publication_detail' publication.slug %}">{{ publication.title }}</a>
+        — {% if publication.configuration_error %}<span class="text-danger">{{ publication.configuration_error }}</span>{% elif publication.needs_update %}update available{% else %}current or not yet published{% endif %}
+        {% if publication.latest_operation_id %}— <a href="{% url 'publication_management:operation_detail' publication.latest_operation_id %}">{{ publication.latest_operation_state }}</a>{% endif %}
+    </li>
+    {% else %}
+    <li>
+        {{ publication.title }} — not loaded
+        <form method="post" action="{% url 'publication_management:create_operation' publication.slug 'load' %}" style="display:inline">
+            {% csrf_token %}<button type="submit">Load</button>
+        </form>
+    </li>
+    {% endif %}
 {% empty %}
     <li>No loaded publications.</li>
 {% endfor %}
