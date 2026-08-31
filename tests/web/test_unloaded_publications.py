@@ -8,11 +8,13 @@ from django.urls import reverse
 
 from frontend.models import UserSettings
 from publication_management.models import PublicationOperation
+from stringprint.models import Article
 
 
 @pytest.mark.django_db
 def test_dashboard_lists_unloaded_source_and_enqueues_initial_load(client, org) -> None:
     """The web interface can bootstrap a publication without creating it inline."""
+    Article.objects.filter(org=org, slug="minimal-doc").delete()
     user = User.objects.create_user(username="manager", password="secret")
     UserSettings.objects.create(user=user, org=org)
     client.force_login(user)

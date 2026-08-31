@@ -45,8 +45,9 @@ def test_article_template_uses_native_menu_module() -> None:
 
 def test_native_document_scripts_control_css_visibility() -> None:
     """Native controls override the stylesheet's initial display state."""
-    links = Path("frontend/ts/document_links.ts").read_text()
-    notes = Path("frontend/ts/document_notes.ts").read_text()
+    frontend_root = Path(__file__).resolve().parents[2] / "frontend" / "ts"
+    links = (frontend_root / "document_links.ts").read_text()
+    notes = (frontend_root / "document_notes.ts").read_text()
 
     assert "element.style.display" in links
     assert "element.style.display" in notes

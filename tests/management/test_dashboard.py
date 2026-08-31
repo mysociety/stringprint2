@@ -19,6 +19,7 @@ def test_dashboard_combines_source_load_freshness_and_latest_operation(
     monkeypatch,
 ) -> None:
     """One typed row gives the web page all management state for a source."""
+    Article.objects.filter(org=org, slug__in=("minimal-doc", "kitchen-sink")).delete()
     article, _ = Article.objects.get_or_create(
         org=org,
         slug="minimal-doc",
