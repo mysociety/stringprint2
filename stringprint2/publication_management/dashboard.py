@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from subprocess import SubprocessError
 from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +13,6 @@ from stringprint2.configuration.loaders import (
     load_publication_config,
 )
 from stringprint2.services.publication_catalog import discover_publications
-from stringprint2.services.publication_freshness import publication_needs_update
 
 if TYPE_CHECKING:
     from django.db.models import Manager
@@ -23,14 +21,13 @@ if TYPE_CHECKING:
 
 
 class PublicationDashboardEntry(BaseModel):
-    """Describe source, load, freshness, and operation state for one publication."""
+    """Describe source, load, configuration, and operation state for one publication."""
 
     model_config = ConfigDict(frozen=True)
 
     slug: str
     title: str
     loaded: bool
-    needs_update: bool | None
     configuration_error: str = ""
     latest_operation_id: int | None = None
     latest_operation_state: str = ""
@@ -61,15 +58,13 @@ def build_publication_dashboard(
     for source in catalog.entries:
         article = articles.get(source.slug)
         latest = latest_operations.get(source.slug)
-        needs_update = None
         configuration_error = ""
         try:
-            config = load_publication_config(
+            load_publication_config(
                 source.folder / "settings.yaml",
                 organisation_config,
             )
-            needs_update = publication_needs_update(source.folder, config)
-        except (OSError, RuntimeError, SubprocessError, ValueError) as error:
+        except (OSError, RuntimeError, ValueError) as error:
             configuration_error = str(error)
         entries.append(
             PublicationDashboardEntry(
@@ -78,7 +73,6 @@ def build_publication_dashboard(
                 if article is not None
                 else source.slug,
                 loaded=source.loaded,
-                needs_update=needs_update,
                 configuration_error=configuration_error,
                 latest_operation_id=latest.pk if latest is not None else None,
                 latest_operation_state=latest.state if latest is not None else "",
@@ -94,7 +88,6 @@ def build_publication_dashboard(
                 slug=slug,
                 title=article.title or slug,
                 loaded=True,
-                needs_update=None,
                 configuration_error="Publication source folder not found",
                 latest_operation_id=latest.pk if latest is not None else None,
                 latest_operation_state=latest.state if latest is not None else "",

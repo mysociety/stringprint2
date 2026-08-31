@@ -14,10 +14,7 @@ from stringprint2.services.publication_operations import ProcessPublicationReque
 
 
 @pytest.mark.django_db
-def test_dashboard_combines_source_load_freshness_and_latest_operation(
-    org,
-    monkeypatch,
-) -> None:
+def test_dashboard_combines_source_load_and_latest_operation(org) -> None:
     """One typed row gives the web page all management state for a source."""
     Article.objects.filter(org=org, slug__in=("minimal-doc", "kitchen-sink")).delete()
     article, _ = Article.objects.get_or_create(
@@ -34,11 +31,6 @@ def test_dashboard_combines_source_load_freshness_and_latest_operation(
         article=article,
         request_source="test",
     )
-    monkeypatch.setattr(
-        "publication_management.dashboard.publication_needs_update",
-        lambda folder, config: folder.name == "minimal-doc",
-    )
-
     entries = build_publication_dashboard(org)
     by_slug = {entry.slug: entry for entry in entries}
 
@@ -47,7 +39,6 @@ def test_dashboard_combines_source_load_freshness_and_latest_operation(
     minimal = by_slug["minimal-doc"]
     assert minimal.loaded
     assert minimal.title == "Loaded minimal report"
-    assert minimal.needs_update is True
     assert minimal.latest_operation_id is not None
     assert minimal.latest_operation_state == "pending"
 

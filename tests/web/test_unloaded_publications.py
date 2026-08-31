@@ -33,6 +33,7 @@ def test_dashboard_lists_unloaded_source_and_enqueues_initial_load(client, org) 
     assert b"Not loaded" in listing.content
     assert b"Load and process" in listing.content
     assert b"table table-striped table-hover" in listing.content
+    assert b"Update available" not in listing.content
     assert response.status_code == 302
     assert operation.article is None
     assert operation.operation_name == "process"

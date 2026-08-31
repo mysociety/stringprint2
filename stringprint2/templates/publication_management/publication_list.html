@@ -20,8 +20,7 @@
                     <td>
                         {% if not publication.loaded %}<span class="label label-default">Not loaded</span>
                         {% elif publication.configuration_error %}<span class="text-danger"><span class="fa fa-exclamation-circle" aria-hidden="true"></span> {{ publication.configuration_error }}</span>
-                        {% elif publication.needs_update %}<span class="label label-warning">Update available</span>
-                        {% else %}<span class="label label-success">Current</span>{% endif %}
+                        {% else %}<span class="label label-success">Loaded</span>{% endif %}
                     </td>
                     <td>{% if publication.latest_operation_id %}<a href="{% url 'publication_management:operation_detail' publication.latest_operation_id %}">{{ publication.latest_operation_state|title }}</a>{% else %}<span class="text-muted">No operations</span>{% endif %}</td>
                     <td class="text-right">
