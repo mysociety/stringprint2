@@ -63,10 +63,8 @@ function adjustMenus(
   const firstVisible = sectionId - past;
   const lastVisible = sectionId + future;
 
-  for (const item of document.querySelectorAll<HTMLElement>(
-    ".top-menu-item, .dropdown",
-  )) {
-    const itemId = Number.parseInt(item.getAttribute("item") ?? "", 10);
+  for (const item of document.querySelectorAll<HTMLElement>("[data-item]")) {
+    const itemId = Number.parseInt(item.dataset.item ?? "", 10);
     const normalizedId = itemId === 0 ? 1 : itemId;
     item.classList.toggle(
       "hide-item",
@@ -92,15 +90,23 @@ function adjustMenus(
     nextTarget,
   );
 
-  const homeLink = document.querySelector<HTMLElement>("#home-link");
-  if (homeLink === null) {
+  const desktopMenu = document.querySelector<HTMLElement>("#desktop-menu");
+  if (desktopMenu === null) {
     return;
   }
-  const homeLeft = homeLink.getBoundingClientRect().left;
-  const overlaps = [...document.querySelectorAll<HTMLElement>(".top-menu-item")]
+  const homeLink = document.querySelector<HTMLElement>("#home-link");
+  const menuRight = Math.min(
+    window.innerWidth,
+    desktopMenu.getBoundingClientRect().right,
+  );
+  const availableRight =
+    homeLink !== null
+      ? Math.min(menuRight, homeLink.getBoundingClientRect().left) - 30
+      : menuRight - 8;
+  const overlaps = [...document.querySelectorAll<HTMLElement>("[data-item]")]
     .filter(elementIsVisible)
-    .some((item) => item.getBoundingClientRect().right > homeLeft - 30);
-  if (homeLeft > window.innerWidth - 50 || overlaps) {
+    .some((item) => item.getBoundingClientRect().right > availableRight);
+  if (overlaps) {
     if (past > 1) {
       adjustMenus(sectionId, future, past - 1);
     } else if (future > 0) {

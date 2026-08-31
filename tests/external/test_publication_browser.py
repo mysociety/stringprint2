@@ -70,6 +70,28 @@ def check_desktop_navigation_dropdown_and_escape(
     response = page.goto(f"{publication_browser.base_url}/")
 
     assert response is not None and response.ok
+    page.locator(".top-nav-item").evaluate_all(
+        "links => links.forEach(link => { link.textContent += "
+        "' deliberately long navigation heading'; })"
+    )
+    page.evaluate("window.dispatchEvent(new Event('resize'))")
+    page.wait_for_timeout(100)
+    assert page.locator("[data-item].hide-item").count() > 0
+    visible_menu_items = page.locator("[data-item]:visible")
+    home_link = page.locator("#home-link")
+    if home_link.count():
+        home_box = home_link.bounding_box()
+        assert home_box is not None
+        available_right = home_box["x"] - 30
+    else:
+        available_right = 1272
+    for index in range(visible_menu_items.count()):
+        box = visible_menu_items.nth(index).bounding_box()
+        assert box is not None
+        assert box["x"] + box["width"] <= available_right + 1
+
+    response = page.goto(f"{publication_browser.base_url}/")
+    assert response is not None and response.ok
     assert (
         page.locator("nav.large-menu").evaluate(
             "element => getComputedStyle(element).display"

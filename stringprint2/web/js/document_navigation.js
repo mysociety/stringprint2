@@ -41,8 +41,8 @@ function adjustMenus(id = lastSectionId, future = 6, past = defaultPastSections)
     past = Math.max(0, past);
     const firstVisible = sectionId - past;
     const lastVisible = sectionId + future;
-    for (const item of document.querySelectorAll(".top-menu-item, .dropdown")) {
-        const itemId = Number.parseInt(item.getAttribute("item") ?? "", 10);
+    for (const item of document.querySelectorAll("[data-item]")) {
+        const itemId = Number.parseInt(item.dataset.item ?? "", 10);
         const normalizedId = itemId === 0 ? 1 : itemId;
         item.classList.toggle("hide-item", normalizedId <= firstVisible || normalizedId > lastVisible);
     }
@@ -52,15 +52,19 @@ function adjustMenus(id = lastSectionId, future = 6, past = defaultPastSections)
     const nextTarget = document.querySelector(`a[section="${firstVisible + 2}"]`);
     setMenuLink(document.querySelector("#menu-prev"), previousTarget);
     setMenuLink(document.querySelector("#menu-next"), nextTarget);
-    const homeLink = document.querySelector("#home-link");
-    if (homeLink === null) {
+    const desktopMenu = document.querySelector("#desktop-menu");
+    if (desktopMenu === null) {
         return;
     }
-    const homeLeft = homeLink.getBoundingClientRect().left;
-    const overlaps = [...document.querySelectorAll(".top-menu-item")]
+    const homeLink = document.querySelector("#home-link");
+    const menuRight = Math.min(window.innerWidth, desktopMenu.getBoundingClientRect().right);
+    const availableRight = homeLink !== null
+        ? Math.min(menuRight, homeLink.getBoundingClientRect().left) - 30
+        : menuRight - 8;
+    const overlaps = [...document.querySelectorAll("[data-item]")]
         .filter(elementIsVisible)
-        .some((item) => item.getBoundingClientRect().right > homeLeft - 30);
-    if (homeLeft > window.innerWidth - 50 || overlaps) {
+        .some((item) => item.getBoundingClientRect().right > availableRight);
+    if (overlaps) {
         if (past > 1) {
             adjustMenus(sectionId, future, past - 1);
         }

@@ -49,6 +49,16 @@ def test_article_template_uses_native_menu_module() -> None:
     assert 'event.key === "Escape"' in menus
     assert "data-toggle" not in menus
 
+    navigation = (
+        Path(__file__).resolve().parents[2]
+        / "frontend"
+        / "ts"
+        / "document_navigation.ts"
+    ).read_text()
+    assert "item.dataset.item" in navigation
+    assert 'querySelectorAll<HTMLElement>("[data-item]")' in navigation
+    assert 'getAttribute("item")' not in navigation
+
 
 def test_native_document_scripts_control_css_visibility() -> None:
     """Native controls override the stylesheet's initial display state."""
