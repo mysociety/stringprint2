@@ -1247,13 +1247,21 @@ class Article(models.Model):
         for f in media_files:
             copyfile(os.path.join(settings.MEDIA_ROOT, f), os.path.join(media_dir, f))
 
-        KindleView.write_file(
-            path=os.path.join(staging, "text.html"), args=args, minimise=False
-        )
-        KindleOPF.write_file(path=opf, args=args, minimise=False)
-        KindleNCX.write_file(
-            path=os.path.join(staging, "toc.ncx"), args=args, minimise=False
-        )
+        kindle_targets = [
+            (KindleView, Path(staging) / "text.html"),
+            (KindleOPF, Path(opf)),
+            (KindleNCX, Path(staging) / "toc.ncx"),
+        ]
+        for view, output_path in kindle_targets:
+            write_static_view(
+                view,
+                StaticRenderTarget(
+                    destination=output_path,
+                    request_path=str(output_path),
+                    minimise=False,
+                ),
+                args,
+            )
         copyfile(
             finders.find(os.path.join("css", "kindle.css")),
             os.path.join(css_dir, "kindle.css"),
