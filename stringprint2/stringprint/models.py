@@ -13,7 +13,6 @@ from tempfile import mkdtemp
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import markdown
-import mkepub
 import tinify
 from stringprint2.charts import Chart
 from stringprint2.configuration import (
@@ -34,6 +33,7 @@ from stringprint2.services.paragraph_links import (
 )
 from stringprint2.services.configured_commands import run_configured_command
 from stringprint2.services.publication_sources import load_publication_source
+from stringprint2.services.ebook_rendering import EbookRenderResult, render_epub
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -47,7 +47,6 @@ from django.db.models import F
 from django.db.models.query import QuerySet
 from django.template import Context, Template
 from django.template.loader import render_to_string
-from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
@@ -1064,52 +1063,17 @@ class Article(models.Model):
             self.create_kindle(destination, use_temp=True)
             self.create_ebook(destination)
 
-    def create_ebook(self, destination: Path) -> None:
-        from .views import EbookChapterView
+    def create_ebook(self, destination: Path) -> EbookRenderResult:
+        """
+        Render this publication as an EPUB file.
+        """
 
-        authors = self.authors.split(",") if self.authors else ""
-        book = mkepub.Book(title=self.title, authors=authors)
-
-        book.set_stylesheet(
-            """.asset-long-desc{
-                            display: None;
-                            }"""
+        return render_epub(
+            self,
+            destination,
+            image_asset_type=Asset.IMAGE,
+            chart_asset_type=Asset.CHART,
         )
-
-        if self.book_cover and os.path.exists(self.book_cover.path):
-            with open(self.book_cover.path, "rb") as file:
-                book.set_cover(file.read())
-
-        sections = []
-        # iterate through sections:
-        for s in self.content().sections:
-            anchor = s.anchor()
-            args = (self.slug, s.anchor())
-            path = self.slug + "/epub/" + anchor
-            request = RequestFactory().get(path)
-            content = EbookChapterView.as_view(decorators=False)(request, *args).content
-            content = content.decode("utf-8")
-            content = content.replace('src="/media/', 'src="images/')
-            book.add_page(s.name, content)
-
-        media_files = []
-        for a in self.assets.filter(active=True):
-            if a.type == Asset.IMAGE:
-                media_files.append(a.get_image_name(1200))
-            if a.type == Asset.CHART:
-                if a.chart.chart_type != "table_chart":
-                    media_files.append(a.image_chart.name)
-
-        for f in media_files:
-            origin = os.path.join(settings.MEDIA_ROOT, f)
-            with open(origin, "rb") as file:
-                book.add_image(f, file.read())
-
-        file_path = os.path.join(destination, self.slug + ".epub")
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        book.save(file_path)
-        print("rendered epub")
 
     def create_kindle(self, destination: Path, use_temp: bool = False) -> None:
         """
