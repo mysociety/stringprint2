@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from threading import Event, Thread
 
-from django.db import close_old_connections
+from django.db import close_old_connections, transaction
 from django.utils import timezone
 
 from publication_management.models import (
@@ -14,6 +14,11 @@ from publication_management.models import (
 )
 
 
+class WorkerAlreadyRunning(RuntimeError):
+    """Indicate another recently healthy worker owns the default slot."""
+
+
+@transaction.atomic
 def register_publication_worker(
     worker_id: str,
     hostname: str,
@@ -21,6 +26,20 @@ def register_publication_worker(
 ) -> PublicationWorker:
     """Create or replace the liveness record for a starting worker."""
     started_at = timezone.now()
+    active_cutoff = started_at - timedelta(seconds=30)
+    active_other = (
+        PublicationWorker.objects.select_for_update()
+        .filter(
+            state=PublicationWorkerState.ACTIVE,
+            heartbeat_at__gte=active_cutoff,
+        )
+        .exclude(worker_id=worker_id)
+        .first()
+    )
+    if active_other is not None:
+        raise WorkerAlreadyRunning(
+            f"Publication worker {active_other.worker_id} is already active"
+        )
     worker, _ = PublicationWorker.objects.update_or_create(
         worker_id=worker_id,
         defaults={
