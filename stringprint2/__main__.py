@@ -27,17 +27,14 @@ from stringprint2.services.publication_catalog import (
     discover_publications,
 )
 from stringprint2.services.publication_freshness import publication_needs_update
-from stringprint2.services.publication_rendering import (
-    PublicationRenderFormat,
-    render_publication,
-)
+from stringprint2.services.publication_rendering import PublicationRenderFormat
+from publication_management.foreground import run_foreground_publication_operation
 from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,
     LoadPublicationRequest,
     ProcessPublicationRequest,
     PublishPublicationRequest,
     RenderPublicationRequest,
-    run_publication_operation,
 )
 from stringprint2.services.process_supervisor import (
     LocalProcessSupervisor,
@@ -382,7 +379,7 @@ class SPPrompt(cmd.Cmd):
             publication_slug=self.current_doc,
             refresh_header=refresh_header,
         )
-        run_publication_operation(
+        run_foreground_publication_operation(
             request,
             doc,
             self.doc_folder,
@@ -485,7 +482,7 @@ class SPPrompt(cmd.Cmd):
             refresh_header=refresh_header,
             preprocess=preprocess,
         )
-        result = run_publication_operation(
+        result = run_foreground_publication_operation(
             request,
             doc,
             self.doc_folder,
@@ -537,7 +534,7 @@ class SPPrompt(cmd.Cmd):
             publication_slug=self.current_doc,
             render_archive=False,
         )
-        result = run_publication_operation(
+        result = run_foreground_publication_operation(
             request,
             doc,
             self.doc_folder,
@@ -546,16 +543,18 @@ class SPPrompt(cmd.Cmd):
         print(f"Finished publishing: {result.title}")
 
     def do_quit(self, inp):
-        """
-        quit shortcut
-        """
-        quit()
+        """Stop owned services and leave the interactive shell."""
+        if self.running_server is not None or self.running_worker is not None:
+            self.do_stopserver("")
+        return True
 
     def do_exit(self, inp):
-        """
-        quit shortcut
-        """
-        quit()
+        """Stop owned services and leave the interactive shell."""
+        return self.do_quit(inp)
+
+    def do_EOF(self, inp):
+        """Treat end-of-input as a clean managed shutdown."""
+        return self.do_quit(inp)
 
     @select_doc
     def do_render(self, inp):
@@ -576,7 +575,7 @@ class SPPrompt(cmd.Cmd):
             output_format=PublicationRenderFormat.WEB,
             refresh=refresh_all,
         )
-        run_publication_operation(
+        run_foreground_publication_operation(
             request,
             doc,
             self.doc_folder,
@@ -592,7 +591,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        render_publication(doc, path, PublicationRenderFormat.EPUB)
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.EPUB,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
+        )
 
     @select_doc
     def do_renderkindle(self, inp):
@@ -603,7 +612,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        render_publication(doc, path, PublicationRenderFormat.KINDLE)
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.KINDLE,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
+        )
 
     @select_doc
     def do_renderzip(self, inp):
@@ -632,7 +651,7 @@ class SPPrompt(cmd.Cmd):
             publication_slug=slug,
             refresh=refresh_all,
         )
-        result = run_publication_operation(
+        result = run_foreground_publication_operation(
             request,
             doc,
             path,

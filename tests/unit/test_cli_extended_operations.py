@@ -43,7 +43,9 @@ def test_load_delegates_to_typed_operation(tmp_path, monkeypatch) -> None:
         captured.append((request, document, source, destination))
         return LoadPublicationResult(title="Example")
 
-    monkeypatch.setattr("stringprint2.__main__.run_publication_operation", run)
+    monkeypatch.setattr(
+        "stringprint2.__main__.run_foreground_publication_operation", run
+    )
 
     prompt.do_load("--refresh")
 
@@ -73,7 +75,9 @@ def test_renderzip_delegates_to_archive_operation(tmp_path, monkeypatch) -> None
         captured.append((request, document, source, destination))
         return ArchivePublicationResult(location=source / "example.zip")
 
-    monkeypatch.setattr("stringprint2.__main__.run_publication_operation", run)
+    monkeypatch.setattr(
+        "stringprint2.__main__.run_foreground_publication_operation", run
+    )
 
     prompt.do_renderzip("--no-hero --no-thumbnail refresh")
 
