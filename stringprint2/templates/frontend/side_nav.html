@@ -16,8 +16,8 @@
         </li>
         {% if article %}
         <li>
-            <a href="javascript:;" data-toggle="collapse" data-target="#docmenu"><i class="fa fa-fw fa-arrows-v"></i> Current Document <i class="fa fa-fw fa-caret-down"></i></a>
-            <ul id="docmenu" class="">
+            <a href="#" data-toggle="collapse" data-target="#docmenu" aria-expanded="false"><i class="fa fa-fw fa-arrows-v"></i> Current Document <i class="fa fa-fw fa-caret-down"></i></a>
+            <ul id="docmenu" class="collapse">
                 <li {% active url_name 'article.settings' %}>
                     <a href="{% url 'article.settings' article.id %}">Change Settings</a>
                 </li>

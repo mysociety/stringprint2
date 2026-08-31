@@ -102,7 +102,7 @@ class ArticlePublishForm(forms.Form):
     )
     publish_date = forms.DateField(
         label="Publish Date",
-        widget=forms.DateInput(attrs={"class": "datepicker"}),
+        widget=forms.DateInput(attrs={"type": "date"}),
         help_text="When will this document be first published?",
         required=True,
     )

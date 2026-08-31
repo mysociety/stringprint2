@@ -35,3 +35,15 @@ def test_article_template_uses_native_menu_module() -> None:
     assert "document_links.js" in source
     assert "jquery-3.5.1.min.js" not in source
     assert "stringprint.js" not in source
+
+
+def test_authenticated_templates_do_not_load_jquery() -> None:
+    """Authenticated and registration bases use native browser behavior."""
+    frontend = get_template("frontend/base.html").template.source
+    registration = get_template("registration/base.html").template.source
+    publication_home = get_template("ink/base.html").template.source
+
+    assert "admin_navigation.js" in frontend
+    assert "jquery" not in frontend.lower()
+    assert "jquery" not in registration.lower()
+    assert "jquery" not in publication_home.lower()
