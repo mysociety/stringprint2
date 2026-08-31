@@ -56,6 +56,7 @@ $stringprint-navbar-color: $navbar-main-color !default;
 $stringprint-navbar-background: $navbar-accent-color !default;
 $stringprint-navbar-border: $navbar-border-color !default;
 $stringprint-navbar-icon-color: $link-icon-color !default;
+$stringprint-navbar-inline-padding: 1rem !default;
 $stringprint-table-heading-background: if(global-variable-exists(table-head-bg), $table-head-bg, $gray-200) !default;
 $stringprint-table-heading-color: if(global-variable-exists(table-head-color), $table-head-color, $gray-700) !default;
 $sansfont: 'Open Sans', sans-serif !default;

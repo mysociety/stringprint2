@@ -20,6 +20,7 @@ Organisation publication themes may set the variables below before importing `st
 | `$stringprint-navbar-background` | Navbar background and primary accent. |
 | `$stringprint-navbar-border` | Navbar lower border. |
 | `$stringprint-navbar-icon-color` | Header action-icon colour. |
+| `$stringprint-navbar-inline-padding` | Horizontal inset for desktop publication navigation. |
 | `$stringprint-navbar-active-color` | Active navigation text colour. |
 | `$stringprint-navbar-active-background` | Active navigation background. |
 | `$stringprint-table-heading-background` | Table heading background. |

@@ -70,6 +70,9 @@ def check_desktop_navigation_dropdown_and_escape(
     response = page.goto(f"{publication_browser.base_url}/")
 
     assert response is not None and response.ok
+    brand_box = page.locator("#brand").bounding_box()
+    assert brand_box is not None
+    assert brand_box["x"] == 16
     page.locator(".top-nav-item").evaluate_all(
         "links => links.forEach(link => { link.textContent += "
         "' deliberately long navigation heading'; })"
@@ -110,6 +113,20 @@ def check_desktop_navigation_dropdown_and_escape(
     toggle.click()
     assert toggle.get_attribute("aria-expanded") == "true"
     assert "show" in (menu.get_attribute("class") or "")
+    toggle_box = toggle.bounding_box()
+    dropdown_box = toggle.locator("xpath=..").bounding_box()
+    menu_box = menu.bounding_box()
+    assert toggle_box is not None
+    assert dropdown_box is not None
+    assert menu_box is not None
+    assert menu_box["x"] < toggle_box["x"]
+    assert (
+        abs(
+            (menu_box["x"] + menu_box["width"])
+            - (dropdown_box["x"] + dropdown_box["width"])
+        )
+        < 1
+    )
 
     page.keyboard.press("Escape")
     assert toggle.get_attribute("aria-expanded") == "false"

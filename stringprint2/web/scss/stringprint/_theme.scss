@@ -19,6 +19,13 @@ a {
   border-bottom: 1px solid $stringprint-navbar-border;
   margin-left: 0;
   margin-right: 0;
+  padding-left: $stringprint-navbar-inline-padding;
+  padding-right: $stringprint-navbar-inline-padding;
+}
+
+.large-menu .dropdown-menu-end {
+  right: 0;
+  left: auto;
 }
 
 h1 {
