@@ -30,6 +30,10 @@ from stringprint2.services.publication_workflow import (
     process_publication,
     run_publication_command,
 )
+from stringprint2.services.publication_catalog import (
+    PublicationCatalog,
+    discover_publications,
+)
 from stringprint2.text_files import TextFile
 
 print = rich.print
@@ -297,27 +301,23 @@ class SPPrompt(cmd.Cmd):
         if silent is False:
             self.print_status()
 
-    def loaded_docs(self) -> List[str]:
-        dir = Path(self.current_org.storage_dir, "_docs")
-        slugs = self.current_org.articles.all().values_list("slug", flat=True)
-        return [x.name for x in self.get_valid_doc_folders() if x.name in slugs]
+    def publication_catalog(self) -> PublicationCatalog:
+        """
+        Return source publications classified by their database load state.
+        """
 
-    def unloaded_docs(self) -> List[str]:
-        dir = Path(self.current_org.storage_dir, "_docs")
-        slugs = self.current_org.articles.all().values_list("slug", flat=True)
-        return [x.name for x in self.get_valid_doc_folders() if x.name in slugs]
-
-    def get_valid_doc_folders(self) -> List[Path]:
-        special = ["_template"]
         root = Path(self.current_org.storage_dir, "_docs")
-        l = [
-            x
-            for x in root.iterdir()
-            if (x / "settings.yaml").exists() and x.name not in [special]
-        ]
+        loaded_slugs = self.current_org.articles.values_list("slug", flat=True)
+        return discover_publications(root, loaded_slugs)
 
-        l.sort()
-        return l
+    def loaded_docs(self) -> list[str]:
+        return list(self.publication_catalog().loaded_slugs)
+
+    def unloaded_docs(self) -> list[str]:
+        return list(self.publication_catalog().unloaded_slugs)
+
+    def get_valid_doc_folders(self) -> list[Path]:
+        return [entry.folder for entry in self.publication_catalog().entries]
 
     def do_listdocs(self, silent: bool = False):
         """
