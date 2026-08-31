@@ -30,3 +30,5 @@ def test_article_template_uses_native_menu_module() -> None:
     assert "popper.min.js" not in source
     assert "bootstrap/js/dist/dropdown.js" not in source
     assert "bootstrap/js/dist/collapse.js" not in source
+    assert "document_navigation.js" in source
+    assert "jquery.waypoints" not in source

@@ -12,7 +12,7 @@ interface SweetAlertApi {
 
 declare const clipboard: ClipboardApi;
 declare const Swal: SweetAlertApi;
-declare let current_section: string;
+declare var current_section: string;
 declare function send_ga(action: string, value?: string | null): void;
 
 const monthNames = [

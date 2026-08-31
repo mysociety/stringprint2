@@ -1,11 +1,8 @@
 declare let hide_state: boolean | string;
 
-declare const Waypoint: {
-  refreshAll: () => void;
-};
-
 declare function send_ga(action: string, value?: string | null): void;
 declare function set_mobile_link(id: string): void;
+declare function refreshSectionTracking(): void;
 
 function visible(element: HTMLElement): boolean {
   return !element.hidden && getComputedStyle(element).display !== "none";
@@ -21,9 +18,9 @@ function toggleVisible(element: HTMLElement): boolean {
   return show;
 }
 
-function refreshWaypoints(): void {
+function refreshNavigation(): void {
   window.setTimeout(() => {
-    Waypoint.refreshAll();
+    refreshSectionTracking();
   }, 500);
 }
 
@@ -73,7 +70,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(
       return;
     }
     const show = toggleVisible(footnotes);
-    refreshWaypoints();
+    refreshNavigation();
     const paragraphId = link.getAttribute("name");
     const paragraph =
       paragraphId === null
@@ -94,7 +91,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(
     const footnotes = link.closest<HTMLElement>(".footnotes");
     if (footnotes !== null) {
       toggleVisible(footnotes);
-      refreshWaypoints();
+      refreshNavigation();
     }
   });
 }
@@ -112,7 +109,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(".expand-link"))
     if (note !== null) {
       setVisible(note, true);
     }
-    refreshWaypoints();
+    refreshNavigation();
     send_ga("Show Note", id);
   });
 }
@@ -133,7 +130,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(".hide-link")) {
     if (expandLink !== null) {
       setVisible(expandLink, true);
     }
-    refreshWaypoints();
+    refreshNavigation();
   });
 }
 

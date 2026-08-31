@@ -60,40 +60,6 @@ function changeSelected(id, title, nohash) {
 
 
 
-var waypoints = $('.section-anchor').waypoint(function (direction) {
-    //at change in section changes top menu and hash changes
-    if ($(this.element).is(':visible') == false) {
-        return 0;
-    }
-
-    if (direction == "down") {
-        id = $(this.element).attr('id').substring(1);
-        title = $(this.element).text()
-    } else {
-        id = $(this.element).attr('prev').substring(1);
-        title = $("#s" + id + ".section-anchor").find("h1").text()
-    };
-    if (page_loaded) {
-        changeSelected(id, title);
-    }
-
-}, {
-    // offset very slightly the location of the section anchor
-    offset: function () {
-        if ($(this.element).is(':visible') == true) {
-            return $(this.element).height() + 60;
-        } else {
-            return 0
-        }
-    },
-
-    continuous: false
-}
-
-);
-
-
-
 var last_id = 1
 var default_past = 1
 
@@ -424,7 +390,7 @@ function local_link_handler() {
             $("#" + para_id + ".content-row").removeClass('content-row').addClass("highlighted-content content-row")
             window.setTimeout(function () { $("#" + para_id + ".content-row").removeClass("highlighted-content") }, 2000)
             $("#" + para_id + ".footnotes").show()
-            window.setTimeout(Waypoint.refreshAll, 500);
+            window.setTimeout(refreshSectionTracking, 500);
             return false;
 
         } else if (splits.length > 1) {
@@ -439,14 +405,14 @@ function local_link_handler() {
                 send_ga("TOC View")
                 if ($("div#index-container").is(':visible') == false) {
                     $("div#index-container").show()
-                    Waypoint.refreshAll()
+                    refreshSectionTracking()
                 }
             } else {
                 index = $("div#index-container");
                 if ((index.is(':visible') == true) && (index.hasClass("hide-index") == true)) {
 
                     $("div#index-container").hide()
-                    Waypoint.refreshAll()
+                    refreshSectionTracking()
                 }
             }
             new_loc = $('a[name="' + new_hash + '"]').offset().top - 30;
@@ -560,14 +526,11 @@ function followHash() {
 }
 
 function window_resize() {
-    //fix waypoints on window resize
+    //refresh navigation on window resize
     adjustMenus();
-    Waypoint.refreshAll()
+    refreshSectionTracking()
 }
 
 window.onresize = window_resize;
 window.onhashchange = followHash;
-window_resize()
-set_mobile_link(1)
-
 

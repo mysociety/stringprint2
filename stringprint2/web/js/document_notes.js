@@ -10,9 +10,9 @@ function toggleVisible(element) {
     setVisible(element, show);
     return show;
 }
-function refreshWaypoints() {
+function refreshNavigation() {
     window.setTimeout(() => {
-        Waypoint.refreshAll();
+        refreshSectionTracking();
     }, 500);
 }
 function scrollIntoReadingPosition(element) {
@@ -51,7 +51,7 @@ for (const link of document.querySelectorAll(".expand-footnotes")) {
             return;
         }
         const show = toggleVisible(footnotes);
-        refreshWaypoints();
+        refreshNavigation();
         const paragraphId = link.getAttribute("name");
         const paragraph = paragraphId === null
             ? null
@@ -68,7 +68,7 @@ for (const link of document.querySelectorAll(".hide-footnotes")) {
         const footnotes = link.closest(".footnotes");
         if (footnotes !== null) {
             toggleVisible(footnotes);
-            refreshWaypoints();
+            refreshNavigation();
         }
     });
 }
@@ -85,7 +85,7 @@ for (const link of document.querySelectorAll(".expand-link")) {
         if (note !== null) {
             setVisible(note, true);
         }
-        refreshWaypoints();
+        refreshNavigation();
         send_ga("Show Note", id);
     });
 }
@@ -105,7 +105,7 @@ for (const link of document.querySelectorAll(".hide-link")) {
         if (expandLink !== null) {
             setVisible(expandLink, true);
         }
-        refreshWaypoints();
+        refreshNavigation();
     });
 }
 for (const row of document.querySelectorAll(".content-row")) {
