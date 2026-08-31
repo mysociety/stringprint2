@@ -120,7 +120,7 @@ class TestOutputFiles:
             "search.html",
             "plain.html",
             "toc.json",
-            "tipuesearch_content.js",
+            "search_content.js",
         ],
     )
     def test_the_expected_page_is_written(self, baked: Path, name: str) -> None:

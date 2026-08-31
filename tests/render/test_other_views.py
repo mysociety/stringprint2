@@ -62,15 +62,15 @@ class TestSearchViews:
         assert client.get("/preview/kitchen-sink/search").status_code == 200
 
     def test_the_search_index_renders(self, client, kitchen_sink) -> None:
-        response = client.get("/preview/kitchen-sink/tipuesearch_content.js")
+        response = client.get("/preview/kitchen-sink/search_content.js")
         assert response.status_code == 200
         assert "An ordinary opening paragraph" in response.content.decode("utf-8")
 
     def test_the_index_is_javascript_shaped(self, client, kitchen_sink) -> None:
         body = client.get(
-            "/preview/kitchen-sink/tipuesearch_content.js"
+            "/preview/kitchen-sink/search_content.js"
         ).content.decode("utf-8")
-        assert "tipuesearch" in body
+        assert "publicationSearchIndex" in body
 
 
 class TestKindleTemplates:

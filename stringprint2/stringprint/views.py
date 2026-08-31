@@ -177,14 +177,14 @@ class TOCView(HomeView):
         return JsonResponse(response, safe=False)
 
 
-class TipueSearchView(HomeView):
+class SearchView(HomeView):
     """
-    view to create the search page for tipue
+    Render the publication search page.
     """
 
     template = "ink//search.html"
     url_patterns = [r"^([A-Za-z0-9_-]+)/search"]
-    url_name = "tipue_search"
+    url_name = "publication_search"
     article_settings_override = {"baking": False, "search": True}
 
     def get_article(self, request, article_slug):
@@ -204,14 +204,14 @@ class TipueSearchView(HomeView):
         return {"article": a, "content": c, "cache_nav": "full"}
 
 
-class TipueContentView(TipueSearchView):
+class SearchContentView(SearchView):
     """
-    view to create the contentfile for searches
+    Render the JavaScript publication search index.
     """
 
     template = "ink//search_js.html"
-    url_patterns = [r"^([A-Za-z0-9_-]+)/tipuesearch_content.js"]
-    url_name = "tipue_content"
+    url_patterns = [r"^([A-Za-z0-9_-]+)/search_content.js"]
+    url_name = "publication_search_content"
 
 
 class TextView(KindleView):

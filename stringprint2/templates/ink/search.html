@@ -22,9 +22,9 @@
 
 <div class = "container content-row search-content">
     <div class="content" >
-    <form>
+    <form id="publication-search-form">
 <div class="input-group mb-3">
-      <input name="q" id="tipue_search_input"  autocomplete="off"  type="text" class="form-control" placeholder="Search for..." required>
+      <input name="q" id="publication-search-input" autocomplete="off" type="text" class="form-control" placeholder="Search for..." required>
   <div class="input-group-append">
         <button class="btn btn-success" type="submit">Search</button>
   </div>
@@ -36,8 +36,7 @@
 
 {% block search_results %}
 <div class = "container content-row">
-    <div id="tipue_search_content"></div>
-    <div class="search_credit"><p><i>Search powered by <a href="http://www.tipue.com">Tipue</a>.</p></i></div>
+    <div id="publication-search-results"></div>
 </div>
 {% endblock %}
 
@@ -45,28 +44,7 @@
 {% endblock %}
 
 {% block code %}
-
-
-<script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}" defer></script>
-<script type="text/javascript" src="tipuesearch_content.js" defer></script>
-<script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}" defer></script>
-
-
-
-<script>
-    window.addEventListener('DOMContentLoaded', function() {
-
-	$('form input').keydown(function (e) {
-		if (e.keyCode == 13) {
-			e.preventDefault();
-			return false;
-		}
-	});
-
-     $('#tipue_search_input').tipuesearch({'showURL':false,
-                                           'showTitleCount':false}
-     );
-});
-</script>
+<script type="text/javascript" src="search_content.js" defer></script>
+<script type="text/javascript" src="{% static 'js/document_search.js' %}" defer></script>
 
 {% endblock %}

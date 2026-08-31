@@ -855,8 +855,8 @@ class Article(models.Model):
             ArticleView,
             RedirectLink,
             TextView,
-            TipueContentView,
-            TipueSearchView,
+            SearchContentView,
+            SearchView,
             TOCView,
         )
 
@@ -939,14 +939,14 @@ class Article(models.Model):
             def get_article(self, request, article_slug):
                 return current_article
 
-        class BakeTipueContentView(TipueContentView):
+        class BakeSearchContentView(SearchContentView):
             article_settings_override = {
                 "paywall": False,
                 "baking": True,
                 "search": True,
             }
 
-        class BakeTipueSearchView(TipueSearchView):
+        class BakeSearchView(SearchView):
             article_settings_override = {
                 "paywall": False,
                 "baking": True,
@@ -1026,14 +1026,14 @@ class Article(models.Model):
             destination=destination,
         )
         write_baked_file(
-            BakeTipueSearchView,
+            BakeSearchView,
             path=os.path.join(destination, "search.html"),
             args=args,
             destination=destination,
         )
         write_baked_file(
-            BakeTipueContentView,
-            path=os.path.join(destination, "tipuesearch_content.js"),
+            BakeSearchContentView,
+            path=os.path.join(destination, "search_content.js"),
             args=args,
             destination=destination,
         )
@@ -1068,9 +1068,6 @@ class Article(models.Model):
         files = [
             "js//sweetalert2.all.min.js",
             "js//picturefill.min.js",
-            "js//tipuesearch.min.js",
-            "js//tipuesearch_set.js",
-            "css//tipuesearch.css",
             "css//kindle.css",
             "css//text_mode.css",
             "css//fa_reduced.css",

@@ -59,7 +59,7 @@ def test_static_root_still_carries_the_real_hand_authored_assets() -> None:
     """
     CompressorFinder and StaticPrecompilerFinder are both BaseStorageFinders
     rooted at COMPRESS_ROOT/STATIC_ROOT - that is how a git-tracked file like
-    stringprint2/static/css/tipuesearch.css gets found by finders.find() even
+    stringprint2/static/css/fa_reduced.css gets found by finders.find() even
     though it is nowhere in STATICFILES_DIRS. Article.render depends on
     finding files like this one (models.py's `files` list in `render`), so
     the session's isolated STATIC_ROOT has to start as a copy of the real
@@ -68,8 +68,8 @@ def test_static_root_still_carries_the_real_hand_authored_assets() -> None:
     """
     from django.contrib.staticfiles import finders
 
-    assert finders.find("css/tipuesearch.css") == str(
-        STATIC_ROOT / "css" / "tipuesearch.css"
+    assert finders.find("css/fa_reduced.css") == str(
+        STATIC_ROOT / "css" / "fa_reduced.css"
     )
 
 
