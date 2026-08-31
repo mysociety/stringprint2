@@ -20,7 +20,7 @@ from PIL import Image
 from rich.panel import Panel
 from rich.prompt import Prompt
 from ruamel.yaml import YAML
-from useful_inkleby.files import QuickText
+from stringprint2.text_files import TextFile
 
 print = rich.print
 

@@ -11,7 +11,8 @@ import html2markdown
 import mammoth
 from bs4 import BeautifulSoup
 from ruamel.yaml import YAML
-from useful_inkleby.files import QuickGrid, QuickText
+from useful_inkleby.files import QuickGrid
+from stringprint2.text_files import TextFile
 from django.utils.text import slugify
 from pathlib import Path
 
@@ -77,10 +78,10 @@ def fix_footnotes(block: str) -> str:
     return "\n".join(final)
 
 
-def fix_markdown(text:str):
+def fix_markdown(text: str):
     """
     There's a big issue where markdown is landing incorrectly.
-    with whitespace inside the markdown. 
+    with whitespace inside the markdown.
     For odd instances of '__', we need to check if it's followed by a whitespace character.
     If so, we need to move the whitespace before it.
     For even instances, we need to make sure it's not preceeded by a whitespace character.
@@ -91,30 +92,32 @@ def fix_markdown(text:str):
     positions = []
     start = 0
     while True:
-        start = text.find('__', start)
-        if start == -1: break
+        start = text.find("__", start)
+        if start == -1:
+            break
         positions.append(start)
         start += 1
 
     # iterate through positions and fix
     for i, pos in enumerate(positions):
-        i = i + 1 # stupid 0 indexing
+        i = i + 1  # stupid 0 indexing
         # if odd
         if i % 2 == 1:
             # check if whitespace after
-            if text[pos+2] == ' ':
+            if text[pos + 2] == " ":
                 # move whitespace before
-                text = text[:pos] + " __" + text[pos+3:]
+                text = text[:pos] + " __" + text[pos + 3 :]
         # if even
         else:
             # check if whitespace before
-            if text[pos-1] == ' ':
+            if text[pos - 1] == " ":
                 # move whitespace after
-                text = text[:pos-1] + "__ " + text[pos+2:]
+                text = text[: pos - 1] + "__ " + text[pos + 2 :]
 
     return text
 
-def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
+
+def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
     """
     given the results of a mammoth conversion:
     fixes up footnotes
@@ -461,7 +464,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
     return new_html, assets
 
 
-def get_asset_captions(qt: QuickText) -> None:
+def get_asset_captions(qt: TextFile) -> None:
     """
     if there's an italic line beneath an asset, uses it as a
     """
@@ -486,7 +489,7 @@ def get_asset_captions(qt: QuickText) -> None:
                 last_asset = None
 
 
-def convert_docx(file_path, demote=False) -> QuickText:
+def convert_docx(file_path, demote=False) -> TextFile:
     """
     given a word file as a file object, converts to markdown
     and then does post processing for stringprint specific features
@@ -498,7 +501,7 @@ def convert_docx(file_path, demote=False) -> QuickText:
     html, assets = get_tables(html)
 
     markdown = html2markdown.convert(html)
-    q = QuickText()
+    q = TextFile()
     q.filename = file_path
     q.text = markdown
     q.assets = []
@@ -512,7 +515,7 @@ def convert_docx(file_path, demote=False) -> QuickText:
     return q
 
 
-def extract_assets(q: QuickText) -> None:
+def extract_assets(q: TextFile) -> None:
     folder = os.path.dirname(q.filename)
     asset_folder = os.path.join(folder, "assets")
     if not os.path.exists(asset_folder):

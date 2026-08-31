@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 import fitz
 from stringprint.models import Article
 from stringprint.tools.word_convert import convert_word
-from useful_inkleby.files import QuickText
+from stringprint2.text_files import TextFile
 
 from .google_download import GoogleDownloader
 
@@ -35,7 +35,7 @@ def merge_pdfs(
 
 class SectionActionBase:
     def get_sections_order(
-        self, qt: QuickText
+        self, qt: TextFile
     ) -> Tuple[Dict[str, List[str]], List[str]]:
         sections = {}
         current_header = "start"
@@ -53,11 +53,11 @@ class SectionActionBase:
 
         return sections, order
 
-    def process_text(self, qt: QuickText) -> QuickText:
+    def process_text(self, qt: TextFile) -> TextFile:
         return qt
 
     def __call__(self, text: str) -> str:
-        qt = self.process_text(QuickText(text))
+        qt = self.process_text(TextFile(text))
         return qt.text
 
 
@@ -69,7 +69,7 @@ class SectionDelete(SectionActionBase):
 
     section: str
 
-    def process_text(self, qt: QuickText) -> QuickText:
+    def process_text(self, qt: TextFile) -> TextFile:
         """
         Swap sections around in document
         """
@@ -83,7 +83,7 @@ class SectionDelete(SectionActionBase):
         for s in order:
             new_lines.extend(sections[s])
 
-        return QuickText("\n".join(new_lines))
+        return TextFile("\n".join(new_lines))
 
 
 @dataclass
@@ -100,7 +100,7 @@ class SectionMove(SectionActionBase):
         if self.before is None and self.after is None:
             raise ValueError("SectionMove requires 'before' or 'after' parameter")
 
-    def process_text(self, qt: QuickText) -> QuickText:
+    def process_text(self, qt: TextFile) -> TextFile:
         """
         Swap sections around in document
         """
@@ -128,7 +128,7 @@ class SectionMove(SectionActionBase):
         for s in order:
             new_lines.extend(sections[s])
 
-        return QuickText("\n".join(new_lines))
+        return TextFile("\n".join(new_lines))
 
 
 @dataclass
@@ -141,7 +141,7 @@ class SectionMove(SectionActionBase):
         if self.before is None and self.after is None:
             raise ValueError("SectionMove requires 'before' or 'after' parameter")
 
-    def process_text(self, qt: QuickText) -> QuickText:
+    def process_text(self, qt: TextFile) -> TextFile:
         """
         Swap sections around in document
         """
@@ -169,7 +169,7 @@ class SectionMove(SectionActionBase):
         for s in order:
             new_lines.extend(sections[s])
 
-        return QuickText("\n".join(new_lines))
+        return TextFile("\n".join(new_lines))
 
 
 class BaseTextAction:
@@ -265,9 +265,9 @@ class BasePreprocess:
 
     def import_markdown(self):
         """
-        Import the source file as a QuickText object
+        Import the source file as a TextFile object
         """
-        self.qt = QuickText().open(self.source_file)
+        self.qt = TextFile().open(self.source_file)
 
     def output(self) -> None:
         """

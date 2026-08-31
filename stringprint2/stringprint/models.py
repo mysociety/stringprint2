@@ -51,7 +51,7 @@ from django.utils.timezone import now
 from PIL import Image
 from playwright.sync_api import sync_playwright
 from ruamel.yaml import YAML
-from useful_inkleby.files import QuickText
+from stringprint2.text_files import TextFile
 from webptools import webplib as webp
 
 from stringprint2.serialization import JsonBlockField
@@ -665,7 +665,7 @@ class Article(models.Model):
                 f.type = Asset.RAW_HTML
                 file_name = ".".join([item.slug, item.extension])
                 file_path = os.path.join(asset_folder, file_name)
-                f.content = QuickText().open(file_path).text
+                f.content = TextFile().open(file_path).text
             print("saving {0}".format(f.slug))
             f.save()
 
