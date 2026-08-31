@@ -464,89 +464,6 @@ $('#menu-prev').on('click touchend', local_link_handler);
 $('#menu-next').on('click touchend', local_link_handler);
 
 
-var month = new Array();
-month[0] = "Jan";
-month[1] = "Feb";
-month[2] = "Mar";
-month[3] = "Apr";
-month[4] = "May";
-month[5] = "Jun";
-month[6] = "Jul";
-month[7] = "Aug";
-month[8] = "Sept";
-month[9] = "Oct";
-month[10] = "Nov";
-month[11] = "Dec";
-
-function getNow() {
-    var currentDate = new Date()
-    var day = currentDate.getDate()
-    var mon = currentDate.getMonth() + 1
-    var year = currentDate.getFullYear()
-    return day + " " + month[mon - 1] + ". " + year
-}
-
-function citeBox(dialog_title, link, para_id, para_tag) {
-    //generates pretty citation box
-    title = $("meta[name=short_title]").attr("content")
-    full_title = $("meta[name=full_title]").attr("content")
-    cite_author = $("meta[name=cite_author]").attr("content")
-    year = $("meta[name=year]").attr("content")
-    org = $("meta[name=org]").attr("content")
-    include_citation = $("meta[name=include_citation]").attr("content")
-    current_section_name = current_section
-    if (current_section_name == title) {
-        current_section_name = "";
-    }
-    if (current_section_name) {
-        current_section_name = ": " + current_section_name;
-        current_section_name = current_section_name.trim();
-    }
-
-    if (para_tag != "") {
-        ele_name = "Paragraph";
-        ele_id = para_tag;
-    } else {
-        ele_name = "Paragraph";
-        ele_id = para_id;
-    };
-
-    box_content = 'Link : <a href="' + link + '">' + title + current_section_name + ', ' + ele_name + ' ' + ele_id + '</a>'
-    if (include_citation == "true") {
-        box_content = box_content + '<br><br>Cite As:<br><span class="cite"> ' + cite_author + ' (' + year + '), <i>' + full_title + '</i>. [online] , ' + org + '. ' + ele_name + ': ' + ele_id + ', Available at: ' + link + ' [Accessed ' + getNow() + ']</span>'
-    };
-    box_content = "<h4><b>" + dialog_title + "</b></h4>" + box_content
-    Swal.fire({
-        icon: 'success',
-        html: box_content,
-        confirmButtonText: "OK"
-    });
-
-    send_ga("Generated Link", link)
-
-}
-
-//copies link to clipboard - disables further activity
-$(".cite-copy").on('click touchend', function (e) {
-
-    link = $(this).attr("href")
-
-    para_id = $(this).attr("id").substring(1);
-
-    para_tag = $(this).attr("para_tag")
-
-
-
-    clipboard.copy(link).then(
-        function () { citeBox("Link added to Clipboard!", link, para_id, para_tag); },
-        function (err) { citeBox("Copy Link From Below!", link, para_id, para_tag); })
-
-
-    e.stopPropagation();
-    return false;
-});
-
-
 $("a.dropdown-toggle").attr('href', 'javascript:void(0)');
 
 
@@ -668,7 +585,6 @@ window.onresize = window_resize;
 window.onhashchange = followHash;
 window_resize()
 set_mobile_link(1)
-
 
 
 
