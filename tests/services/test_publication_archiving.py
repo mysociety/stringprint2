@@ -4,7 +4,6 @@ Tests for publication archive assembly.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -19,28 +18,18 @@ class FakePublication:
 
     def __init__(self, fail: bool = False) -> None:
         self.fail = fail
-        self.extra_files: list[tuple[Path, Path]] = []
+        self.render_destination: Path | None = None
 
-    def render_to_zip(
+    def render(
         self,
-        zip_destination: Path,
-        extra_files: list[tuple[Path, Path]],
-        *,
+        destination: Path,
         refresh_all: bool = False,
-    ) -> Path:
-        self.extra_files = extra_files
+    ) -> None:
+        self.render_destination = destination
         assert refresh_all
-        settings_path = next(
-            source
-            for source, destination in extra_files
-            if destination == Path("settings-for-render.json")
-        )
-        settings = json.loads(settings_path.read_text(encoding="utf-8"))
-        assert "commands" not in settings
-        assert settings["title"] == "Example"
+        (destination / "index.html").write_text("Rendered", encoding="utf-8")
         if self.fail:
             raise RuntimeError("render failed")
-        return zip_destination
 
 
 def write_publication_settings(folder: Path) -> None:
@@ -85,7 +74,10 @@ def test_render_publication_archive_includes_media_and_cleans_settings(
         Path("hero.png"),
         Path("settings-for-render.json"),
     ]
+    assert publication.render_destination is not None
+    assert not publication.render_destination.exists()
     assert not (tmp_path / "settings-for-render.json").exists()
+    assert (tmp_path / "example.zip").is_file()
 
 
 def test_render_publication_archive_cleans_settings_after_failure(

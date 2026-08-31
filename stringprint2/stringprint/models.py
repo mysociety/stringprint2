@@ -824,24 +824,6 @@ class Article(models.Model):
                 last = current_mod
             time.sleep(2)
 
-    def render_to_zip(
-        self,
-        zip_destination,
-        extra_files: List[Tuple[Path, Path]] = [],
-        *args,
-        **kwargs,
-    ):
-        """
-        render the article and return the location of a zip file
-        """
-        temp_folder = mkdtemp()
-        self.render(destination=temp_folder, *args, **kwargs)
-        for origin, dest in extra_files:
-            dest_loc = Path(temp_folder, dest)
-            shutil.copyfile(origin, dest_loc)
-        shutil.make_archive(zip_destination, "zip", temp_folder)
-        return zip_destination
-
     def render(
         self,
         destination: Path,

@@ -5,7 +5,9 @@ Assemble reproducible publication ZIP archives.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
@@ -30,15 +32,13 @@ class ArchivablePublication(Protocol):
     Operations required from a publication archive renderer.
     """
 
-    def render_to_zip(
+    def render(
         self,
-        zip_destination: Path,
-        extra_files: list[tuple[Path, Path]],
-        *,
+        destination: Path,
         refresh_all: bool = False,
-    ) -> Path:
+    ) -> None:
         """
-        Render a publication and its extra files into a ZIP archive.
+        Render the web publication into a destination directory.
         """
 
         ...
@@ -113,18 +113,23 @@ def render_publication_archive(
         slug,
         render_settings,
     )
+    archive_destination = publication_folder / slug
     try:
-        location = publication.render_to_zip(
-            publication_folder / slug,
-            [
-                (archive_file.source, archive_file.destination)
-                for archive_file in included_files
-            ],
-            refresh_all=refresh,
-        )
+        with TemporaryDirectory() as staging_directory:
+            staging_path = Path(staging_directory)
+            publication.render(staging_path, refresh_all=refresh)
+            for archive_file in included_files:
+                destination = staging_path / archive_file.destination
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(archive_file.source, destination)
+            shutil.make_archive(
+                str(archive_destination),
+                "zip",
+                staging_path,
+            )
     finally:
         render_settings.unlink(missing_ok=True)
     return PublicationArchiveResult(
-        location=location,
+        location=archive_destination,
         included_files=included_files,
     )
