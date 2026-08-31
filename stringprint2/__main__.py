@@ -2,7 +2,6 @@
 
 import cmd
 import io
-import json
 import os
 import shutil
 import signal
@@ -36,6 +35,7 @@ from stringprint2.services.publication_catalog import (
     PublicationCatalog,
     discover_publications,
 )
+from stringprint2.services.publication_archiving import render_publication_archive
 from stringprint2.services.publication_freshness import publication_needs_update
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
@@ -579,9 +579,7 @@ class SPPrompt(cmd.Cmd):
             return None
         refresh_all = "refresh" in inp.lower() or self.full_refresh
         slug = self.current_doc
-        origin_folder = self.current_org.storage_dir
-        path = Path(origin_folder, "_docs", slug)
-        zip_destination = Path(path, slug)
+        path = self.doc_folder
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
@@ -594,33 +592,13 @@ class SPPrompt(cmd.Cmd):
         if not "no-thumbnail" in inp:
             self.do_pdfpng("")
 
-        hero_path = path / "hero.png"
-        cover_path = path / f"{slug}-cover.png"
-        thumbnail_path = path / f"{slug}-thumbnail.png"
-        json_settings_path = path / f"settings-for-render.json"
-
-        yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
-        if "commands" in yaml_data:
-            del yaml_data["commands"]
-
-        with open(json_settings_path, "w") as f:
-            json.dump(yaml_data, f, indent=4, default=str)
-
-        extra_files = []
-        if hero_path.exists():
-            extra_files.append((hero_path, Path(hero_path.name)))
-        if cover_path.exists():
-            extra_files.append((cover_path, Path(cover_path.name)))
-        if thumbnail_path.exists():
-            extra_files.append((thumbnail_path, Path(thumbnail_path.name)))
-        if json_settings_path.exists():
-            extra_files.append((json_settings_path, Path(json_settings_path.name)))
-
-        zip_location = doc.render_to_zip(
-            zip_destination, refresh_all=refresh_all, extra_files=extra_files
+        result = render_publication_archive(
+            doc,
+            path,
+            slug,
+            refresh=refresh_all,
         )
-        json_settings_path.unlink()  # don't cause confusion with two files
-        print(f"Zip created at {zip_location}")
+        print(f"Zip created at {result.location}")
 
     @select_doc
     def do_mergepdf(self, inp):
