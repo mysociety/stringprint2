@@ -16,10 +16,10 @@ import re
 import shutil
 import sys
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import List, Tuple
 
-import fitz
+import pymupdf as fitz
 import xlwt
 from openpyxl import Workbook
 from PIL import Image, ImageDraw
@@ -27,6 +27,8 @@ from PIL import Image, ImageDraw
 FIXED_TIME = datetime.datetime(2020, 1, 1, 0, 0, 0)
 FIXED_PDF_TIME = "D:20200101000000Z"
 FIXED_ZIP_TIME = (2020, 1, 1, 0, 0, 0)
+FIXED_XLSX_TIME = b"2020-01-01T00:00:00Z"
+XLSX_MODIFIED_RE = re.compile(rb"(<dcterms:modified\b[^>]*>).*?(</dcterms:modified>)")
 
 DOC_SOURCE = Path(__file__).parent / "doc_source"
 DOCS = DOC_SOURCE / "_docs"
@@ -41,7 +43,15 @@ def normalise_zip(path: Path) -> None:
     otherwise different on every run.
     """
     source = zipfile.ZipFile(str(path))
-    members = [(info, source.read(info.filename)) for info in source.infolist()]
+    members = []
+    for info in source.infolist():
+        data = source.read(info.filename)
+        if info.filename == "docProps/core.xml":
+            data = XLSX_MODIFIED_RE.sub(
+                rb"\g<1>" + FIXED_XLSX_TIME + rb"\g<2>",
+                data,
+            )
+        members.append((info, data))
     source.close()
 
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -78,7 +88,7 @@ def normalise_pdf(path: Path) -> None:
     path.write_bytes(data)
 
 
-def make_image(path: Path, size: Tuple[int, int], fmt: str) -> None:
+def make_image(path: Path, size: tuple[int, int], fmt: str) -> None:
     """
     A flat ground plus two blocks of colour.
 
@@ -150,30 +160,51 @@ def make_pdf(path: Path, text: str, pages: int = 1) -> None:
     normalise_pdf(path)
 
 
-def targets() -> List[Tuple[Path, callable]]:
+def targets() -> list[tuple[Path, Callable[[Path], None]]]:
     kitchen = DOCS / "kitchen-sink"
     return [
         (kitchen / "header.png", lambda p: make_image(p, (1920, 1080), "PNG")),
-        (kitchen / "kitchen-sink-cover.png", lambda p: make_image(p, (600, 900), "PNG")),
-        (kitchen / "assets" / "image-one.png", lambda p: make_image(p, (1920, 1080), "PNG")),
-        (kitchen / "assets" / "image-two.jpg", lambda p: make_image(p, (1920, 1080), "JPEG")),
+        (
+            kitchen / "kitchen-sink-cover.png",
+            lambda p: make_image(p, (600, 900), "PNG"),
+        ),
+        (
+            kitchen / "assets" / "image-one.png",
+            lambda p: make_image(p, (1920, 1080), "PNG"),
+        ),
+        (
+            kitchen / "assets" / "image-two.jpg",
+            lambda p: make_image(p, (1920, 1080), "JPEG"),
+        ),
         # smaller than every responsive width, so no tier is downsized
-        (kitchen / "assets" / "image-three.png", lambda p: make_image(p, (400, 300), "PNG")),
+        (
+            kitchen / "assets" / "image-three.png",
+            lambda p: make_image(p, (400, 300), "PNG"),
+        ),
         (kitchen / "assets" / "table-one.xls", make_xls),
         (kitchen / "assets" / "table-no-header-one.xlsx", make_xlsx),
         (kitchen / "kitchen-sink.pdf", lambda p: make_pdf(p, "Kitchen sink contents")),
         (kitchen / "cover.pdf", lambda p: make_pdf(p, "Kitchen sink cover")),
         # three pages, so merge_pdfs' start_page actually drops something
         (kitchen / "contents.pdf", lambda p: make_pdf(p, "Kitchen sink body", pages=3)),
-        (DOCS / "legacy-doc" / "header.png", lambda p: make_image(p, (1920, 1080), "PNG")),
-        (DOCS / "legacy-doc" / "extra_download.pdf", lambda p: make_pdf(p, "Extra download")),
-        (DOCS / "multipage-doc" / "background.jpg", lambda p: make_image(p, (1920, 600), "JPEG")),
+        (
+            DOCS / "legacy-doc" / "header.png",
+            lambda p: make_image(p, (1920, 1080), "PNG"),
+        ),
+        (
+            DOCS / "legacy-doc" / "extra_download.pdf",
+            lambda p: make_pdf(p, "Extra download"),
+        ),
+        (
+            DOCS / "multipage-doc" / "background.jpg",
+            lambda p: make_image(p, (1920, 600), "JPEG"),
+        ),
         (STATIC / "images" / "test_icon.png", lambda p: make_image(p, (64, 64), "PNG")),
     ]
 
 
 def main(check: bool = False) -> int:
-    mismatched = []
+    mismatched: list[str] = []
     for path, builder in targets():
         path.parent.mkdir(parents=True, exist_ok=True)
         if check:

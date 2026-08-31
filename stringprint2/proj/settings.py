@@ -97,6 +97,7 @@ TEMPLATES = [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
+                "django.template.context_processors.request",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
@@ -121,6 +122,9 @@ INSTALLED_APPS = (
     "frontend",
     "static_precompiler",
 )
+
+# Retain the primary-key type used by the historical migrations.
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
