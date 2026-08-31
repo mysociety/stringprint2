@@ -132,6 +132,17 @@ td {
 	transition: background-color 1s ease;
 }
 
+main section {
+	contain-intrinsic-size: auto 800px;
+	content-visibility: auto;
+}
+
+@media print {
+	main section {
+		content-visibility: visible;
+	}
+}
+
 .content {
 	float: left;
 	margin-left: 20px;

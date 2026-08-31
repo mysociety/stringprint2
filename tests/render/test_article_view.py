@@ -27,6 +27,17 @@ class TestRendering:
         response = client.get(reverse("article_view", args=("kitchen-sink",)))
         assert response.status_code == 200
 
+    def test_paragraphs_use_one_canonical_dom_target(
+        self, client, kitchen_sink
+    ) -> None:
+        page = client.get("/preview/kitchen-sink/").content.decode("utf-8")
+        graf = kitchen_sink.content().sections[0].grafs[0]
+
+        assert f'id="{graf.combo_key()}"' in page
+        assert page.count('id="paragraph-cite-link"') == 1
+        assert "noscript-anchor" not in page
+        assert "position_key =" not in page
+
     def test_every_fixture_document_renders(self, client, process_doc) -> None:
         for slug in ["minimal-doc", "kitchen-sink", "legacy-doc", "multipage-doc"]:
             process_doc(slug)

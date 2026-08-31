@@ -3,6 +3,7 @@ var hide_state = true;
 var page_loaded = false;
 let currentlyMoving = false;
 let draggingLink = false;
+let paragraphMapPromise = null;
 function showElement(element, show) {
     if (element !== null) {
         element.hidden = !show;
@@ -21,16 +22,13 @@ function visibleDisplay(element) {
 function namedAnchor(name) {
     return ([...document.querySelectorAll("[name]")].find((element) => element.getAttribute("name") === name) ?? null);
 }
-function elementsWithAttributes(attributes) {
-    return [...document.querySelectorAll("*")].filter((element) => Object.entries(attributes).every(([name, value]) => element.getAttribute(name) === value));
-}
 function scrollToElement(element, offset) {
     window.scrollTo({
         top: window.scrollY + element.getBoundingClientRect().top - offset,
     });
 }
 function highlightRow(id, duration) {
-    const row = document.querySelector(`#r${CSS.escape(id)}.content-row`);
+    const row = document.querySelector(`[data-paragraph-order="${CSS.escape(id)}"]`);
     row?.classList.add("highlighted-content");
     window.setTimeout(() => {
         row?.classList.remove("highlighted-content");
@@ -44,69 +42,65 @@ function harmlessHashChange(newHash) {
     history.replaceState(undefined, "", newHash === undefined ? "#start" : `#${newHash}`);
 }
 function gotoTarget(target, revealNotes, internalMove = false) {
-    const paragraphId = target.getAttribute("name");
-    if (paragraphId === null) {
+    const paragraphId = target.dataset.paragraphOrder;
+    if (paragraphId === undefined) {
         return;
     }
     if (revealNotes && !currentlyMoving) {
         currentlyMoving = true;
-        showElement(document.querySelector(`#r${CSS.escape(paragraphId)}.extended-row`), true);
+        showElement(document.querySelector(`[data-paragraph-order="${CSS.escape(paragraphId)}"].extended-row`), true);
         showElement(document.querySelector(`#g${CSS.escape(paragraphId)}.extended`), true);
-        document
-            .querySelector(`#c${CSS.escape(paragraphId)}.cite-link`)
-            ?.classList.add("manual_paragraph");
+        const citeLink = document.querySelector("#paragraph-cite-link");
+        if (citeLink !== null) {
+            citeLink.href = paragraphCitationUrl(target.id);
+            citeLink.dataset.paragraphOrder = paragraphId;
+            citeLink.dataset.displayTag = target.dataset.displayTag ?? "";
+            target.prepend(citeLink);
+            citeLink.classList.add("manual_paragraph");
+            showElement(citeLink, true);
+        }
     }
     scrollToElement(target, 60);
     highlightRow(paragraphId, internalMove ? 5000 : 20000);
     currentlyMoving = false;
     set_mobile_link(paragraphId);
     if (!page_loaded) {
-        const sectionId = target.getAttribute("parent");
-        if (sectionId !== null) {
+        const sectionId = target.dataset.section;
+        if (sectionId !== undefined) {
             const title = document.querySelector(`#s${CSS.escape(sectionId)}.section-anchor h1`)?.textContent ?? "";
             changeSelected(sectionId, title, true);
         }
     }
 }
-function hashTargets(hash) {
-    const parts = hash.replace(/^#/, "").split(".");
-    if (parts[0] === "tag" && parts[1] !== undefined) {
-        return [elementsWithAttributes({ tag: parts[1] })];
+function paragraphMap() {
+    if (paragraphMapPromise === null) {
+        const url = document.querySelector('meta[name="paragraph-map-url"]')?.content;
+        paragraphMapPromise = url
+            ? fetch(url).then(async (response) => {
+                if (!response.ok) {
+                    return {};
+                }
+                return (await response.json());
+            })
+            : Promise.resolve({});
     }
-    if (parts.length !== 5 && parts.length !== 6) {
-        return [];
-    }
-    const [section, position, key, start, end, letter] = parts;
-    if (section === undefined ||
-        position === undefined ||
-        key === undefined ||
-        start === undefined ||
-        end === undefined) {
-        return [];
-    }
-    const targets = [
-        elementsWithAttributes({ key }),
-        elementsWithAttributes({ start_key: start, end_key: end }),
-        elementsWithAttributes({ start_key: start, position_key: position }),
-        elementsWithAttributes({ end_key: end, position_key: position }),
-        elementsWithAttributes({ start_key: start }),
-        elementsWithAttributes({ end_key: end }),
-        elementsWithAttributes({ position_key: position, parent: section }),
-        elementsWithAttributes({ section }),
-    ];
-    if (letter !== undefined) {
-        targets.splice(1, 0, elementsWithAttributes({ letter_key: letter }));
-    }
-    return targets;
+    return paragraphMapPromise;
 }
-function gotoHash(hash, revealNotes = false) {
+async function gotoHash(hash, revealNotes = false) {
     send_ga("External Section Link", hash);
-    const internalMove = hash.replace(/^#/, "").startsWith("tag.");
-    for (const candidates of hashTargets(hash)) {
-        if (candidates.length === 1 && candidates[0] !== undefined) {
-            gotoTarget(candidates[0], internalMove ? false : revealNotes, internalMove);
-            return;
-        }
+    const key = hash.replace(/^#/, "");
+    const internalMove = key.startsWith("tag.");
+    let target = document.getElementById(key);
+    if (internalMove) {
+        target = document.querySelector(`[data-paragraph-tag="${CSS.escape(key.substring(4))}"]`);
+    }
+    else if (target === null && key.split(".").length >= 5) {
+        const compatibility = await paragraphMap();
+        const currentKey = compatibility[key];
+        target = currentKey === undefined ? null : document.getElementById(currentKey);
+    }
+    if (target !== null) {
+        gotoTarget(target, internalMove ? false : revealNotes, internalMove);
     }
 }
 function localLinkHandler(link, event) {
@@ -135,7 +129,7 @@ function localLinkHandler(link, event) {
     }
     if (parts.length > 1) {
         event.preventDefault();
-        gotoHash(link.hash.substring(1));
+        void gotoHash(link.hash.substring(1));
         return;
     }
     const hash = link.hash.substring(1);
@@ -156,19 +150,24 @@ function localLinkHandler(link, event) {
         scrollToElement(target, 30);
     }
 }
-for (const link of document.querySelectorAll('a[href*="#"]:not([href="#"])')) {
-    link.addEventListener("click", (event) => {
+document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+    const link = target.closest('a[href*="#"]:not([href="#"])');
+    if (link !== null) {
         localLinkHandler(link, event);
-    });
-}
+    }
+});
 document.body.addEventListener("touchstart", () => {
     draggingLink = false;
 });
-for (const link of document.querySelectorAll("a")) {
-    link.addEventListener("touchmove", () => {
+document.body.addEventListener("touchmove", (event) => {
+    if (event.target instanceof Element && event.target.closest("a") !== null) {
         draggingLink = true;
-    });
-}
+    }
+});
 window.addEventListener("load", () => {
     hide_state = document.querySelector('meta[name="hide_state"]')?.content !== "false";
     for (const element of document.querySelectorAll(".extended, .extended-row")) {
@@ -190,8 +189,10 @@ window.addEventListener("load", () => {
         return;
     }
     if (hash.includes(".")) {
-        page_loaded = true;
-        gotoHash(hash, true);
+        void gotoHash(hash, true).finally(() => {
+            page_loaded = true;
+            refreshSectionTracking();
+        });
         return;
     }
     if (hash && hash !== "#start") {
@@ -207,6 +208,6 @@ window.addEventListener("load", () => {
 });
 window.addEventListener("hashchange", () => {
     if (location.hash.includes(".")) {
-        gotoHash(location.hash);
+        void gotoHash(location.hash);
     }
 });

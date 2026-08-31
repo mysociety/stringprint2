@@ -121,6 +121,7 @@ class TestOutputFiles:
             "plain.html",
             "toc.json",
             "search_content.js",
+            "paragraph_map.json",
         ],
     )
     def test_the_expected_page_is_written(self, baked: Path, name: str) -> None:

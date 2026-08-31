@@ -10,11 +10,13 @@ declare function changeSelected(
 declare function refreshSectionTracking(): void;
 declare function send_ga(action: string, value?: string | null): void;
 declare function set_mobile_link(id: string): void;
+declare function paragraphCitationUrl(paragraphKey: string): string;
 
 var hide_state: boolean | string = true;
 var page_loaded = false;
 let currentlyMoving = false;
 let draggingLink = false;
+let paragraphMapPromise: Promise<Record<string, string>> | null = null;
 
 function showElement(element: HTMLElement | null, show: boolean): void {
   if (element !== null) {
@@ -41,16 +43,6 @@ function namedAnchor(name: string): HTMLElement | null {
   );
 }
 
-function elementsWithAttributes(
-  attributes: Readonly<Record<string, string>>,
-): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>("*")].filter((element) =>
-    Object.entries(attributes).every(
-      ([name, value]) => element.getAttribute(name) === value,
-    ),
-  );
-}
-
 function scrollToElement(element: HTMLElement, offset: number): void {
   window.scrollTo({
     top: window.scrollY + element.getBoundingClientRect().top - offset,
@@ -59,7 +51,7 @@ function scrollToElement(element: HTMLElement, offset: number): void {
 
 function highlightRow(id: string, duration: number): void {
   const row = document.querySelector<HTMLElement>(
-    `#r${CSS.escape(id)}.content-row`,
+    `[data-paragraph-order="${CSS.escape(id)}"]`,
   );
   row?.classList.add("highlighted-content");
   window.setTimeout(() => {
@@ -84,15 +76,15 @@ function gotoTarget(
   revealNotes: boolean,
   internalMove = false,
 ): void {
-  const paragraphId = target.getAttribute("name");
-  if (paragraphId === null) {
+  const paragraphId = target.dataset.paragraphOrder;
+  if (paragraphId === undefined) {
     return;
   }
   if (revealNotes && !currentlyMoving) {
     currentlyMoving = true;
     showElement(
       document.querySelector<HTMLElement>(
-        `#r${CSS.escape(paragraphId)}.extended-row`,
+        `[data-paragraph-order="${CSS.escape(paragraphId)}"].extended-row`,
       ),
       true,
     );
@@ -102,17 +94,25 @@ function gotoTarget(
       ),
       true,
     );
-    document
-      .querySelector(`#c${CSS.escape(paragraphId)}.cite-link`)
-      ?.classList.add("manual_paragraph");
+    const citeLink = document.querySelector<HTMLAnchorElement>(
+      "#paragraph-cite-link",
+    );
+    if (citeLink !== null) {
+      citeLink.href = paragraphCitationUrl(target.id);
+      citeLink.dataset.paragraphOrder = paragraphId;
+      citeLink.dataset.displayTag = target.dataset.displayTag ?? "";
+      target.prepend(citeLink);
+      citeLink.classList.add("manual_paragraph");
+      showElement(citeLink, true);
+    }
   }
   scrollToElement(target, 60);
   highlightRow(paragraphId, internalMove ? 5000 : 20000);
   currentlyMoving = false;
   set_mobile_link(paragraphId);
   if (!page_loaded) {
-    const sectionId = target.getAttribute("parent");
-    if (sectionId !== null) {
+    const sectionId = target.dataset.section;
+    if (sectionId !== undefined) {
       const title =
         document.querySelector<HTMLElement>(
           `#s${CSS.escape(sectionId)}.section-anchor h1`,
@@ -122,48 +122,39 @@ function gotoTarget(
   }
 }
 
-function hashTargets(hash: string): HTMLElement[][] {
-  const parts = hash.replace(/^#/, "").split(".");
-  if (parts[0] === "tag" && parts[1] !== undefined) {
-    return [elementsWithAttributes({ tag: parts[1] })];
+function paragraphMap(): Promise<Record<string, string>> {
+  if (paragraphMapPromise === null) {
+    const url = document.querySelector<HTMLMetaElement>(
+      'meta[name="paragraph-map-url"]',
+    )?.content;
+    paragraphMapPromise = url
+      ? fetch(url).then(async (response) => {
+          if (!response.ok) {
+            return {};
+          }
+          return (await response.json()) as Record<string, string>;
+        })
+      : Promise.resolve({});
   }
-  if (parts.length !== 5 && parts.length !== 6) {
-    return [];
-  }
-  const [section, position, key, start, end, letter] = parts;
-  if (
-    section === undefined ||
-    position === undefined ||
-    key === undefined ||
-    start === undefined ||
-    end === undefined
-  ) {
-    return [];
-  }
-  const targets = [
-    elementsWithAttributes({ key }),
-    elementsWithAttributes({ start_key: start, end_key: end }),
-    elementsWithAttributes({ start_key: start, position_key: position }),
-    elementsWithAttributes({ end_key: end, position_key: position }),
-    elementsWithAttributes({ start_key: start }),
-    elementsWithAttributes({ end_key: end }),
-    elementsWithAttributes({ position_key: position, parent: section }),
-    elementsWithAttributes({ section }),
-  ];
-  if (letter !== undefined) {
-    targets.splice(1, 0, elementsWithAttributes({ letter_key: letter }));
-  }
-  return targets;
+  return paragraphMapPromise;
 }
 
-function gotoHash(hash: string, revealNotes = false): void {
+async function gotoHash(hash: string, revealNotes = false): Promise<void> {
   send_ga("External Section Link", hash);
-  const internalMove = hash.replace(/^#/, "").startsWith("tag.");
-  for (const candidates of hashTargets(hash)) {
-    if (candidates.length === 1 && candidates[0] !== undefined) {
-      gotoTarget(candidates[0], internalMove ? false : revealNotes, internalMove);
-      return;
-    }
+  const key = hash.replace(/^#/, "");
+  const internalMove = key.startsWith("tag.");
+  let target = document.getElementById(key);
+  if (internalMove) {
+    target = document.querySelector<HTMLElement>(
+      `[data-paragraph-tag="${CSS.escape(key.substring(4))}"]`,
+    );
+  } else if (target === null && key.split(".").length >= 5) {
+    const compatibility = await paragraphMap();
+    const currentKey = compatibility[key];
+    target = currentKey === undefined ? null : document.getElementById(currentKey);
+  }
+  if (target !== null) {
+    gotoTarget(target, internalMove ? false : revealNotes, internalMove);
   }
 }
 
@@ -200,7 +191,7 @@ function localLinkHandler(link: HTMLAnchorElement, event: Event): void {
   }
   if (parts.length > 1) {
     event.preventDefault();
-    gotoHash(link.hash.substring(1));
+    void gotoHash(link.hash.substring(1));
     return;
   }
 
@@ -222,22 +213,25 @@ function localLinkHandler(link: HTMLAnchorElement, event: Event): void {
   }
 }
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(
-  'a[href*="#"]:not([href="#"])',
-)) {
-  link.addEventListener("click", (event) => {
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  const link = target.closest<HTMLAnchorElement>('a[href*="#"]:not([href="#"])');
+  if (link !== null) {
     localLinkHandler(link, event);
-  });
-}
+  }
+});
 
 document.body.addEventListener("touchstart", () => {
   draggingLink = false;
 });
-for (const link of document.querySelectorAll<HTMLAnchorElement>("a")) {
-  link.addEventListener("touchmove", () => {
+document.body.addEventListener("touchmove", (event) => {
+  if (event.target instanceof Element && event.target.closest("a") !== null) {
     draggingLink = true;
-  });
-}
+  }
+});
 
 window.addEventListener("load", () => {
   hide_state = document.querySelector<HTMLMetaElement>(
@@ -265,8 +259,10 @@ window.addEventListener("load", () => {
     return;
   }
   if (hash.includes(".")) {
-    page_loaded = true;
-    gotoHash(hash, true);
+    void gotoHash(hash, true).finally(() => {
+      page_loaded = true;
+      refreshSectionTracking();
+    });
     return;
   }
   if (hash && hash !== "#start") {
@@ -286,6 +282,6 @@ window.addEventListener("load", () => {
 
 window.addEventListener("hashchange", () => {
   if (location.hash.includes(".")) {
-    gotoHash(location.hash);
+    void gotoHash(location.hash);
   }
 });

@@ -13,6 +13,30 @@ from ruamel.yaml import YAML
 ParagraphLinkTarget = bool | str | None
 
 
+def short_paragraph_key(key: str) -> str:
+    """
+    Return the six-component key used by rendered paragraph anchors.
+    """
+    return ".".join(key.split(".")[:6])
+
+
+def paragraph_compatibility_map(
+    links: dict[str, ParagraphLinkTarget],
+) -> dict[str, str]:
+    """
+    Map historical paragraph keys onto current canonical anchor IDs.
+    """
+    compatibility: dict[str, str] = {}
+    for historical, target in links.items():
+        if target is None or target is False:
+            continue
+        current = historical if target is True else target
+        canonical = short_paragraph_key(current)
+        compatibility[historical] = canonical
+        compatibility[short_paragraph_key(historical)] = canonical
+    return compatibility
+
+
 class ParagraphLink(BaseModel):
     """
     Map one historical paragraph key to its current destination.

@@ -155,6 +155,7 @@ def render_web_publication_staging(
 
     from stringprint.views import (  # type: ignore[import-not-found]
         ArticleView,
+        ParagraphMapView,
         RedirectLink,
         SearchContentView,
         SearchView,
@@ -233,6 +234,20 @@ def render_web_publication_staging(
         ) -> WebPublication:
             return current_publication
 
+    class BakeParagraphMapView(ParagraphMapView):  # type: ignore[misc]
+        article_settings_override = {
+            "paywall": False,
+            "baking": True,
+            "search": False,
+        }
+
+        def get_article(
+            self,
+            request: HttpRequest,
+            article_slug: str,
+        ) -> WebPublication:
+            return current_publication
+
     class BakeTOCView(TOCView):  # type: ignore[misc]
         article_settings_override = {
             "paywall": False,
@@ -301,6 +316,7 @@ def render_web_publication_staging(
         (BakeArticleView, destination / "index.html"),
         (BakeSearchView, destination / "search.html"),
         (BakeSearchContentView, destination / "search_content.js"),
+        (BakeParagraphMapView, destination / "paragraph_map.json"),
         (BakeTOCView, destination / "toc.json"),
     )
     for view, path in targets:

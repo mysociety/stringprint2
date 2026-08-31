@@ -156,21 +156,3 @@ class TestElementTag:
     def test_a_non_paragraph_with_an_asset_keeps_its_tag(self) -> None:
         assert graf(asset=1, h_name="blockquote").get_element_tag() == "blockquote"
 
-
-class TestAnchorCode:
-    def test_truthy_properties_are_emitted(self) -> None:
-        instance = graf(order=4, position_key=9, key="kkkkk", tag="mytag")
-        instance._section = graf(order=2)
-        instance.last_title_order = 1
-        code = instance.anchor_code()
-        assert 'class = "anchor"' in code
-        assert 'tag = "mytag"' in code
-        assert 'position_key = "9"' in code
-
-    def test_falsy_properties_are_omitted(self) -> None:
-        instance = graf(order=4, position_key=0, key="", tag=None)
-        instance._section = graf(order=2)
-        instance.last_title_order = 0
-        code = instance.anchor_code()
-        assert "position_key" not in code
-        assert "tag" not in code

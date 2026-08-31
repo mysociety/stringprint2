@@ -37,9 +37,6 @@ function scrollIntoReadingPosition(element) {
         });
     }
 }
-for (const anchor of document.querySelectorAll(".noscript-anchor")) {
-    anchor.remove();
-}
 document.querySelector("#master_expand")?.addEventListener("click", (event) => {
     event.preventDefault();
     hide_state = !Boolean(hide_state);
@@ -55,9 +52,17 @@ document.querySelector("#master_expand")?.addEventListener("click", (event) => {
         label.textContent = hide_state ? "Show All Notes" : "Hide All Notes";
     }
 });
-for (const link of document.querySelectorAll(".expand-footnotes")) {
-    link.addEventListener("click", (event) => {
-        event.preventDefault();
+document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+    const link = target.closest(".expand-footnotes, .hide-footnotes, .expand-link, .hide-link");
+    if (link === null) {
+        return;
+    }
+    event.preventDefault();
+    if (link.classList.contains("expand-footnotes")) {
         const id = link.id;
         const footnotes = document.querySelector(`#f${id}.footnotes`);
         if (footnotes === null) {
@@ -73,24 +78,20 @@ for (const link of document.querySelectorAll(".expand-footnotes")) {
             scrollIntoReadingPosition(paragraph);
         }
         send_ga("Show Footnote", id);
-    });
-}
-for (const link of document.querySelectorAll(".hide-footnotes")) {
-    link.addEventListener("click", (event) => {
-        event.preventDefault();
+        return;
+    }
+    if (link.classList.contains("hide-footnotes")) {
         const footnotes = link.closest(".footnotes");
         if (footnotes !== null) {
             toggleVisible(footnotes);
             refreshNavigation();
         }
-    });
-}
-for (const link of document.querySelectorAll(".expand-link")) {
-    link.addEventListener("click", (event) => {
-        event.preventDefault();
+        return;
+    }
+    if (link.classList.contains("expand-link")) {
         const id = link.id.substring(1);
         setVisible(link, false);
-        const row = document.querySelector(`#r${id}.extended-row`);
+        const row = document.querySelector(`[data-paragraph-order="${CSS.escape(id)}"].extended-row`);
         const note = document.querySelector(`#g${id}.extended`);
         if (row !== null) {
             setVisible(row, true);
@@ -100,40 +101,41 @@ for (const link of document.querySelectorAll(".expand-link")) {
         }
         refreshNavigation();
         send_ga("Show Note", id);
-    });
-}
-for (const link of document.querySelectorAll(".hide-link")) {
-    link.addEventListener("click", (event) => {
-        event.preventDefault();
-        const id = link.id.substring(1);
-        const row = document.querySelector(`#r${id}.extended-row`);
-        const note = document.querySelector(`#g${id}.extended`);
-        const expandLink = document.querySelector(`#e${id}.expand-link`);
-        if (row !== null) {
-            setVisible(row, false);
-        }
-        if (note !== null) {
-            setVisible(note, false);
-        }
-        if (expandLink !== null) {
-            setVisible(expandLink, true);
-        }
-        refreshNavigation();
-    });
-}
-for (const row of document.querySelectorAll(".content-row")) {
-    row.addEventListener("mouseenter", () => {
-        const id = row.id.substring(1);
-        if (!id) {
-            return;
-        }
-        for (const link of document.querySelectorAll(".cite-link:not(.manual_paragraph)")) {
-            setVisible(link, false);
-        }
-        const citeLink = document.querySelector(`#c${id}.cite-link`);
-        if (citeLink !== null) {
-            setVisible(citeLink, true);
-        }
-        set_mobile_link(id);
-    });
-}
+        return;
+    }
+    const id = link.id.substring(1);
+    const row = document.querySelector(`[data-paragraph-order="${CSS.escape(id)}"].extended-row`);
+    const note = document.querySelector(`#g${id}.extended`);
+    const expandLink = document.querySelector(`#e${id}.expand-link`);
+    if (row !== null) {
+        setVisible(row, false);
+    }
+    if (note !== null) {
+        setVisible(note, false);
+    }
+    if (expandLink !== null) {
+        setVisible(expandLink, true);
+    }
+    refreshNavigation();
+});
+document.addEventListener("pointerover", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+        return;
+    }
+    const row = target.closest("[data-paragraph-order]");
+    const citeLink = document.querySelector("#paragraph-cite-link");
+    if (row === null || citeLink === null || row.contains(citeLink)) {
+        return;
+    }
+    const order = row.dataset.paragraphOrder;
+    if (order === undefined) {
+        return;
+    }
+    citeLink.href = paragraphCitationUrl(row.id);
+    citeLink.dataset.paragraphOrder = order;
+    citeLink.dataset.displayTag = row.dataset.displayTag ?? "";
+    row.prepend(citeLink);
+    setVisible(citeLink, true);
+    set_mobile_link(order);
+});

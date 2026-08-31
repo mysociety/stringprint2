@@ -20,14 +20,15 @@ function setMenuLink(link, target) {
     }
 }
 function set_mobile_link(id) {
-    const citation = document.querySelector(`#c${CSS.escape(id)}.cite-link`);
-    if (citation === null) {
+    const paragraph = document.querySelector(`[data-paragraph-order="${CSS.escape(id)}"]`);
+    if (paragraph === null) {
         return;
     }
+    const citationUrl = paragraphCitationUrl(paragraph.id);
     for (const mobileLink of document.querySelectorAll(".mobile-header-link")) {
-        mobileLink.href = citation.href;
-        mobileLink.setAttribute("para_tag", citation.getAttribute("para_tag") ?? "");
-        mobileLink.id = `x${id}`;
+        mobileLink.href = citationUrl;
+        mobileLink.dataset.paragraphOrder = id;
+        mobileLink.dataset.displayTag = paragraph.dataset.displayTag ?? "";
     }
 }
 function adjustMenus(id = lastSectionId, future = 6, past = defaultPastSections) {

@@ -513,29 +513,6 @@ class Graf(SerialObject):
         else:
             return ""
 
-    def anchor_code(self) -> SafeText:
-        """
-        produces the code used to anchor the magic_cite system
-        """
-        properties = {
-            "class": "anchor",
-            "name": self.order,
-            "position_key": self.position_key,
-            "key": self.key,
-            "start_key": self.start_key,
-            "end_key": self.end_key,
-            "parent": self._section.order,
-            "last_title": self.last_title_order,
-            "letter_key": self.letter_key,
-            "tag": self.tag,
-            "para_tag": self.para_tag,
-            "page_tag": self.page_tag,
-        }
-
-        lines = ['{0} = "{1}"'.format(x, y) for x, y in properties.items() if y]
-        code = "<a {0}></a>".format(" ".join(lines))
-        return mark_safe(code)
-
     def social_cite_link(self) -> str:
         return self._article.social_cite_link(self)
 

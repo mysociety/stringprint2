@@ -82,6 +82,15 @@ class TestSearchViews:
         assert "publicationSearchIndex" in body
 
 
+class TestParagraphMapView:
+    def test_the_compatibility_map_is_json(self, client, kitchen_sink) -> None:
+        response = client.get("/preview/kitchen-sink/paragraph_map.json")
+
+        assert response.status_code == 200
+        assert response["Content-Type"].startswith("application/json")
+        assert isinstance(response.json(), dict)
+
+
 class TestKindleTemplates:
     """
     kindlegen is not available and is out of scope, but the templates that feed

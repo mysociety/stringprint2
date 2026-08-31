@@ -36,6 +36,13 @@ function citationMetadata(name: string): string {
   );
 }
 
+function paragraphCitationUrl(paragraphKey: string): string {
+  return citationMetadata("paragraph-link-pattern").replace(
+    "__paragraph__",
+    paragraphKey,
+  );
+}
+
 function currentDate(): string {
   const now = new Date();
   return `${now.getDate()} ${monthNames[now.getMonth()]}. ${now.getFullYear()}`;
@@ -69,25 +76,31 @@ function citationDialog(
   send_ga("Generated Link", link);
 }
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(".cite-copy")) {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const href = link.href;
-    const paragraphId = link.id.substring(1);
-    const paragraphTag = link.getAttribute("para_tag") ?? "";
-    void clipboard.copy(href).then(
-      () => {
-        citationDialog(
-          "Link added to Clipboard!",
-          href,
-          paragraphId,
-          paragraphTag,
-        );
-      },
-      () => {
-        citationDialog("Copy Link From Below!", href, paragraphId, paragraphTag);
-      },
-    );
-  });
-}
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  const link = target.closest<HTMLAnchorElement>(".cite-copy");
+  if (link === null) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  const href = link.href;
+  const paragraphId = link.dataset.paragraphOrder ?? "";
+  const paragraphTag = link.dataset.displayTag ?? "";
+  void clipboard.copy(href).then(
+    () => {
+      citationDialog(
+        "Link added to Clipboard!",
+        href,
+        paragraphId,
+        paragraphTag,
+      );
+    },
+    () => {
+      citationDialog("Copy Link From Below!", href, paragraphId, paragraphTag);
+    },
+  );
+});

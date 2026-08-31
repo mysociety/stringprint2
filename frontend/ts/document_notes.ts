@@ -46,10 +46,6 @@ function scrollIntoReadingPosition(element: HTMLElement): void {
   }
 }
 
-for (const anchor of document.querySelectorAll<HTMLElement>(".noscript-anchor")) {
-  anchor.remove();
-}
-
 document.querySelector<HTMLElement>("#master_expand")?.addEventListener(
   "click",
   (event) => {
@@ -71,11 +67,20 @@ document.querySelector<HTMLElement>("#master_expand")?.addEventListener(
   },
 );
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(
-  ".expand-footnotes",
-)) {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  const link = target.closest<HTMLAnchorElement>(
+    ".expand-footnotes, .hide-footnotes, .expand-link, .hide-link",
+  );
+  if (link === null) {
+    return;
+  }
+  event.preventDefault();
+
+  if (link.classList.contains("expand-footnotes")) {
     const id = link.id;
     const footnotes = document.querySelector<HTMLElement>(`#f${id}.footnotes`);
     if (footnotes === null) {
@@ -92,28 +97,23 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(
       scrollIntoReadingPosition(paragraph);
     }
     send_ga("Show Footnote", id);
-  });
-}
-
-for (const link of document.querySelectorAll<HTMLAnchorElement>(
-  ".hide-footnotes",
-)) {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
+    return;
+  }
+  if (link.classList.contains("hide-footnotes")) {
     const footnotes = link.closest<HTMLElement>(".footnotes");
     if (footnotes !== null) {
       toggleVisible(footnotes);
       refreshNavigation();
     }
-  });
-}
+    return;
+  }
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(".expand-link")) {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
+  if (link.classList.contains("expand-link")) {
     const id = link.id.substring(1);
     setVisible(link, false);
-    const row = document.querySelector<HTMLElement>(`#r${id}.extended-row`);
+    const row = document.querySelector<HTMLElement>(
+      `[data-paragraph-order="${CSS.escape(id)}"].extended-row`,
+    );
     const note = document.querySelector<HTMLElement>(`#g${id}.extended`);
     if (row !== null) {
       setVisible(row, true);
@@ -123,44 +123,47 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>(".expand-link"))
     }
     refreshNavigation();
     send_ga("Show Note", id);
-  });
-}
+    return;
+  }
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>(".hide-link")) {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    const id = link.id.substring(1);
-    const row = document.querySelector<HTMLElement>(`#r${id}.extended-row`);
-    const note = document.querySelector<HTMLElement>(`#g${id}.extended`);
-    const expandLink = document.querySelector<HTMLElement>(`#e${id}.expand-link`);
-    if (row !== null) {
-      setVisible(row, false);
-    }
-    if (note !== null) {
-      setVisible(note, false);
-    }
-    if (expandLink !== null) {
-      setVisible(expandLink, true);
-    }
-    refreshNavigation();
-  });
-}
+  const id = link.id.substring(1);
+  const row = document.querySelector<HTMLElement>(
+    `[data-paragraph-order="${CSS.escape(id)}"].extended-row`,
+  );
+  const note = document.querySelector<HTMLElement>(`#g${id}.extended`);
+  const expandLink = document.querySelector<HTMLElement>(`#e${id}.expand-link`);
+  if (row !== null) {
+    setVisible(row, false);
+  }
+  if (note !== null) {
+    setVisible(note, false);
+  }
+  if (expandLink !== null) {
+    setVisible(expandLink, true);
+  }
+  refreshNavigation();
+});
 
-for (const row of document.querySelectorAll<HTMLElement>(".content-row")) {
-  row.addEventListener("mouseenter", () => {
-    const id = row.id.substring(1);
-    if (!id) {
-      return;
-    }
-    for (const link of document.querySelectorAll<HTMLElement>(
-      ".cite-link:not(.manual_paragraph)",
-    )) {
-      setVisible(link, false);
-    }
-    const citeLink = document.querySelector<HTMLElement>(`#c${id}.cite-link`);
-    if (citeLink !== null) {
-      setVisible(citeLink, true);
-    }
-    set_mobile_link(id);
-  });
-}
+document.addEventListener("pointerover", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  const row = target.closest<HTMLElement>("[data-paragraph-order]");
+  const citeLink = document.querySelector<HTMLAnchorElement>(
+    "#paragraph-cite-link",
+  );
+  if (row === null || citeLink === null || row.contains(citeLink)) {
+    return;
+  }
+  const order = row.dataset.paragraphOrder;
+  if (order === undefined) {
+    return;
+  }
+  citeLink.href = paragraphCitationUrl(row.id);
+  citeLink.dataset.paragraphOrder = order;
+  citeLink.dataset.displayTag = row.dataset.displayTag ?? "";
+  row.prepend(citeLink);
+  setVisible(citeLink, true);
+  set_mobile_link(order);
+});

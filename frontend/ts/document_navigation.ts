@@ -1,5 +1,6 @@
 declare var page_loaded: boolean;
 declare function harmlessHashChange(hash: string | undefined): void;
+declare function paragraphCitationUrl(paragraphKey: string): string;
 
 var current_section = "";
 let selectedSectionId = "";
@@ -31,21 +32,19 @@ function setMenuLink(
 }
 
 function set_mobile_link(id: string): void {
-  const citation = document.querySelector<HTMLAnchorElement>(
-    `#c${CSS.escape(id)}.cite-link`,
+  const paragraph = document.querySelector<HTMLElement>(
+    `[data-paragraph-order="${CSS.escape(id)}"]`,
   );
-  if (citation === null) {
+  if (paragraph === null) {
     return;
   }
+  const citationUrl = paragraphCitationUrl(paragraph.id);
   for (const mobileLink of document.querySelectorAll<HTMLAnchorElement>(
     ".mobile-header-link",
   )) {
-    mobileLink.href = citation.href;
-    mobileLink.setAttribute(
-      "para_tag",
-      citation.getAttribute("para_tag") ?? "",
-    );
-    mobileLink.id = `x${id}`;
+    mobileLink.href = citationUrl;
+    mobileLink.dataset.paragraphOrder = id;
+    mobileLink.dataset.displayTag = paragraph.dataset.displayTag ?? "";
   }
 }
 

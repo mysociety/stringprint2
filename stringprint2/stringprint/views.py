@@ -20,6 +20,7 @@ from stringprint2.view_framework import StringprintView
 from django.core.handlers.wsgi import WSGIRequest
 from stringprint.models import Article, Version
 from stringprint.tools.deepink import Section
+from stringprint2.services.paragraph_links import paragraph_compatibility_map
 from typing import Any, Dict, List, Type, Union
 
 
@@ -224,6 +225,24 @@ class SearchContentView(SearchView):
             self.template,
             context=context,
             content_type="application/javascript",
+        )
+
+
+class ParagraphMapView(SearchView):
+    """
+    Serve legacy paragraph mappings only when a client requests them.
+    """
+
+    url_patterns = [r"^([A-Za-z0-9_-]+)/paragraph_map.json"]
+    url_name = "paragraph_map"
+
+    def context_to_html(
+        self, request: WSGIRequest, context: dict[str, object]
+    ) -> JsonResponse:
+        content = context["content"]
+        return JsonResponse(
+            paragraph_compatibility_map(content.paragraph_lookup()),
+            json_dumps_params={"separators": (",", ":")},
         )
 
 

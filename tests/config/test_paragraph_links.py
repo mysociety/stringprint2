@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 from ruamel.yaml import YAML
+from stringprint2.services.paragraph_links import paragraph_compatibility_map
 
 pytestmark = pytest.mark.django_db
 
@@ -20,6 +21,20 @@ STALE_KEYS = [
     "1.2.eeeee.fffff.ggggg.hhhhh.aspoptoto",
     "2.1.iiiii.jjjjj.kkkkk.lllll.tfsctd",
 ]
+
+
+def test_compatibility_map_uses_short_canonical_targets() -> None:
+    current = "1.2.aaaaa.bbbbb.ccccc.ddddd.sequence"
+    historical = "1.9.zzzzz.yyyyy.xxxxx.wwwww.oldseq"
+
+    assert paragraph_compatibility_map(
+        {current: True, historical: current, "lost.key.value.a.b.c": None}
+    ) == {
+        current: "1.2.aaaaa.bbbbb.ccccc.ddddd",
+        "1.2.aaaaa.bbbbb.ccccc.ddddd": "1.2.aaaaa.bbbbb.ccccc.ddddd",
+        historical: "1.2.aaaaa.bbbbb.ccccc.ddddd",
+        "1.9.zzzzz.yyyyy.xxxxx.wwwww": "1.2.aaaaa.bbbbb.ccccc.ddddd",
+    }
 
 
 def read_yaml(path):

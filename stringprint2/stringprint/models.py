@@ -657,6 +657,23 @@ class Article(models.Model):
                 ),
             )
 
+    def paragraph_link_pattern(self) -> str:
+        """
+        Return one URL pattern used by the shared paragraph-link control.
+        """
+        placeholder = "__paragraph__"
+        if hasattr(self, "baking") and self.baking:
+            return f"{self.production_url.rstrip('/')}/l/{placeholder}.html"
+        return reverse("redirect_link", args=(self.slug, placeholder))
+
+    def paragraph_map_url(self) -> str:
+        """
+        Return the lazily loaded legacy paragraph-link map URL.
+        """
+        if hasattr(self, "baking") and self.baking:
+            return "paragraph_map.json"
+        return reverse("paragraph_map", args=(self.slug,))
+
     def social_cite_link(self, paragraph: Graf) -> str:
         """
         returns a citeable link depending on article settings
