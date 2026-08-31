@@ -104,13 +104,13 @@ def fix_markdown(text: str):
         # if odd
         if i % 2 == 1:
             # check if whitespace after
-            if text[pos + 2] == " ":
+            if pos + 2 < len(text) and text[pos + 2] == " ":
                 # move whitespace before
                 text = text[:pos] + " __" + text[pos + 3 :]
         # if even
         else:
             # check if whitespace before
-            if text[pos - 1] == " ":
+            if pos > 0 and text[pos - 1] == " ":
                 # move whitespace after
                 text = text[: pos - 1] + "__ " + text[pos + 2 :]
 
@@ -186,10 +186,10 @@ def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
         (r"(\*\* (.*?)\*\*)", " **{0}**"),
         (r"(\*(.*?) \*)", "*{0}* "),
         (r"(\* (.*?)\*)", " *{0}*"),
-        (r"(__)(._?) (__)", "__{0}__ "),
-        (r"(__) (._?)(__)", " __{0}__"),
-        (r"(_)(._?) (_)", "_{0}_ "),
-        (r"(_) (._?)(_)", " _{0}_"),
+        (r"(__(.+?) __)", "__{0}__ "),
+        (r"(__ (.+?)__)", " __{0}__"),
+        (r"(_(.+?) _)", "_{0}_ "),
+        (r"(_ (.+?)_)", " _{0}_"),
     ]
     count = 0
     for p, replace in patterns:

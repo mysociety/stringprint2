@@ -16,9 +16,11 @@ from stringprint.tools.word_convert import (
     fix_header,
     fix_markdown,
     fix_url,
+    mammoth_adjust,
     markdown_table_contents,
     remove_supports,
 )
+from stringprint2.text_files import TextFile
 
 
 class TestFixUrl:
@@ -84,14 +86,30 @@ class TestFixMarkdown:
     def test_already_correct_markers_are_untouched(self) -> None:
         assert fix_markdown("a __bold__ b") == "a __bold__ b"
 
-    def test_a_marker_at_the_very_end_raises(self) -> None:
-        """
-        Known defect: the odd-instance branch indexes text[pos + 2] without a
-        bounds check, so a document ending in '__' raises. Pinned rather than
-        fixed; see docs/feature-inventory.md.
-        """
-        with pytest.raises(IndexError):
-            fix_markdown("trailing __")
+    def test_a_marker_at_the_very_end_is_untouched(self) -> None:
+        assert fix_markdown("trailing __") == "trailing __"
+
+
+class TestMammothAdjust:
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            ("__bold __", "__bold__ "),
+            ("__ bold__", " __bold__"),
+            ("_italic _", "_italic_ "),
+            ("_ italic_", " _italic_"),
+        ],
+    )
+    def test_malformed_emphasis_spacing_has_a_consistent_match_shape(
+        self,
+        source: str,
+        expected: str,
+    ) -> None:
+        text_file = TextFile(text=f"# Heading\n{source}")
+
+        mammoth_adjust(text_file, demote=False)
+
+        assert expected in text_file.text
 
 
 class TestFixFootnotes:
