@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -10,34 +11,42 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from frontend.models import UserSettings
-from publication_management.cancellation import (
+from .cancellation import (
     request_publication_operation_cancellation,
 )
-from publication_management.dashboard import (
+from .dashboard import (
     build_publication_dashboard,
     publication_source_exists,
 )
-from publication_management.logs import read_recent_operation_log
-from publication_management.models import (
+from .logs import read_recent_operation_log
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )
-from publication_management.operation_store import (
+from .operation_store import (
     InvalidOperationTransition,
     enqueue_publication_operation,
 )
-from publication_management.retry import retry_publication_operation
-from publication_management.worker_health import publication_worker_available
-from stringprint.models import Article, Organisation
+from .retry import retry_publication_operation
+from .worker_health import publication_worker_available
 from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,
     LoadPublicationRequest,
     ProcessPublicationRequest,
+    PublicationOperationRequest,
     PublishPublicationRequest,
     RenderPublicationRequest,
 )
 from stringprint2.services.publication_rendering import PublicationRenderFormat
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractBaseUser
+    from django.db.models import Manager
+    from stringprint2.frontend.models import UserSettings
+    from stringprint2.stringprint.models import Article, Organisation
+else:
+    from frontend.models import UserSettings
+    from stringprint.models import Article, Organisation
 
 
 def publication_web_operation_allowed(
@@ -61,15 +70,16 @@ def management_not_found(
 
 def organisation_for_request(request: HttpRequest) -> Organisation:
     """Return the user's selected organisation without creating permissions."""
+    membership_manager = cast("Manager[UserSettings]", getattr(UserSettings, "objects"))
     membership = (
-        UserSettings.objects.select_related("org")
+        membership_manager.select_related("org")
         .filter(user=request.user)
         .order_by("pk")
         .first()
     )
     if membership is None:
         raise PermissionDenied("No organisation is assigned to this user")
-    return membership.org
+    return cast("Organisation", membership.org)
 
 
 @login_required
@@ -173,7 +183,10 @@ def create_operation(
 ) -> HttpResponse:
     """Create one fixed typed operation for an authorised publication."""
     organisation = organisation_for_request(request)
-    article = Article.objects.filter(
+    if organisation.slug is None:
+        raise ValueError("The organisation must have a slug")
+    article_manager = cast("Manager[Article]", getattr(Article, "objects"))
+    article = article_manager.filter(
         org=organisation,
         slug=publication_slug,
     ).first()
@@ -183,6 +196,7 @@ def create_operation(
         organisation, publication_slug
     ):
         raise Http404("Publication source does not exist")
+    operation_request: PublicationOperationRequest
     if operation_name == "load":
         operation_request = LoadPublicationRequest(
             organisation_slug=organisation.slug,
@@ -192,7 +206,7 @@ def create_operation(
     elif operation_name == "process":
         operation_request = ProcessPublicationRequest(
             organisation_slug=organisation.slug,
-            publication_slug=article.slug,
+            publication_slug=publication_slug,
             refresh_header=request.POST.get("refresh_header") == "on",
             preprocess=request.POST.get("preprocess") == "on",
         )
@@ -205,22 +219,23 @@ def create_operation(
             return HttpResponseBadRequest("Unsupported render format")
         operation_request = RenderPublicationRequest(
             organisation_slug=organisation.slug,
-            publication_slug=article.slug,
+            publication_slug=publication_slug,
             output_format=output_format,
             refresh=request.POST.get("refresh") == "on",
         )
     elif operation_name == "archive":
         operation_request = ArchivePublicationRequest(
             organisation_slug=organisation.slug,
-            publication_slug=article.slug,
+            publication_slug=publication_slug,
             refresh=request.POST.get("refresh") == "on",
         )
     elif operation_name == "publish":
+        assert article is not None
         if not publication_web_operation_allowed(article, "publish"):
             raise PermissionDenied("Web publishing is not enabled for this publication")
         operation_request = PublishPublicationRequest(
             organisation_slug=organisation.slug,
-            publication_slug=article.slug,
+            publication_slug=publication_slug,
             render_archive=True,
             refresh=request.POST.get("refresh") == "on",
         )
@@ -231,7 +246,7 @@ def create_operation(
         operation_request,
         organisation,
         article=article,
-        requested_by=request.user,
+        requested_by=cast("AbstractBaseUser", request.user),
         request_source="web",
     )
     return redirect("publication_management:operation_detail", operation.pk)
@@ -267,7 +282,7 @@ def retry_operation(request: HttpRequest, operation_id: int) -> HttpResponse:
     try:
         retry = retry_publication_operation(
             operation,
-            requested_by=request.user,
+            requested_by=cast("AbstractBaseUser", request.user),
             request_source="web-retry",
         )
     except InvalidOperationTransition as error:

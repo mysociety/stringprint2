@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from django.utils import timezone
 
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )
-from publication_management.operation_store import InvalidOperationTransition
+from .operation_store import InvalidOperationTransition
 
 
 class OperationCancelled(RuntimeError):
@@ -43,10 +43,12 @@ def request_publication_operation_cancellation(
 
 def cancellation_requested(operation: PublicationOperation) -> bool:
     """Return whether an active operation should stop at its next safe point."""
-    return PublicationOperation.objects.filter(
-        pk=operation.pk,
-        state=PublicationOperationState.CANCEL_REQUESTED,
-    ).exists()
+    return bool(
+        PublicationOperation.objects.filter(
+            pk=operation.pk,
+            state=PublicationOperationState.CANCEL_REQUESTED,
+        ).exists()
+    )
 
 
 def mark_publication_operation_cancelled(

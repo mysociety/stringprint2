@@ -8,7 +8,7 @@ from threading import Event, Thread
 from django.db import close_old_connections, transaction
 from django.utils import timezone
 
-from publication_management.models import (
+from .models import (
     PublicationWorker,
     PublicationWorkerState,
 )
@@ -66,10 +66,12 @@ def stop_publication_worker(worker: PublicationWorker) -> None:
 
 def publication_worker_available(stale_after: timedelta) -> bool:
     """Return whether any active worker has a recent heartbeat."""
-    return PublicationWorker.objects.filter(
-        state=PublicationWorkerState.ACTIVE,
-        heartbeat_at__gte=timezone.now() - stale_after,
-    ).exists()
+    return bool(
+        PublicationWorker.objects.filter(
+            state=PublicationWorkerState.ACTIVE,
+            heartbeat_at__gte=timezone.now() - stale_after,
+        ).exists()
+    )
 
 
 class WorkerHeartbeat:

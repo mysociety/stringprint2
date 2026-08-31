@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from publication_management.publication_lock import PublicationLock
+from .publication_lock import PublicationLock
 from stringprint2.services.publication_operations import (
     ManagedPublication,
     ProgressReporter,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )

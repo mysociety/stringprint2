@@ -11,11 +11,11 @@ from typing import TextIO
 
 from django.utils import timezone
 
-from publication_management.cancellation import (
+from .cancellation import (
     OperationCancelled,
     cancellation_requested,
 )
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )

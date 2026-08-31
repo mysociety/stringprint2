@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from django.conf import settings
 from django.db import models
 
@@ -28,6 +30,8 @@ class PublicationWorkerState(models.TextChoices):
 class PublicationWorker(models.Model):
     """Record worker liveness independently of queued operation state."""
 
+    objects: ClassVar[models.Manager[PublicationWorker]]
+
     worker_id = models.CharField(max_length=255, primary_key=True)
     hostname = models.CharField(max_length=255)
     process_id = models.PositiveIntegerField()
@@ -48,6 +52,8 @@ class PublicationWorker(models.Model):
 
 class PublicationOperation(models.Model):
     """Record a typed publication operation independently of its worker."""
+
+    objects: ClassVar[models.Manager[PublicationOperation]]
 
     organisation = models.ForeignKey(
         "stringprint.Organisation",

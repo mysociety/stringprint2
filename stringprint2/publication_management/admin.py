@@ -2,11 +2,11 @@
 
 from django.contrib import admin
 
-from publication_management.models import PublicationOperation, PublicationWorker
+from .models import PublicationOperation, PublicationWorker
 
 
 @admin.register(PublicationOperation)
-class PublicationOperationAdmin(admin.ModelAdmin):
+class PublicationOperationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     """Expose operation state and ownership for operational diagnosis."""
 
     list_display = (
@@ -32,7 +32,7 @@ class PublicationOperationAdmin(admin.ModelAdmin):
 
 
 @admin.register(PublicationWorker)
-class PublicationWorkerAdmin(admin.ModelAdmin):
+class PublicationWorkerAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     """Expose worker heartbeat and shutdown state for diagnosis."""
 
     list_display = (

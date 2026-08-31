@@ -7,7 +7,7 @@ from threading import Event, Thread
 from django.db import close_old_connections
 from django.utils import timezone
 
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )

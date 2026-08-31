@@ -331,8 +331,9 @@ def render_web_publication_staging(
         )
         page_count += 1
 
+    compress_url = str(getattr(settings, "COMPRESS_URL", settings.STATIC_URL))
     publication.compressed_files = [
-        name[len(settings.COMPRESS_URL) :] for name in publication.compressed_files
+        name[len(compress_url) :] for name in publication.compressed_files
     ]
     static_files = [
         "js//sweetalert2.all.min.js",

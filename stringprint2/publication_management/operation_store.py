@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from django.db import transaction
 from django.utils import timezone
 
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )
@@ -22,7 +22,7 @@ from stringprint2.services.publication_operations import (
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
 
-    from stringprint.models import Article, Organisation
+    from stringprint2.stringprint.models import Article, Organisation
 
 
 class InvalidOperationTransition(ValueError):
@@ -205,14 +205,16 @@ def interrupt_stale_publication_operations(
 ) -> int:
     """Mark active operations with expired heartbeats as interrupted."""
     interrupted_at = timezone.now()
-    return PublicationOperation.objects.filter(
-        state__in=(
-            PublicationOperationState.RUNNING,
-            PublicationOperationState.CANCEL_REQUESTED,
-        ),
-        heartbeat_at__lt=interrupted_at - stale_after,
-    ).update(
-        state=PublicationOperationState.INTERRUPTED,
-        finished_at=interrupted_at,
-        error_summary="Worker heartbeat expired",
+    return int(
+        PublicationOperation.objects.filter(
+            state__in=(
+                PublicationOperationState.RUNNING,
+                PublicationOperationState.CANCEL_REQUESTED,
+            ),
+            heartbeat_at__lt=interrupted_at - stale_after,
+        ).update(
+            state=PublicationOperationState.INTERRUPTED,
+            finished_at=interrupted_at,
+            error_summary="Worker heartbeat expired",
+        )
     )

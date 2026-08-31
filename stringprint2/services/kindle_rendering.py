@@ -125,7 +125,9 @@ def render_kindle_staging(
     if publication.book_cover and Path(publication.book_cover.path).exists():
         shutil.copyfile(publication.book_cover.path, staging / "bookcover.jpg")
 
-    return_code = runner([str(settings.KINDLEGEN_LOC), str(opf)])
+    return_code = runner(
+        [str(getattr(settings, "KINDLEGEN_LOC", "kindlegen")), str(opf)]
+    )
     generated_file = staging / f"{publication.slug}.mobi"
     destination_file = destination / generated_file.name
     generated = generated_file.exists()

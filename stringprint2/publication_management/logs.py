@@ -6,7 +6,7 @@ from pathlib import Path
 
 from django.conf import settings
 
-from publication_management.models import PublicationOperation
+from .models import PublicationOperation
 
 
 def read_recent_operation_log(operation: PublicationOperation) -> str:

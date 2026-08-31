@@ -12,11 +12,11 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
 
-from publication_management.operation_store import (
+from ...operation_store import (
     interrupt_stale_publication_operations,
 )
-from publication_management.worker import execute_next_publication_operation
-from publication_management.worker_health import (
+from ...worker import execute_next_publication_operation
+from ...worker_health import (
     WorkerHeartbeat,
     register_publication_worker,
     stop_publication_worker,

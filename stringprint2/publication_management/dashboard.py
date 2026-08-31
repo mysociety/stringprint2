@@ -4,17 +4,22 @@ from __future__ import annotations
 
 from pathlib import Path
 from subprocess import SubprocessError
+from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel, ConfigDict
 
-from publication_management.models import PublicationOperation
-from stringprint.models import Organisation
+from .models import PublicationOperation
 from stringprint2.configuration.loaders import (
     load_organisation_config,
     load_publication_config,
 )
 from stringprint2.services.publication_catalog import discover_publications
 from stringprint2.services.publication_freshness import publication_needs_update
+
+if TYPE_CHECKING:
+    from django.db.models import Manager
+
+    from stringprint2.stringprint.models import Article, Organisation
 
 
 class PublicationDashboardEntry(BaseModel):
@@ -35,9 +40,11 @@ def build_publication_dashboard(
     organisation: Organisation,
 ) -> tuple[PublicationDashboardEntry, ...]:
     """Combine authored folders with database and latest-operation state."""
-    articles = {
+    article_manager = cast("Manager[Article]", getattr(organisation, "articles"))
+    articles: dict[str, Article] = {
         article.slug: article
-        for article in organisation.articles.only("id", "slug", "title")
+        for article in article_manager.only("id", "slug", "title")
+        if article.slug is not None
     }
     documents_root = Path(organisation.storage_dir, "_docs")
     catalog = discover_publications(documents_root, articles)
@@ -67,7 +74,9 @@ def build_publication_dashboard(
         entries.append(
             PublicationDashboardEntry(
                 slug=source.slug,
-                title=article.title if article is not None else source.slug,
+                title=(article.title or source.slug)
+                if article is not None
+                else source.slug,
                 loaded=source.loaded,
                 needs_update=needs_update,
                 configuration_error=configuration_error,
@@ -83,7 +92,7 @@ def build_publication_dashboard(
         entries.append(
             PublicationDashboardEntry(
                 slug=slug,
-                title=article.title,
+                title=article.title or slug,
                 loaded=True,
                 needs_update=None,
                 configuration_error="Publication source folder not found",

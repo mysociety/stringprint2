@@ -4,32 +4,40 @@ from __future__ import annotations
 
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
 
-from publication_management.cancellation import (
+from .cancellation import (
     OperationCancelled,
     cancellation_requested,
     mark_publication_operation_cancelled,
 )
-from publication_management.heartbeat import OperationHeartbeat
-from publication_management.models import PublicationOperation
-from publication_management.operation_store import (
+from .heartbeat import OperationHeartbeat
+from .models import PublicationOperation
+from .operation_store import (
     claim_next_publication_operation,
     complete_publication_operation,
     fail_publication_operation,
     update_publication_operation_progress,
 )
-from publication_management.publication_lock import PublicationLock
-from publication_management.subprocess_runner import OperationSubprocessRunner
-from stringprint.models import Article
+from .publication_lock import PublicationLock
+from .subprocess_runner import OperationSubprocessRunner
 from stringprint2.services.configured_commands import command_runner_context
 from stringprint2.services.publication_operations import (
     ProgressReporter,
+    ManagedPublication,
     PublicationOperationStage,
     run_publication_operation,
     validate_publication_operation,
 )
+
+if TYPE_CHECKING:
+    from django.db.models import Manager
+
+    from stringprint2.stringprint.models import Article
+else:
+    from stringprint.models import Article
 
 
 class DatabaseProgressReporter(ProgressReporter):
@@ -60,10 +68,12 @@ def execute_publication_operation(
     """Execute one claimed operation and persist its terminal outcome."""
     request = validate_publication_operation(operation.parameters)
     organisation = operation.organisation
-    article, _ = Article.objects.get_or_create(
+    article_manager = cast("Manager[Article]", getattr(Article, "objects"))
+    article, _ = article_manager.get_or_create(
         org=organisation,
         slug=request.publication_slug,
     )
+    publication = cast("ManagedPublication", article)
     source_folder = Path(
         organisation.storage_dir,
         "_docs",
@@ -87,7 +97,7 @@ def execute_publication_operation(
         ):
             result = run_publication_operation(
                 request,
-                article,
+                publication,
                 source_folder,
                 publish_folder,
                 progress,

@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from publication_management import views
+from . import views
 
 app_name = "publication_management"
 

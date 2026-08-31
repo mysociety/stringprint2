@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 
-from publication_management.retention import prune_publication_operations
+from ...retention import prune_publication_operations
 
 
 class Command(BaseCommand):

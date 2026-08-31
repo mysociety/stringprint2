@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from publication_management.models import (
+from .models import (
     PublicationOperation,
     PublicationOperationState,
 )
-from publication_management.operation_store import (
+from .operation_store import (
     InvalidOperationTransition,
     enqueue_publication_operation,
 )
