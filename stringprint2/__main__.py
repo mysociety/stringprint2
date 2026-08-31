@@ -1,22 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import cmd
-import io
 import os
-import shutil
 import signal
 import sys
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
 import django
 import rich
 from cookiecutter.main import cookiecutter
 from rich.panel import Panel
 from rich.prompt import Prompt
-from ruamel.yaml import YAML
 from stringprint2.cli_arguments import parse_shell_options
 from stringprint2.configuration.loaders import validate_config
 from stringprint2.configuration.models import PublicationConfig
@@ -41,7 +38,6 @@ from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     render_publication,
 )
-from stringprint2.text_files import TextFile
 
 print = rich.print
 
@@ -59,17 +55,11 @@ django.setup()
 from django.conf import settings
 
 if TYPE_CHECKING:
-    from stringprint2.charts import Chart, ChartCollection
-    from stringprint2.frontend.views import ArticleSettingsView, HomeView
-    from stringprint2.stringprint.functions import compress_static
-    from stringprint2.stringprint.models import Article, Asset, Organisation
+    from stringprint2.stringprint.models import Article, Organisation
     from stringprint2.stringprint.tools.word_convert import convert_word
 
 else:
-    from charts import Chart, ChartCollection
-    from frontend.views import ArticleSettingsView, HomeView
-    from stringprint.functions import compress_static
-    from stringprint.models import Article, Asset, Organisation
+    from stringprint.models import Article, Organisation
     from stringprint.tools.word_convert import convert_word
 
 
@@ -89,26 +79,6 @@ class PanelPrint:
     def display(self) -> None:
         panel = Panel("\n".join(self.items), **self.panel_properties)
         rich.print(panel)
-
-
-def fix_yaml(ya):
-    if type(ya) == list:
-        items = [fix_yaml(x) for x in ya]
-        di = {}
-        for i in items:
-            di.update(i)
-        return di
-    if type(ya) == dict:
-        return {x: fix_yaml(y) for x, y in ya.items()}
-    return ya
-
-
-def get_yaml(yaml_file):
-    yaml = YAML(typ="safe")
-    with open(yaml_file, "rb") as doc:
-        data = yaml.load(doc)
-    # data = fix_yaml(data)
-    return data
 
 
 def load_org_details() -> str | None:
@@ -510,7 +480,6 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc = cast(Article, doc)
         result = run_publication_command(doc, self.doc_folder, "publish")
         print(f"Finished publishing: {result.title}")
 
@@ -583,8 +552,6 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc = cast(Article, doc)
-
         # specify some extra files to dump in the zip
 
         if not "no-hero" in inp:
@@ -635,10 +602,12 @@ class SPPrompt(cmd.Cmd):
         """
         Create hero image for current document
         """
-        yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
-        if "header" in yaml_data:
-            hero_location = yaml_data["header"]["location"]
-            hero_path = Path(self.doc_folder, hero_location)
+        config = validate_config(
+            self.doc_folder / "settings.yaml",
+            PublicationConfig,
+        )
+        if config.header is not None:
+            hero_path = self.doc_folder / config.header.location
             destination = Path(self.doc_folder, "hero.png")
             create_hero(hero_path, destination)
 
