@@ -22,7 +22,6 @@ from stringprint2.configuration import (
 from stringprint2.services import (
     build_asset_import_plan,
     build_publication_load_plan,
-    write_baked_file,
 )
 from stringprint2.services.paragraph_links import (
     ParagraphLinkState,
@@ -32,11 +31,10 @@ from stringprint2.services.configured_commands import run_configured_command
 from stringprint2.services.publication_sources import load_publication_source
 from stringprint2.services.ebook_rendering import EbookRenderResult, render_epub
 from stringprint2.services.kindle_rendering import KindleRenderResult, render_kindle
+from stringprint2.services.web_rendering import WebRenderResult, render_web_publication
 from stringprint2.charts.fields import ChartField
-from dirsync import sync
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.staticfiles import finders
 from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -759,307 +757,23 @@ class Article(models.Model):
     def render(
         self,
         destination: Path,
-        url: None = None,
+        url: str | None = None,
         plain: bool = True,
         kindle: bool = True,
         refresh_all: bool = False,
-    ) -> None:
+    ) -> WebRenderResult:
         """
-        export this and supporting files to location
+        Render this publication as a self-contained static website.
         """
 
-        if url is None:
-            url = self.production_url
-        elif url != self.production_url:
-            self.production_url = url
-            self.save()
-
-        if not url:
-            raise ValueError("No valid sharing URl stated.")
-
-        files = []
-
-        # compress_static(files)
-        self.prepare_assets()
-        self.tinify_headers()
-
-        from .views import (
-            ArticleView,
-            RedirectLink,
-            TextView,
-            SearchContentView,
-            SearchView,
-            TOCView,
-        )
-
-        """
-        create destination folders
-        """
-        dirs = [
+        return render_web_publication(
+            self,
             destination,
-            os.path.join(destination, "static"),
-            os.path.join(destination, "static", "css"),
-            os.path.join(destination, "static", "CACHE"),
-            os.path.join(destination, "static", "CACHE", "css"),
-            os.path.join(destination, "static", "CACHE", "js"),
-            os.path.join(destination, "static", "js"),
-            os.path.join(destination, "static", "images"),
-            os.path.join(destination, "media"),
-            os.path.join(destination, "media", "paragraphs"),
-            os.path.join(destination, "l"),
-        ]
-
-        # discovery is there is a specific org directory to copy across
-        org_static_folder = os.path.join(self.org.storage_dir, "_static")
-        if os.path.exists(org_static_folder):
-            dirs.append(os.path.join(destination, "static", "orgs"))
-            dirs.append(os.path.join(destination, "static", "orgs", self.org.slug))
-
-        for d in dirs:
-            if os.path.isdir(d) is False:
-                os.makedirs(d)
-
-        # STATIC_URL/MEDIA_URL are deliberately *not* touched here - see
-        # write_baked_file's docstring for why. SITE_ROOT still needs to be
-        # the real target URL so absolute references (OG tags etc) are
-        # correct in the baked output.
-        settings.SITE_ROOT = url
-        settings.DEBUG = False
-        settings.COMPRESS_ENABLED = True
-
-        """
-        move pdf if local
-        """
-
-        if self.pdf_file:
-            source_file = os.path.join(
-                self.org.storage_dir, "_docs", self.slug, self.pdf_file
-            )
-            dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
-            shutil.copyfile(source_file, dest_file)
-
-        extra_files = self.extra_values.get("copy_files", [])
-        for f in extra_files:
-            source_file = os.path.join(self.org.storage_dir, "_docs", self.slug, f)
-            dest_file = os.path.join(destination, f)
-            print("copying {0}".format(f))
-            shutil.copyfile(source_file, dest_file)
-
-        """
-        generate paragraph images
-        """
-        self.export_paragraph_images(
-            os.path.join(destination, "media", "paragraphs"), refresh_all=refresh_all
+            url=url,
+            plain=plain,
+            kindle=kindle,
+            refresh_all=refresh_all,
         )
-
-        """
-        subclass so we can amend article override settings - force paywall off
-        """
-
-        current_article = self
-        current_article.__dict__.update(self.extra_values)
-
-        class BakeArticleView(ArticleView):
-            share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-            twitter_share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-            def get_article(self, request, article_slug):
-                return current_article
-
-        class BakeSearchContentView(SearchContentView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": True,
-            }
-
-        class BakeSearchView(SearchView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": True,
-            }
-
-            def get_article(self, request, article_slug):
-                return current_article
-
-        class BakeTOCView(TOCView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-        class BakePlainView(TextView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-        article = self
-        article.baking = True
-
-        c = self.display_content()
-
-        grafs = {x.long_combo_key(): x for x in c.all_grafs()}
-        grafs.update({x.combo_key(): x for x in c.all_grafs()})
-        paragraph_lookup = c.paragraph_lookup()
-
-        for k, v in paragraph_lookup.items():
-            shorter_link = ".".join(k.split(".")[:6])
-
-            class BakeRedirectLinkView(RedirectLink):
-                def load_article(self, request, article_slug, paragraph_slug):
-                    self.article = article
-                    self.article.baking = True
-                    self.content = c
-                    self.graf = None
-                    if v is True:
-                        self.graf = grafs.get(k, None)
-                    elif v is not None:
-                        self.graf = grafs.get(v, None)
-                    if self.graf:
-                        self.graf._article = article
-                    else:
-                        print("old tag: rendering {0}".format(k))
-                    self.paragraph_tag = shorter_link
-
-            args = ("blah", "blah")
-            write_baked_file(
-                BakeRedirectLinkView,
-                path=destination / "l" / (shorter_link + ".html"),
-                arguments=args,
-                destination=destination,
-            )
-
-        if self.multipage:
-            c = self.display_content()
-            for s in c.sections:
-                args = (self.slug, s.anchor())
-                name = "{0}.html".format(s.anchor())
-                write_baked_file(
-                    BakeArticleView,
-                    path=destination / name,
-                    arguments=args,
-                    destination=destination,
-                )
-
-        args = (self.slug,)
-        write_baked_file(
-            BakeArticleView,
-            path=destination / "index.html",
-            arguments=args,
-            destination=destination,
-        )
-        write_baked_file(
-            BakeSearchView,
-            path=destination / "search.html",
-            arguments=args,
-            destination=destination,
-        )
-        write_baked_file(
-            BakeSearchContentView,
-            path=destination / "search_content.js",
-            arguments=args,
-            destination=destination,
-        )
-        write_baked_file(
-            BakeTOCView,
-            path=destination / "toc.json",
-            arguments=args,
-            destination=destination,
-        )
-
-        if plain:
-            write_baked_file(
-                BakePlainView,
-                path=destination / "plain.html",
-                arguments=args,
-                destination=destination,
-            )
-
-        print("moving compressed files")
-
-        self.compressed_files = [
-            x[len(settings.COMPRESS_URL) :] for x in self.compressed_files
-        ]
-
-        for c in self.compressed_files:
-            print(c)
-
-        """
-        move required static files
-        """
-
-        files = [
-            "js//sweetalert2.all.min.js",
-            "js//picturefill.min.js",
-            "css//kindle.css",
-            "css//text_mode.css",
-            "css//fa_reduced.css",
-        ]
-
-        files.extend(self.compressed_files)
-
-        folders = ["favicon", "licences", "font"]
-
-        media = settings.MEDIA_ROOT
-
-        for f in files:
-            print(f)
-            shutil.copyfile(finders.find(f), os.path.join(destination, "static", f))
-
-        for f in folders:
-            print(f)
-            d = os.path.join(destination, "static", f)
-            if os.path.isdir(d) is False:
-                os.makedirs(d)
-            sync(finders.find(f), d, "sync")
-
-        """
-        pull in org based static directories
-        """
-
-        org_directory = os.path.join(self.org.storage_dir, "_static")
-
-        if os.path.exists(org_directory):
-            d = os.path.join(destination, "static", "orgs", self.org.slug)
-            sync(org_directory, d, "sync")
-
-        """
-        move media files - from headerimages and assets
-        """
-
-        for i in self.images.all():
-            for f in i.get_all_files():
-                print(f)
-                if os.path.exists(os.path.join(media, f)):
-                    shutil.copyfile(
-                        os.path.join(media, f), os.path.join(destination, "media", f)
-                    )
-
-        for a in self.assets.filter(active=True):
-            if a.image:
-                for f in a.get_all_files():
-                    shutil.copyfile(
-                        os.path.join(media, f), os.path.join(destination, "media", f)
-                    )
-            if a.image_chart:
-                print(a.image_chart.name)
-                shutil.copyfile(
-                    os.path.join(media, a.image_chart.name),
-                    os.path.join(destination, "media", a.image_chart.name),
-                )
-
-        if kindle:
-            self.create_kindle(destination, use_temp=True)
-            self.create_ebook(destination)
 
     def create_ebook(self, destination: Path) -> EbookRenderResult:
         """
