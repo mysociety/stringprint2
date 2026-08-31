@@ -2,7 +2,6 @@
 from __future__ import annotations
 import time
 import sys
-import codecs
 import datetime
 import io
 import os
@@ -1338,7 +1337,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        with codecs.open(self.file_source, encoding="utf-8") as f:
+        with open(self.file_source, encoding="utf-8") as f:
             raw = f.read()
         if raw:
             c = self.content()
@@ -1653,7 +1652,7 @@ class Version(models.Model):
     has_notes = models.BooleanField(default=False)
 
     def load_from_file(self):
-        with codecs.open(self.article.file_source, encoding="utf-8") as f:
+        with open(self.article.file_source, encoding="utf-8") as f:
             raw = f.read()
         if raw:
             self.raw = raw
@@ -2168,7 +2167,7 @@ class Asset(models.Model, HeaderMixin):
         """
         extract content for a html asset
         """
-        with codecs.open(self.location, encoding="utf-8") as f:
+        with open(self.location, encoding="utf-8") as f:
             raw = f.read()
         if "---CODE---" in raw:
             self.content, self.code_content = raw.split("---CODE---")

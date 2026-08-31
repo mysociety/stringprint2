@@ -15,7 +15,7 @@ if __name__ == "__main__":
         # print line
         num = 1
         footnotes = []
-        for q in re.findall("\(\((.*)\)\)", line):  # inside ((footnote))
+        for q in re.findall(r"\(\((.*)\)\)", line):  # inside ((footnote))
             footnotes.append("^{0}: {1}".format(num, q))
             q = "(({0}))".format(q)
             line = line.replace(q, "^{0}".format(num))

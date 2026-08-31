@@ -166,30 +166,30 @@ def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
         count += 1
 
     # remove weird TOC links
-    for r in re.findall('<a id="_Toc[\d]*"></a>', text):
+    for r in re.findall(r'<a id="_Toc[\d]*"></a>', text):
         text = text.replace(r, "")
-    for r in re.findall('<a id="_[\d\w]*"></a>', text):
+    for r in re.findall(r'<a id="_[\d\w]*"></a>', text):
         text = text.replace(r, "")
 
     # get correct markdown out of action
-    for r in re.findall("\*\*(.*?)\*\*", text):
+    for r in re.findall(r"\*\*(.*?)\*\*", text):
         if r and r[0] != " " and r[-1] != " ":
             text = text.replace(
                 "**{0}**".format(r), "!!DOUBLE!!{0}!!DOUBLE!!".format(r)
             )
-    for r in re.findall("\*(.*?)\*", text):
+    for r in re.findall(r"\*(.*?)\*", text):
         if r and r[0] != " " and r[-1] != " ":
             text = text.replace("*{0}*".format(r), "!!SINGLE!!{0}!!SINGLE!!".format(r))
 
     patterns = [
-        ("(\*\*(.*?) \*\*)", "**{0}** "),
-        ("(\*\* (.*?)\*\*)", " **{0}**"),
-        ("(\*(.*?) \*)", "*{0}* "),
-        ("(\* (.*?)\*)", " *{0}*"),
-        ("(\_\_(._?) \_\_)", "__{0}__ "),
-        ("(\_\_ (._?)\_\_)", " __{0}__"),
-        ("(\_(._?) \_)", "_{0}_ "),
-        ("(\_ (._?)\_)", " _{0}_"),
+        (r"(\*\*(.*?) \*\*)", "**{0}** "),
+        (r"(\*\* (.*?)\*\*)", " **{0}**"),
+        (r"(\*(.*?) \*)", "*{0}* "),
+        (r"(\* (.*?)\*)", " *{0}*"),
+        (r"(__)(._?) (__)", "__{0}__ "),
+        (r"(__) (._?)(__)", " __{0}__"),
+        (r"(_)(._?) (_)", "_{0}_ "),
+        (r"(_) (._?)(_)", " _{0}_"),
     ]
     count = 0
     for p, replace in patterns:
@@ -204,7 +204,10 @@ def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
     text = text.replace("!!SINGLE!!", "*")
 
     # move any bold away from neighbouring text
-    patterns = [("(\*\*(.+?)\*\*)\w", "**{0}** "), ("\w(\*\*(.+?)\*\*)", " **{0}**")]
+    patterns = [
+        (r"(\*\*(.+?)\*\*)\w", "**{0}** "),
+        (r"\w(\*\*(.+?)\*\*)", " **{0}**"),
+    ]
     for p, replace_format in patterns:
         for full, contents in re.findall(p, text):
             if "*" not in r and len(r) < 15:
@@ -218,7 +221,7 @@ def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
 
     # another fix to catch instances where things have been grouped wrong
 
-    options = ["(\_{2})(.*)(\_{2})", "(\_{1})(.*)(\_{1})"]
+    options = [r"(_{2})(.*)(_{2})", r"(_{1})(.*)(_{1})"]
     for o in options:
         for r in re.finditer(o, text):
             open_underline, contained, close_underline = r.groups()
@@ -395,7 +398,7 @@ def markdown_table_contents(x, multi_line=False):
 def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = html
 
-    for r in re.findall('<a id="_[\d\w]*"></a>', new_html):
+    for r in re.findall(r'<a id="_[\d\w]*"></a>', new_html):
         new_html = new_html.replace(r, "")
     new_html = new_html.replace("<br />", "<br/>")
 
@@ -407,7 +410,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = new_html.replace("<tbody>", "")
     new_html = new_html.replace("</tbody>", "")
     soup = BeautifulSoup(new_html, features="html5lib")
-    tables = soup.findAll("table")
+    tables = soup.find_all("table")
     slug_format = "table-asset-{0}"
     table_count = 0
     asset_format = "<p>[asset:{0}]</p>"

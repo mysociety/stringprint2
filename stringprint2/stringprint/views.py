@@ -155,7 +155,7 @@ class TOCView(HomeView):
         response = []
 
         def fix_trailing_numbers(v):
-            r = re.search("\d+\.\d*(.+)", v)
+            r = re.search(r"\d+\.\d*(.+)", v)
             if r:
                 return r.groups()[0].strip()
             else:
