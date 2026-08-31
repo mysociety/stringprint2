@@ -150,3 +150,63 @@ def test_default_publication_stylesheet_bootstrap_4_baseline(tmp_path) -> None:
         assert selector in css
     assert ".modal" not in css
     assert ".carousel" not in css
+
+
+@pytest.mark.parametrize(
+    ("variables", "expected"),
+    [
+        (
+            """
+$page-background-color: #102030;
+$content-background-color: #203040;
+$content-text-color: #304050;
+$navbar-accent-color: #405060;
+$table-head-bg: #506070;
+@import "stringprint/main";
+""",
+            ["#102030", "#203040", "#304050", "#405060", "#506070"],
+        ),
+        (
+            """
+$stringprint-page-background: #112233;
+$stringprint-content-background: #223344;
+$stringprint-content-color: #334455;
+$stringprint-navbar-background: #445566;
+$stringprint-table-heading-background: #556677;
+@import "stringprint/main";
+""",
+            ["#112233", "#223344", "#334455", "#445566", "#556677"],
+        ),
+    ],
+    ids=("legacy", "stringprint-api"),
+)
+def test_publication_theme_variable_apis_compile(
+    tmp_path,
+    variables: str,
+    expected: list[str],
+) -> None:
+    """Existing aliases and the stable Stringprint API both affect output."""
+    from django.conf import settings
+    from static_precompiler import utils
+
+    source = tmp_path / "theme.scss"
+    output = tmp_path / "theme.css"
+    source.write_text(variables)
+    status, _, errors = utils.run_command(
+        [
+            "/usr/bin/sass",
+            "--quiet",
+            "--no-source-map",
+            "--load-path",
+            str(Path(settings.PROJECT_PATH, "vendor", "bootstrap", "scss")),
+            "--load-path",
+            str(Path(settings.PROJECT_PATH, "web", "scss")),
+            str(source),
+            str(output),
+        ]
+    )
+
+    assert status == 0, errors
+    css = output.read_text().lower()
+    for colour in expected:
+        assert colour in css

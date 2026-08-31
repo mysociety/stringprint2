@@ -315,7 +315,7 @@ table,th,td
 
 @media (min-width:768px) {
 	.container {
-		width: 750px;
+		width: $stringprint-container-sm;
 	}
 	.container>.navbar-header,
 	.container-fluid>.navbar-header,
@@ -332,13 +332,13 @@ table,th,td
 
 @media (min-width: 992px) {
 	.container {
-		width: 970px;
+		width: $stringprint-container-md;
 	}
 }
 
 @media (min-width: 1200px) {
 	.container {
-		width: 1170px;
+		width: $stringprint-container-lg;
 	}
 }
 

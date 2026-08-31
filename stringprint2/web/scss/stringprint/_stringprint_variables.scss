@@ -19,6 +19,7 @@ $colour_blue_dark_2: #207cba;
 
 $page-background-color: $offwhite !default;
 $content-background-color: $offwhite !default;
+$content-text-color: $black !default;
 
 $footnote-border-color: lightgrey !default;
 $aside-border-color: lightgrey !default;
@@ -37,9 +38,37 @@ $link-icon-color: $navbar-main-color !default;
 
 $highlighted-content: yellow;
 
-$dark: $navbar-accent-color !default;
-
 $link-color: #174F91;
+
+// Stable organisation theme API. Legacy variables above remain inputs so
+// existing themes keep their current output while migrating to these names.
+$stringprint-page-background: $page-background-color !default;
+$stringprint-content-background: $content-background-color !default;
+$stringprint-content-color: $content-text-color !default;
+$stringprint-link-color: $link-color !default;
+$stringprint-blockquote-background: $blockquote-main-color !default;
+$stringprint-blockquote-border: $blockquote-border-color !default;
+$stringprint-footnote-border: $footnote-border-color !default;
+$stringprint-aside-border: $aside-border-color !default;
+$stringprint-divider-color: $divider-color !default;
+$stringprint-highlight-background: $highlighted-content !default;
+$stringprint-navbar-color: $navbar-main-color !default;
+$stringprint-navbar-background: $navbar-accent-color !default;
+$stringprint-navbar-border: $navbar-border-color !default;
+$stringprint-navbar-icon-color: $link-icon-color !default;
+$stringprint-table-heading-background: if(global-variable-exists(table-head-bg), $table-head-bg, $gray-200) !default;
+$stringprint-table-heading-color: if(global-variable-exists(table-head-color), $table-head-color, $gray-700) !default;
+$sansfont: 'Open Sans', sans-serif !default;
+$stringprint-body-font: $sansfont !default;
+$stringprint-heading-font: $stringprint-body-font !default;
+$stringprint-container-sm: 750px !default;
+$stringprint-container-md: 970px !default;
+$stringprint-container-lg: 1170px !default;
+
+// Bootstrap consumes these aliases. New themes should use the API above.
+$dark: $stringprint-navbar-background;
+$table-head-bg: $stringprint-table-heading-background;
+$table-head-color: $stringprint-table-heading-color;
 
 //variables for darkmode
 
@@ -64,10 +93,12 @@ $dark-table-head-color:            $dark-content-text-color !default;
 
 //applying stringprint to navbar
 
-$navbar-dark-active-color:          $black !default;
-$navbar-dark-active-background-color:$white !default;
+$stringprint-navbar-active-color:     $black !default;
+$stringprint-navbar-active-background: $white !default;
 
-$navbar-dark-color:                 $navbar-main-color;
+$navbar-dark-active-color:          $stringprint-navbar-active-color !default;
+$navbar-dark-active-background-color: $stringprint-navbar-active-background !default;
+$navbar-dark-color:                 $stringprint-navbar-color;
 $navbar-dark-hover-color:           rgba($white, .75) !default;
 $navbar-dark-disabled-color:        rgba($white, .25) !default;
 $navbar-dark-toggler-border-color:  rgba($white, .1) !default;
