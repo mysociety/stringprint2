@@ -10,14 +10,6 @@ if (!String.prototype.startsWith) {
     };
 }
 
-function send_ga(action, value) {
-    label = $("meta[name=slug]").attr("content")
-    value = typeof value !== 'undefined' ? value : null;
-    if (typeof gtag === 'function') {
-        gtag('event', 'stringprint_event', { "action": action, "label": label, "value": value })
-    }
-}
-
 // opens or closes all notes
 $('#master_expand').on('click touchend', function (event) {
     event.preventDefault();
@@ -82,30 +74,6 @@ function changeSelected(id, title, nohash) {
 }
 
 
-$("a.nav-link").on("click", function () {
-    // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
-    send_ga("Mobile Menu Click", $(this).attr('href'));
-
-})
-
-$("a.search_link").on("click", function () {
-    send_ga("Search");
-})
-
-
-$("a.alt_link").on("click", function () {
-    send_ga("Alt Format - " + $(this).attr('type'));
-})
-
-
-$("a.top-nav-item").on("mouseup", function () {
-    // force refresh of title stuff when link clicked - if we don't cleanly pass a navpoint
-    send_ga("Top Nav Click", $(this).attr('href'));
-    id = $(this).attr('section');
-    title = $("#s" + id + ".section-anchor").find("h1").text()
-    changeSelected(id, title, true);
-
-})
 
 var waypoints = $('.section-anchor').waypoint(function (direction) {
     //at change in section changes top menu and hash changes

@@ -1,0 +1,11 @@
+{
+  "name": "stringprint2-frontend",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "check": "tsc --project tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}
