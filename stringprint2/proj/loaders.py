@@ -1,54 +1,62 @@
 """
-Extention to filesystem loader that allows
-template directories to have namespaces
+Extend Django's filesystem loader with template-directory namespaces.
 """
-from django.template.loaders.filesystem import (
-    Loader,
-    safe_join,
-    SuspiciousFileOperation,
-    Origin,
-)
+
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
+from os import PathLike
+
+from django.core.exceptions import SuspiciousFileOperation
+from django.template import Origin
+from django.template.loaders.filesystem import Loader, safe_join
+
+TemplateDirectory = str | PathLike[str]
+NamespacedTemplateDirectory = tuple[str, TemplateDirectory]
 
 
 class NamespaceAwareLoader(Loader):
-    def raw_dirs(self):
+    """
+    Load templates from ordinary or namespace-prefixed directories.
+    """
+
+    def raw_dirs(
+        self,
+    ) -> Sequence[TemplateDirectory | NamespacedTemplateDirectory]:
         """
-        The dirs this loader was configured with - settings.py passes it
-        ORG_TEMPLATE_DIRS, a list of (namespace, path) tuples, as its own
-        `dirs` via the (loader_path, dirs) OPTIONS["loaders"] form. That's
-        a different contract from get_dirs() below.
+        Return the directories supplied when the loader was configured.
+
+        ``settings.py`` passes ``ORG_TEMPLATE_DIRS`` as ``(namespace, path)``
+        pairs through Django's ``(loader_path, dirs)`` loader form. This is a
+        different contract from ``get_dirs()``, whose external callers expect
+        plain paths.
         """
         return self.dirs if self.dirs is not None else self.engine.dirs
 
-    def get_dirs(self):
+    def get_dirs(self) -> Iterator[TemplateDirectory]:
         """
-        Overrides the base Loader.get_dirs(), which callers outside this
-        class - django.template.autoreload.get_template_directories(),
-        used by the dev server's autoreload watcher, for one - expect to
-        return plain paths. Unpack any (namespace, path) tuples down to
-        just the path; namespace_aware_dirs() below is what keeps the
-        namespace for get_template_sources()'s own use.
+        Return plain paths for Django's template autoreloader.
         """
-        for d in self.raw_dirs():
-            yield d[1] if isinstance(d, tuple) else d
+        for directory in self.raw_dirs():
+            yield directory[1] if isinstance(directory, tuple) else directory
 
-    def namespace_aware_dirs(self):
-        for d in self.raw_dirs():
-            if isinstance(d, tuple):
-                namespace, template_dir = d
+    def namespace_aware_dirs(
+        self,
+    ) -> Iterator[tuple[str | None, TemplateDirectory]]:
+        """
+        Return each configured directory together with its optional namespace.
+        """
+        for directory in self.raw_dirs():
+            if isinstance(directory, tuple):
+                namespace, template_dir = directory
             else:
                 namespace = None
-                template_dir = d
+                template_dir = directory
             yield namespace, template_dir
 
-    def get_template_sources(self, template_name):
+    def get_template_sources(self, template_name: str) -> Iterator[Origin]:
         """
-        Return an Origin object pointing to an absolute path in each directory
-        in template_dirs. For security reasons, if a path doesn't lie inside
-        one of the template_dirs it is excluded from the result set.
-
-        Adjusts template_name if referring to a namespace aware folder
-
+        Yield secure candidate origins for a possibly namespaced template.
         """
         for namespace, template_dir in self.namespace_aware_dirs():
             adjusted_template_name = template_name
@@ -60,8 +68,6 @@ class NamespaceAwareLoader(Loader):
             try:
                 name = safe_join(template_dir, adjusted_template_name)
             except SuspiciousFileOperation:
-                # The joined path was located outside of this template_dir
-                # (it might be inside another one, so this isn't fatal).
                 continue
             yield Origin(
                 name=name,
