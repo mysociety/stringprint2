@@ -7,6 +7,12 @@ from pathlib import Path
 
 from django.conf import settings
 
+from publication_management.cancellation import (
+    OperationCancelled,
+    cancellation_requested,
+    mark_publication_operation_cancelled,
+)
+from publication_management.heartbeat import OperationHeartbeat
 from publication_management.models import PublicationOperation
 from publication_management.operation_store import (
     claim_next_publication_operation,
@@ -32,6 +38,8 @@ class DatabaseProgressReporter(ProgressReporter):
 
     def update(self, stage: PublicationOperationStage, detail: str = "") -> None:
         """Store a progress update for the active operation."""
+        if cancellation_requested(self.operation):
+            raise OperationCancelled("Cancellation requested")
         update_publication_operation_progress(self.operation, stage, detail)
 
 
@@ -72,6 +80,7 @@ def execute_publication_operation(
             log_path.open("a", encoding="utf-8") as log,
             redirect_stdout(log),
             redirect_stderr(log),
+            OperationHeartbeat(operation),
         ):
             result = run_publication_operation(
                 request,
@@ -80,7 +89,9 @@ def execute_publication_operation(
                 publish_folder,
                 progress,
             )
-    except BaseException as error:
+    except OperationCancelled:
+        return mark_publication_operation_cancelled(operation)
+    except Exception as error:
         return fail_publication_operation(operation, error)
     return complete_publication_operation(operation, result)
 
