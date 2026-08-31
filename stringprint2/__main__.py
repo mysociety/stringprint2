@@ -25,7 +25,6 @@ from stringprint2.media_files import (
 )
 from stringprint2.services.publication_workflow import (
     load_publication,
-    process_publication,
     run_publication_command,
 )
 from stringprint2.services.publication_catalog import (
@@ -37,6 +36,11 @@ from stringprint2.services.publication_freshness import publication_needs_update
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     render_publication,
+)
+from stringprint2.services.publication_operations import (
+    ProcessPublicationRequest,
+    RenderPublicationRequest,
+    run_publication_operation,
 )
 from stringprint2.services.document_selection import (
     DocumentSelectionScope,
@@ -424,11 +428,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        result = process_publication(
-            doc,
-            self.doc_folder,
+        request = ProcessPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
             refresh_header=refresh_header,
             preprocess=preprocess,
+        )
+        result = run_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
         )
         print(f"Finished Processing: {result.title}")
         self.print_status()
@@ -499,11 +509,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        render_publication(
-            doc,
-            path,
-            PublicationRenderFormat.WEB,
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.WEB,
             refresh=refresh_all,
+        )
+        run_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
         )
 
     @select_doc
