@@ -20,6 +20,11 @@ urlpatterns = [
         name="cancel_operation",
     ),
     path(
+        "operations/<int:operation_id>/retry/",
+        views.retry_operation,
+        name="retry_operation",
+    ),
+    path(
         "publications/<slug:publication_slug>/",
         views.publication_detail,
         name="publication_detail",

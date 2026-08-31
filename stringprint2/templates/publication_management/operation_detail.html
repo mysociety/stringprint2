@@ -14,9 +14,15 @@
     <dt>Finished</dt><dd>{{ operation.finished_at|default:"—" }}</dd>
 </dl>
 {% if operation.error_summary %}<div class="alert alert-danger">{{ operation.error_summary }}</div>{% endif %}
+{% if operation.result %}<h2>Result and artefacts</h2><pre>{{ operation.result }}</pre>{% endif %}
 {% if operation.state == "pending" or operation.state == "running" %}
 <form method="post" action="{% url 'publication_management:cancel_operation' operation.pk %}">
     {% csrf_token %}<button type="submit">Cancel operation</button>
+</form>
+{% endif %}
+{% if operation.state == "failed" or operation.state == "interrupted" or operation.state == "cancelled" %}
+<form method="post" action="{% url 'publication_management:retry_operation' operation.pk %}">
+    {% csrf_token %}<button type="submit">Retry operation</button>
 </form>
 {% endif %}
 {% if recent_log %}<h2>Recent log</h2><pre>{{ recent_log }}</pre>{% endif %}

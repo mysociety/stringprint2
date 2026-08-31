@@ -19,8 +19,15 @@ from publication_management.dashboard import (
     publication_source_exists,
 )
 from publication_management.logs import read_recent_operation_log
-from publication_management.models import PublicationOperation
-from publication_management.operation_store import enqueue_publication_operation
+from publication_management.models import (
+    PublicationOperation,
+    PublicationOperationState,
+)
+from publication_management.operation_store import (
+    InvalidOperationTransition,
+    enqueue_publication_operation,
+)
+from publication_management.retry import retry_publication_operation
 from publication_management.worker_health import publication_worker_available
 from stringprint.models import Article, Organisation
 from stringprint2.services.publication_operations import (
@@ -113,7 +120,18 @@ def publication_detail(
 def operation_list(request: HttpRequest) -> HttpResponse:
     """Show operation history scoped to the user's organisation."""
     organisation = organisation_for_request(request)
-    operations = PublicationOperation.objects.filter(organisation=organisation)[:100]
+    operations = PublicationOperation.objects.filter(organisation=organisation)
+    selected_state = request.GET.get("state", "")
+    selected_operation = request.GET.get("operation", "")
+    publication_slug = request.GET.get("publication", "")
+    valid_states = {value for value, label in PublicationOperationState.choices}
+    if selected_state in valid_states:
+        operations = operations.filter(state=selected_state)
+    if selected_operation:
+        operations = operations.filter(operation_name=selected_operation)
+    if publication_slug:
+        operations = operations.filter(publication_slug=publication_slug)
+    operations = operations[:100]
     return render(
         request,
         "publication_management/operation_list.html",
@@ -121,6 +139,10 @@ def operation_list(request: HttpRequest) -> HttpResponse:
             "org": organisation,
             "operations": operations,
             "worker_available": publication_worker_available(timedelta(seconds=30)),
+            "state_choices": PublicationOperationState.choices,
+            "selected_state": selected_state,
+            "selected_operation": selected_operation,
+            "selected_publication": publication_slug,
         },
     )
 
@@ -225,5 +247,29 @@ def cancel_operation(request: HttpRequest, operation_id: int) -> HttpResponse:
         pk=operation_id,
         organisation=organisation,
     )
-    request_publication_operation_cancellation(operation)
+    try:
+        request_publication_operation_cancellation(operation)
+    except InvalidOperationTransition as error:
+        return HttpResponseBadRequest(str(error))
     return redirect("publication_management:operation_detail", operation.pk)
+
+
+@login_required
+@require_POST
+def retry_operation(request: HttpRequest, operation_id: int) -> HttpResponse:
+    """Create a linked pending retry for one authorised terminal operation."""
+    organisation = organisation_for_request(request)
+    operation = get_object_or_404(
+        PublicationOperation,
+        pk=operation_id,
+        organisation=organisation,
+    )
+    try:
+        retry = retry_publication_operation(
+            operation,
+            requested_by=request.user,
+            request_source="web-retry",
+        )
+    except InvalidOperationTransition as error:
+        return HttpResponseBadRequest(str(error))
+    return redirect("publication_management:operation_detail", retry.pk)

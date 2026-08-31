@@ -6,5 +6,11 @@
 <h1 class="page-header">Publication operations</h1>
 {% if worker_available %}<div class="alert alert-success">Operation worker available</div>{% else %}<div class="alert alert-danger">Operation worker unavailable</div>{% endif %}
 <p><a href="{% url 'publication_management:publication_list' %}">Manage publications</a></p>
+<form method="get">
+    <label>State <select name="state"><option value="">All</option>{% for value, label in state_choices %}<option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Operation <input name="operation" value="{{ selected_operation }}"></label>
+    <label>Publication <input name="publication" value="{{ selected_publication }}"></label>
+    <button type="submit">Filter</button>
+</form>
 {% include "publication_management/operation_table.html" %}
 {% endblock %}
