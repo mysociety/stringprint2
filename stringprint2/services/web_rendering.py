@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Protocol
 
 from django.conf import settings
@@ -146,7 +147,7 @@ def create_web_directories(
     return organisation_static
 
 
-def render_web_publication(
+def render_web_publication_staging(
     publication: WebPublication,
     destination: Path,
     *,
@@ -380,3 +381,43 @@ def render_web_publication(
         redirect_count=redirect_count,
         copied_media_count=copied_media_count,
     )
+
+
+def render_web_publication(
+    publication: WebPublication,
+    destination: Path,
+    *,
+    url: str | None = None,
+    plain: bool = True,
+    kindle: bool = True,
+    refresh_all: bool = False,
+) -> WebRenderResult:
+    """
+    Build in sibling staging and atomically replace the live publication.
+    """
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(
+        dir=destination.parent,
+        prefix=f".{destination.name}-",
+    ) as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        staging = temporary_root / "next"
+        previous = temporary_root / "previous"
+        result = render_web_publication_staging(
+            publication,
+            staging,
+            url=url,
+            plain=plain,
+            kindle=kindle,
+            refresh_all=refresh_all,
+        )
+        if destination.exists():
+            destination.rename(previous)
+        try:
+            staging.rename(destination)
+        except Exception:
+            if previous.exists() and not destination.exists():
+                previous.rename(destination)
+            raise
+        return result.model_copy(update={"destination": destination})
