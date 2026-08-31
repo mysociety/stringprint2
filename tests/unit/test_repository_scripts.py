@@ -73,6 +73,10 @@ def test_update_initializes_dependencies_and_applies_migrations(
     assert command_log.read_text().splitlines() == [
         "git submodule update --init --recursive",
         "poetry install --no-interaction --no-root",
+        (
+            "poetry run python stringprint2/stringprint2/manage.py "
+            "makemigrations --check --dry-run"
+        ),
         ("poetry run python stringprint2/stringprint2/manage.py migrate --noinput"),
     ]
 
