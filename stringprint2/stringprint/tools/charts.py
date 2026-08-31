@@ -3,8 +3,9 @@ Created on Jul 29, 2016
 
 @author: Alex
 """
+
 import json
-from useful_inkleby.files import QuickGrid
+from stringprint2.table_files import DataTable
 from django.utils.safestring import mark_safe
 import random
 import string
@@ -99,7 +100,7 @@ class BaseChart(object):
         return mark_safe('<div id="{0}"></div>'.format(self.ident))
 
     def load_from_file(self, path):
-        qg = QuickGrid().open(path)
+        qg = DataTable().open(path)
         for x, h in enumerate(qg.header):
             col_name = h
             types = set([type(i) for i in qg.get_column(x)])

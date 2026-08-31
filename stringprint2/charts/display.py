@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-from useful_inkleby.files import QuickGrid
+from stringprint2.table_files import DataTable
 from django.utils.safestring import mark_safe
 import random
 import string
@@ -122,7 +122,7 @@ class Chart(SerialObject):
             self.load_from_file(file_name)
 
     def load_from_file(self, path):
-        qg = QuickGrid().open(path)
+        qg = DataTable().open(path)
         for x, h in enumerate(qg.header):
             col_name = h
             setting = None

@@ -11,7 +11,7 @@ import html2markdown
 import mammoth
 from bs4 import BeautifulSoup
 from ruamel.yaml import YAML
-from useful_inkleby.files import QuickGrid
+from stringprint2.table_files import DataTable
 from stringprint2.text_files import TextFile
 from django.utils.text import slugify
 from pathlib import Path
@@ -432,7 +432,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
                 table_data.append(
                     [markdown_table_contents(td) for td in row.find_all("td")]
                 )
-        qg = QuickGrid()
+        qg = DataTable()
         qg.header = table_data[0]
         qg.data = table_data[1:]
         di = {
