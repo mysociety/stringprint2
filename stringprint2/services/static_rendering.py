@@ -9,6 +9,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Protocol, cast
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.test.client import RequestFactory
 from htmlmin.minify import html_minify as untyped_html_minify  # type: ignore[import-untyped]
@@ -76,3 +77,34 @@ def write_static_view(
     temporary_path = target.destination.with_name(f".{target.destination.name}.tmp")
     temporary_path.write_text(content, encoding="utf-8")
     os.replace(temporary_path, target.destination)
+
+
+def relativize_static_urls(content: str, depth: int) -> str:
+    """
+    Rewrite absolute static and media URLs relative to a baked page.
+    """
+
+    prefix = "../" * depth
+    content = content.replace(settings.STATIC_URL, prefix + "static/")
+    return content.replace(settings.MEDIA_URL, prefix + "media/")
+
+
+def write_baked_file(
+    view: type[StaticView],
+    path: Path,
+    arguments: Sequence[object],
+    destination: Path,
+) -> None:
+    """
+    Render one view through the atomic renderer with relative asset URLs.
+    """
+
+    relative_directory = os.path.relpath(path.parent, destination)
+    depth = 0 if relative_directory == "." else len(Path(relative_directory).parts)
+    target = StaticRenderTarget(destination=path, request_path=str(path))
+    write_static_view(
+        view,
+        target,
+        arguments,
+        transform=lambda content: relativize_static_urls(content, depth),
+    )

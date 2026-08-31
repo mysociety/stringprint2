@@ -20,6 +20,7 @@ from .static_rendering import (
     StaticRenderTarget,
     StaticView,
     render_static_view,
+    write_baked_file,
     write_static_view,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "process_publication",
     "render_static_view",
     "run_publication_command",
+    "write_baked_file",
     "write_static_view",
 ]

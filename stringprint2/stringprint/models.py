@@ -25,6 +25,7 @@ from stringprint2.services import (
     StaticRenderTarget,
     build_asset_import_plan,
     build_publication_load_plan,
+    write_baked_file,
     write_static_view,
 )
 from stringprint2.services.paragraph_links import (
@@ -222,45 +223,6 @@ def org_source_path(instance, filename):
 def kindle_source_storage(instance: Article, filename: str) -> str:
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return "kindle/org_{0}/{1}".format(instance.org_id, filename)
-
-
-def relativize_static_urls(html: str, depth: int) -> str:
-    """
-    Baked pages render with STATIC_URL/MEDIA_URL left at their normal
-    (absolute) values - Article.render used to set them to a bare relative
-    string ("static/") before rendering instead, but modern Django's
-    LazySettings always prepends at least "/" to STATIC_URL/MEDIA_URL reads
-    (django.conf.LazySettings._add_script_prefix), so that string never
-    stayed relative, and it made STATIC_URL and COMPRESS_URL disagree
-    (COMPRESS_URL isn't put through the same prefixing) - which is what
-    broke django-compressor's own consistency check.
-
-    Rendering with the normal absolute URLs sidesteps that entirely.
-    Afterwards, this turns those absolute references into paths relative to
-    wherever the file is being written, so the baked output still works
-    from any base path - a local file, a subdirectory, S3, wherever.
-    `depth` is how many directories below the bake root the file being
-    written lives (0 at the top level, 1 for e.g. l/*.html).
-    """
-    prefix = "../" * depth
-    html = html.replace(settings.STATIC_URL, prefix + "static/")
-    html = html.replace(settings.MEDIA_URL, prefix + "media/")
-    return html
-
-
-def write_baked_file(view_cls, path: str, args, destination: str) -> None:
-    """
-    Render one view through the project-owned atomic static renderer.
-    """
-    rel_dir = os.path.relpath(os.path.dirname(path), destination)
-    depth = 0 if rel_dir == "." else len(rel_dir.split(os.sep))
-    target = StaticRenderTarget(destination=Path(path), request_path=path)
-    write_static_view(
-        view_cls,
-        target,
-        args,
-        transform=lambda content: relativize_static_urls(content, depth),
-    )
 
 
 class OrgLinks(models.Model):
@@ -974,8 +936,8 @@ class Article(models.Model):
             args = ("blah", "blah")
             write_baked_file(
                 BakeRedirectLinkView,
-                path=os.path.join(destination, "l", shorter_link + ".html"),
-                args=args,
+                path=destination / "l" / (shorter_link + ".html"),
+                arguments=args,
                 destination=destination,
             )
 
@@ -986,42 +948,42 @@ class Article(models.Model):
                 name = "{0}.html".format(s.anchor())
                 write_baked_file(
                     BakeArticleView,
-                    path=os.path.join(destination, name),
-                    args=args,
+                    path=destination / name,
+                    arguments=args,
                     destination=destination,
                 )
 
         args = (self.slug,)
         write_baked_file(
             BakeArticleView,
-            path=os.path.join(destination, "index.html"),
-            args=args,
+            path=destination / "index.html",
+            arguments=args,
             destination=destination,
         )
         write_baked_file(
             BakeSearchView,
-            path=os.path.join(destination, "search.html"),
-            args=args,
+            path=destination / "search.html",
+            arguments=args,
             destination=destination,
         )
         write_baked_file(
             BakeSearchContentView,
-            path=os.path.join(destination, "search_content.js"),
-            args=args,
+            path=destination / "search_content.js",
+            arguments=args,
             destination=destination,
         )
         write_baked_file(
             BakeTOCView,
-            path=os.path.join(destination, "toc.json"),
-            args=args,
+            path=destination / "toc.json",
+            arguments=args,
             destination=destination,
         )
 
         if plain:
             write_baked_file(
                 BakePlainView,
-                path=os.path.join(destination, "plain.html"),
-                args=args,
+                path=destination / "plain.html",
+                arguments=args,
                 destination=destination,
             )
 
