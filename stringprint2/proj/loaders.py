@@ -5,13 +5,14 @@ Extend Django's filesystem loader with template-directory namespaces.
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from os import PathLike
+from pathlib import Path
 
 from django.core.exceptions import SuspiciousFileOperation
 from django.template import Origin
-from django.template.loaders.filesystem import Loader, safe_join
+from django.template.loaders.filesystem import Loader
+from django.utils._os import safe_join
 
-TemplateDirectory = str | PathLike[str]
+TemplateDirectory = str | Path
 NamespacedTemplateDirectory = tuple[str, TemplateDirectory]
 
 
@@ -33,12 +34,14 @@ class NamespaceAwareLoader(Loader):
         """
         return self.dirs if self.dirs is not None else self.engine.dirs
 
-    def get_dirs(self) -> Iterator[TemplateDirectory]:
+    def get_dirs(self) -> list[TemplateDirectory]:
         """
-        Return plain paths for Django's template autoreloader.
+        Return plain paths for Django.s template autoreloader.
         """
-        for directory in self.raw_dirs():
-            yield directory[1] if isinstance(directory, tuple) else directory
+        return [
+            directory[1] if isinstance(directory, tuple) else directory
+            for directory in self.raw_dirs()
+        ]
 
     def namespace_aware_dirs(
         self,
