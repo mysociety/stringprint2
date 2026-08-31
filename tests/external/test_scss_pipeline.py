@@ -8,6 +8,7 @@ here is that the two subprocesses run and produce usable css.
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -97,12 +98,8 @@ def test_a_failing_postcss_run_is_reported(monkeypatch, org) -> None:
             return 1, "", "boom"
         return real_run_command(args, *rest, **kwargs)
 
-    monkeypatch.setattr(
-        "stringprint.compiler.utils.run_command", failing
-    )
-    monkeypatch.setattr(
-        static_precompiler.settings, "DISABLE_AUTO_COMPILE", False
-    )
+    monkeypatch.setattr("stringprint.compiler.utils.run_command", failing)
+    monkeypatch.setattr(static_precompiler.settings, "DISABLE_AUTO_COMPILE", False)
 
     source = org.org_scss()
     compiler = get_compiler_by_path(source)
@@ -117,3 +114,39 @@ def test_svg_data_uris_survive_minification(compiled) -> None:
 
     minified = svg_safe(open(compiled).read())
     assert "svg xmlns=" in minified
+
+
+def test_default_publication_stylesheet_bootstrap_4_baseline(tmp_path) -> None:
+    """Default publication CSS retains its selective component and size baseline."""
+    from django.conf import settings
+    from static_precompiler import utils
+
+    source = Path(settings.PROJECT_PATH, "web", "scss", "main.scss")
+    output = tmp_path / "publication.css"
+    status, _, errors = utils.run_command(
+        [
+            "/usr/bin/sass",
+            "--no-source-map",
+            "--load-path",
+            str(Path(settings.PROJECT_PATH, "vendor", "bootstrap", "scss")),
+            "--load-path",
+            str(Path(settings.PROJECT_PATH, "web", "scss")),
+            str(source),
+            str(output),
+        ]
+    )
+
+    assert status == 0, errors
+    css = output.read_text()
+    assert 110_000 <= len(css.encode()) <= 120_000
+    for selector in [
+        ".navbar-expand-md",
+        ".dropdown-menu-right",
+        ".input-group-append",
+        ".table-striped",
+        ".mr-auto",
+        ".ml-auto",
+    ]:
+        assert selector in css
+    assert ".modal" not in css
+    assert ".carousel" not in css
