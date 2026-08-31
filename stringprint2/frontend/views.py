@@ -135,72 +135,19 @@ class ArticleHeadersView(ArticleEditBase, LoggedInView):
 
 
 class ArticlePublishView(ArticleEditBase, LoggedInView):
-    template = "frontend//doc_publish.html"
+    """Redirect the retired publish screen to durable operation management."""
+
     url_patterns = [r"^document/(.*)/publish"]
     url_name = "article.publish"
-    form = ff.ArticlePublishForm
 
     def logic(self):
-        """
-        configure the publishing screen
-        """
-
-        self.settings = UserSettings.get_settings(self.request.user)
-
-        default_url = "http://research.blah.com/{0}".format(self.article.slug)
-        default_date = self.article.publish_date
-        if default_date == None:
-            default_date = now().date
-
-        if self.request.POST:
-            form = self.form(self.request.POST, setting_url=default_url)
-            if form.is_valid():
-                self.article.production_url = form.cleaned_data["publish_url"]
-                self.article.publish_date = form.cleaned_data["publish_date"]
-                self.article.save()
-
-                if self.article.publish_tokens != -999:
-                    if self.article.publish_tokens <= 0:
-                        if self.settings.tokens > 0 or self.settings.tokens == -999:
-                            self.article.publish_tokens += 11
-                            self.article.save()
-                            if self.settings.tokens != -999:
-                                self.settings.tokens -= 1
-                                self.settings.save()
-
-                if self.article.publish_tokens:
-                    self.article.trigger_render()
-                else:
-                    self.message = "danger|You need more tokens."
-
-        else:
-            form = self.form(
-                initial={
-                    "publish_url": self.article.production_url,
-                    "publish_date": default_date,
-                },
-                setting_url=default_url,
+        """Preserve the documented URL without invoking removed queue models."""
+        raise RedirectException(
+            reverse(
+                "publication_management:publication_detail",
+                args=(self.article.slug,),
             )
-
-        self.form = form
-        self.submit_text = "Publish"
-
-        if self.settings.tokens == 0 and self.article.publish_tokens == 0:
-            url = reverse("tokens")
-            url = '<a href="{0}">{1}</a>'.format(url, "Click here to get tokens.")
-            self.message = "danger|You need more tokens to render this document. " + url
-
-        """
-        what is currently happening?
-        """
-        self.downloads = self.article.downloads.all().order_by(
-            "-time_requested", "-time_completed"
         )
-        if self.downloads.exists() and self.downloads[0].time_completed == None:
-            self.refresh = True
-            self.message = "Your document is currently rendering. This page will refresh when it is finished."
-        elif self.downloads.exists():
-            self.last_download = self.downloads[0]
 
 
 class ArticleSettingsView(ArticleEditBase, LoggedInView):
