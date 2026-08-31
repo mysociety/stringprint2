@@ -32,6 +32,7 @@ from stringprint2.services.paragraph_links import (
     ParagraphLinkStore,
 )
 from stringprint2.services.configured_commands import run_configured_command
+from stringprint2.services.publication_sources import load_publication_source
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -1337,12 +1338,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        with open(self.file_source, encoding="utf-8") as f:
-            raw = f.read()
-        if raw:
-            c = self.content()
-            c.raw = raw
-            c.save()
+        load_publication_source(self.content(), Path(self.file_source))
 
     def title_image(self) -> Optional[HeaderImage]:
         """
@@ -1651,12 +1647,8 @@ class Version(models.Model):
     paragraph_links = JsonBlockField(blank=True, null=True)
     has_notes = models.BooleanField(default=False)
 
-    def load_from_file(self):
-        with open(self.article.file_source, encoding="utf-8") as f:
-            raw = f.read()
-        if raw:
-            self.raw = raw
-            self.save()
+    def load_from_file(self) -> None:
+        load_publication_source(self, Path(self.article.file_source))
 
     def section_link_lookup(self):
         """
