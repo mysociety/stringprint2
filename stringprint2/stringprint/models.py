@@ -25,6 +25,7 @@ from stringprint2.configuration import (
     load_organisation_config,
     load_publication_config,
 )
+from stringprint2.services import build_publication_load_plan
 from stringprint2.charts.fields import ChartField
 from dirsync import sync
 from django.conf import settings
@@ -94,6 +95,13 @@ def get_file(fi: str) -> File:
     reopen = open(fi, "rb")
     django_file = File(reopen)
     return django_file
+
+
+def render_article_template(template: str, publication: dict[str, object]) -> str:
+    """
+    Render an organisation default using the legacy Django template syntax.
+    """
+    return Template(template).render(Context({"article": publication}))
 
 
 class Organisation(models.Model):
@@ -431,50 +439,30 @@ class Article(models.Model):
         publication_config = load_publication_config(
             Path(storage_dir) / "settings.yaml", organisation_config
         )
-        data = publication_config.model_dump(exclude_unset=True)
-        ignore = ["header", "book_cover"]
+        plan = build_publication_load_plan(
+            publication_config,
+            organisation_config,
+            self.extra_values.keys(),
+            render_article_template,
+        )
 
-        existing_keys = list(self.extra_values.keys())
-        for k in existing_keys:
-            if k not in data:
-                del self.extra_values[k]
-
-        # adapation for older files
-        if "sections_over_pages" in data:
-            data["multipage"] = data["sections_over_pages"]
-            del data["sections_over_pages"]
-
-        if "pdf" in data:
-            data["pdf_file"] = data["pdf"]
-            del data["pdf"]
-
-        if "pdf_file" not in data and self.pdf_file:
+        if plan.clear_pdf_file and self.pdf_file:
             self.pdf_file = ""
 
-        for k, v in self.org.default_values.items():
-            if k not in data:
-                print("adding {0} value".format(k))
-                rendered_v = Template(v).render(Context({"article": data}))
-                data[k] = rendered_v
+        for assignment in plan.field_assignments:
+            setattr(self, assignment.name, assignment.value)
+        self.extra_values = plan.extra_values
 
-        for k, v in data.items():
-            if k not in ignore:
-                if hasattr(self, k) and k not in existing_keys:
-                    setattr(self, k, v)
-                else:
-                    print(k, v)
-                    self.extra_values[k] = v
-
-        if "header" in data:
-            header = data["header"]
-            file_name = header["location"]
+        if plan.header is not None:
+            header = plan.header
+            file_name = header.location
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
                     self.org.storage_dir, "_docs", self.slug, file_name
                 )
             file_ext = os.path.splitext(file_name)[1]
             internal_name = self.slug + file_ext
-            image_size = header.get("size", "6")
+            image_size = header.size
             if image_size == "background":
                 image_size = -1
             self.add_image(
@@ -485,16 +473,16 @@ class Article(models.Model):
                 size=image_size,
             )
 
-        if "book_cover" in data:
+        if plan.book_cover is not None:
             print("loading book cover")
-            file_name = data["book_cover"]
+            file_name = plan.book_cover
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
                     self.org.storage_dir, "_docs", self.slug, file_name
                 )
             self.get_book_cover(file_name)
 
-        if "production_url" not in data:
+        if plan.use_default_production_url:
             self.production_url = self.org.publish_root + self.slug + "/"
 
         if os.path.exists(self.file_source) is False:
