@@ -362,6 +362,14 @@ class Article(models.Model):
         else:
             return None
 
+    def plain_url(self) -> str:
+        """
+        Return the plain-text output for baked and preview publications.
+        """
+        if self.baking:
+            return "plain.html"
+        return reverse("txt_view", args=(self.slug,))
+
     def load_from_yaml(self, storage_dir: Path, refresh_header: bool = False) -> None:
         """
         Load config for the article from the stored file
@@ -536,8 +544,7 @@ class Article(models.Model):
     def search_url(self) -> str:
         if self.baking:
             return "search.html"
-        else:
-            return "search"
+        return reverse("publication_search", args=(self.slug,))
 
     def import_assets(self, asset_folder: Path, refresh: bool) -> None:
         """
@@ -814,7 +821,7 @@ class Article(models.Model):
             else:
                 args = (self.slug,)
 
-            return settings.SITE_ROOT + reverse("article_view", args=args)
+            return reverse("article_view", args=args)
 
     def live_url(self):
         """

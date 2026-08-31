@@ -117,9 +117,7 @@ class TestMultipage:
         """
         response = client.get("/preview/multipage-doc/second-chapter")
         page = response.content.decode("utf-8")
-        assert 'href="{0}/preview/multipage-doc/#tag.crosstag"'.format(
-            settings.SITE_ROOT.rstrip("/")
-        ) in page
+        assert 'href="/preview/multipage-doc/#tag.crosstag"' in page
         assert 'href="#tag.crosstag"' not in page
 
     def test_a_cross_chapter_anchor_link_is_rewritten(
@@ -127,9 +125,7 @@ class TestMultipage:
     ) -> None:
         response = client.get("/preview/multipage-doc/second-chapter")
         page = response.content.decode("utf-8")
-        assert 'href="{0}/preview/multipage-doc/#first-chapter"'.format(
-            settings.SITE_ROOT.rstrip("/")
-        ) in page
+        assert 'href="/preview/multipage-doc/#first-chapter"' in page
 
     def test_links_are_not_rewritten_in_single_page_mode(
         self, client, kitchen_sink

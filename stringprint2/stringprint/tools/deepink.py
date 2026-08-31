@@ -222,7 +222,7 @@ class Section(SerialObject):
                     return article.url(anchor)
             else:
                 if article.search:
-                    return "index#" + anchor
+                    return article.url() + "#" + anchor
                 else:
                     return "#" + anchor
 
@@ -489,7 +489,7 @@ class Graf(SerialObject):
                 if self._section._version.article.baking:
                     return "index.html#" + anchor
                 else:
-                    return "./#" + anchor
+                    return self._section._version.article.url() + "#" + anchor
             else:
                 return "#" + anchor
 

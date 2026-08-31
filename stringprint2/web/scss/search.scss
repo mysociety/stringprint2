@@ -10,6 +10,21 @@
   margin-top: 30px;
 }
 
+.publication-search-header {
+  margin-bottom: 24px;
+}
+
+h1.publication-search-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.publication-search-toc-link {
+  font-size: 15px;
+}
+
 #publication-search-results {
   max-width: 650px;
   padding-top: 15px;
@@ -18,12 +33,16 @@
 .publication-search-warning,
 .publication-search-result-count {
   color: #555;
-  font: 300 15px/1.7;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
   margin: 7px 0;
 }
 
 .publication-search-result-title {
-  font: 300 21px/1.7;
+  font-size: 21px;
+  font-weight: 300;
+  line-height: 1.7;
   margin-top: 23px;
 
   a {
@@ -38,7 +57,9 @@
 
 .publication-search-result-text {
   color: #555;
-  font: 300 15px/1.6;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.6;
   hyphens: auto;
   margin-top: 3px;
   overflow-wrap: break-word;

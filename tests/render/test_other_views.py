@@ -59,11 +59,20 @@ class TestTextView:
 
 class TestSearchViews:
     def test_the_search_page_renders(self, client, kitchen_sink) -> None:
-        assert client.get("/preview/kitchen-sink/search").status_code == 200
+        response = client.get("/preview/kitchen-sink/search")
+        body = response.content.decode("utf-8")
+
+        assert response.status_code == 200
+        assert 'id="publication-search-form"' in body
+        assert 'class="publication-search-title"' in body
+        assert 'href="/preview/kitchen-sink/#index"' in body
+        assert 'id="article_title"' not in body
+        assert 'class="toc_content content_row"' not in body
 
     def test_the_search_index_renders(self, client, kitchen_sink) -> None:
         response = client.get("/preview/kitchen-sink/search_content.js")
         assert response.status_code == 200
+        assert response["Content-Type"].startswith("application/javascript")
         assert "An ordinary opening paragraph" in response.content.decode("utf-8")
 
     def test_the_index_is_javascript_shaped(self, client, kitchen_sink) -> None:

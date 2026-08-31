@@ -1,7 +1,7 @@
 import re
 import os
 
-from django.shortcuts import HttpResponseRedirect
+from django.shortcuts import HttpResponse, HttpResponseRedirect
 from django.conf import settings
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -212,6 +212,19 @@ class SearchContentView(SearchView):
     template = "ink//search_js.html"
     url_patterns = [r"^([A-Za-z0-9_-]+)/search_content.js"]
     url_name = "publication_search_content"
+
+    def context_to_html(
+        self, request: WSGIRequest, context: dict[str, object]
+    ) -> HttpResponse:
+        """
+        Render the search index with an executable JavaScript MIME type.
+        """
+        return render(
+            request,
+            self.template,
+            context=context,
+            content_type="application/javascript",
+        )
 
 
 class TextView(KindleView):

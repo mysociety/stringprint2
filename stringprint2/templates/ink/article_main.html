@@ -32,10 +32,10 @@
 	  {% endblock %}
 	  {% block other_formats %}
 		  <p class="other-formats-text">
-		  Other formats: <a href="{{SITE_ROOT}}plain.html" class="alt_link" type="plain" >Plain text</a>,
+		  Other formats: <a href="{{article.plain_url}}" class="alt_link" type="plain" >Plain text</a>,
 		  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf">PDF</a>,{% endif %}
 		  {% if kindle %}<a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>{% endif %},
-		  <a href="{{SITE_ROOT}}{{article.slug}}.epub"  class="alt_link" type="epub" >EPUB</a>.</p>
+		  {% if article.baking %}<a href="{{article.slug}}.epub" class="alt_link" type="epub">EPUB</a>.{% endif %}</p>
       {% endblock %}
       </div>
 {% endblock %}
@@ -47,12 +47,12 @@
 	{% block search %}
 	{% endblock %}
         <a class="anchor" id="index" name="index"></a> 
-        <div id="index-container" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
+		<div id="index-container" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
 		
 			{% block search_results %}
 			{% endblock %}
 		
-
+			{% block table_of_contents %}
                 <div class="toc_content content_row">
                 <H1 id="toc">Contents</h1>
 				<ul>
@@ -70,7 +70,8 @@
 					{% endif %}
 				{% endfor %}
 				{% endwith %}
-				</div> 
+				</div>
+			{% endblock %}
         </div> 
     {% block content %}
 	<main>

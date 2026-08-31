@@ -4,6 +4,19 @@ function visible(element) {
 }
 function setVisible(element, show) {
     element.hidden = !show;
+    if (!show) {
+        element.style.display = "none";
+    }
+    else if (element instanceof HTMLTableRowElement) {
+        element.style.display = "table-row";
+    }
+    else if (element instanceof HTMLAnchorElement ||
+        element instanceof HTMLSpanElement) {
+        element.style.display = "inline";
+    }
+    else {
+        element.style.display = "block";
+    }
 }
 function toggleVisible(element) {
     const show = !visible(element);

@@ -68,8 +68,7 @@ class TestYear:
 class TestUrl:
     def test_live_url_goes_through_the_url_conf(self) -> None:
         result = article(slug="a-doc").url()
-        assert result.startswith(settings.SITE_ROOT)
-        assert "a-doc" in result
+        assert result == "/preview/a-doc/"
 
     def test_a_section_is_included(self) -> None:
         assert "a-doc/chapter" in article(slug="a-doc").url("chapter")
@@ -105,11 +104,23 @@ class TestPdfUrl:
         assert instance.pdf_url() == "https://e.invalid/x.pdf"
 
 
+class TestPlainUrl:
+    def test_live_url_uses_the_plain_text_view(self) -> None:
+        instance = article(slug="a-doc")
+        instance.baking = False
+        assert instance.plain_url() == "/preview/a-doc/text/"
+
+    def test_baked_url_uses_the_output_filename(self) -> None:
+        instance = article(slug="a-doc")
+        instance.baking = True
+        assert instance.plain_url() == "plain.html"
+
+
 class TestSearchUrl:
     def test_live_search_url(self) -> None:
         instance = article(slug="a-doc")
         instance.baking = False
-        assert instance.search_url() == "search"
+        assert instance.search_url() == "/preview/a-doc/search"
 
     def test_baked_search_url(self) -> None:
         instance = article(slug="a-doc")

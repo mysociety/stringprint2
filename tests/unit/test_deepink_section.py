@@ -130,7 +130,7 @@ class TestNavUrl:
         assert self.url() == "#chapter-one"
 
     def test_live_single_page_with_search_is_absolute(self) -> None:
-        assert self.url(search=True) == "index#chapter-one"
+        assert self.url(search=True) == "/article/#chapter-one"
 
     def test_live_multipage_first_section_drops_the_anchor(self) -> None:
         assert self.url(multipage=True, order=1) == "/article/#"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from django.template.loader import get_template
 from django.urls import NoReverseMatch, reverse
@@ -18,8 +20,12 @@ def test_search_template_uses_native_search_module() -> None:
     source = get_template("ink/search.html").template.source
 
     assert "document_search.js" in source
+    assert "publication_search_content" in source
     assert "tipuesearch.min.js" not in source
     assert "tipuesearch_set.js" not in source
+    assert 'class="content" id="publication-search-results"' in source
+    assert "block title_and_image" in source
+    assert "block table_of_contents" in source
 
 
 def test_article_template_uses_native_menu_module() -> None:
@@ -35,6 +41,15 @@ def test_article_template_uses_native_menu_module() -> None:
     assert "document_links.js" in source
     assert "jquery-3.5.1.min.js" not in source
     assert "stringprint.js" not in source
+
+
+def test_native_document_scripts_control_css_visibility() -> None:
+    """Native controls override the stylesheet's initial display state."""
+    links = Path("frontend/ts/document_links.ts").read_text()
+    notes = Path("frontend/ts/document_notes.ts").read_text()
+
+    assert "element.style.display" in links
+    assert "element.style.display" in notes
 
 
 def test_authenticated_templates_do_not_load_jquery() -> None:

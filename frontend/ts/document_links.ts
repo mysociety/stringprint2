@@ -19,7 +19,18 @@ let draggingLink = false;
 function showElement(element: HTMLElement | null, show: boolean): void {
   if (element !== null) {
     element.hidden = !show;
+    element.style.display = show ? visibleDisplay(element) : "none";
   }
+}
+
+function visibleDisplay(element: HTMLElement): string {
+  if (element instanceof HTMLTableRowElement) {
+    return "table-row";
+  }
+  if (element instanceof HTMLAnchorElement || element instanceof HTMLSpanElement) {
+    return "inline";
+  }
+  return "block";
 }
 
 function namedAnchor(name: string): HTMLElement | null {
@@ -247,6 +258,12 @@ window.addEventListener("load", () => {
 
   (window as DocumentWindow).drawCharts?.();
   const hash = window.location.hash;
+  if (hash === "#index") {
+    showElement(document.querySelector<HTMLElement>("#index-container"), true);
+    page_loaded = true;
+    refreshSectionTracking();
+    return;
+  }
   if (hash.includes(".")) {
     page_loaded = true;
     gotoHash(hash, true);

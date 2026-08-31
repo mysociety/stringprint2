@@ -13,6 +13,12 @@ declare const publicationSearchIndex: SearchIndex;
 
 const resultsPerPage = 7;
 
+function decodeSearchText(value: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
 function normalizedSearchTerms(query: string): string[] {
   return query
     .trim()
@@ -35,8 +41,10 @@ function searchPages(query: string): SearchPage[] {
   const terms = normalizedSearchTerms(query);
   return publicationSearchIndex.pages
     .map((page) => {
-      const title = page.title.toLocaleLowerCase();
-      const searchableText = `${page.text} ${page.tags}`.toLocaleLowerCase();
+      const title = decodeSearchText(page.title).toLocaleLowerCase();
+      const searchableText = decodeSearchText(
+        `${page.text} ${page.tags}`,
+      ).toLocaleLowerCase();
       const matches = terms.every(
         (term) => title.includes(term) || searchableText.includes(term),
       );
@@ -74,12 +82,12 @@ function appendResult(
   title.className = "publication-search-result-title";
   const link = document.createElement("a");
   link.href = page.url;
-  link.textContent = page.title;
+  link.textContent = decodeSearchText(page.title);
   title.append(link);
 
   const text = document.createElement("div");
   text.className = "publication-search-result-text";
-  text.textContent = resultExcerpt(page, query);
+  text.textContent = decodeSearchText(resultExcerpt(page, query));
   container.append(title, text);
 }
 

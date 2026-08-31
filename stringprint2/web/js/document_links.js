@@ -6,7 +6,17 @@ let draggingLink = false;
 function showElement(element, show) {
     if (element !== null) {
         element.hidden = !show;
+        element.style.display = show ? visibleDisplay(element) : "none";
     }
+}
+function visibleDisplay(element) {
+    if (element instanceof HTMLTableRowElement) {
+        return "table-row";
+    }
+    if (element instanceof HTMLAnchorElement || element instanceof HTMLSpanElement) {
+        return "inline";
+    }
+    return "block";
 }
 function namedAnchor(name) {
     return ([...document.querySelectorAll("[name]")].find((element) => element.getAttribute("name") === name) ?? null);
@@ -173,6 +183,12 @@ window.addEventListener("load", () => {
     }
     window.drawCharts?.();
     const hash = window.location.hash;
+    if (hash === "#index") {
+        showElement(document.querySelector("#index-container"), true);
+        page_loaded = true;
+        refreshSectionTracking();
+        return;
+    }
     if (hash.includes(".")) {
         page_loaded = true;
         gotoHash(hash, true);
