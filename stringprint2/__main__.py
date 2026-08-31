@@ -13,13 +13,17 @@ from subprocess import Popen
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
 
 import django
-import fitz
 import rich
 from cookiecutter.main import cookiecutter
-from PIL import Image
 from rich.panel import Panel
 from rich.prompt import Prompt
 from ruamel.yaml import YAML
+from stringprint2.media_files import (
+    create_hero,
+    create_thumbnail,
+    merge_pdfs,
+    pdf_page_to_png,
+)
 from stringprint2.text_files import TextFile
 
 print = rich.print
@@ -102,65 +106,6 @@ def load_org_details() -> str:
         if default_slug is None:
             default_slug = k
     return default_slug
-
-
-def merge_pdfs(
-    front: Union[str, Path],
-    contents: Union[str, Path],
-    output: Union[str, Path],
-    start_page: int = 1,
-):
-    """
-    replace front page with proper front page
-    """
-    result = fitz.open()
-
-    front_doc = fitz.open(str(front))
-    result.insertPDF(front_doc, from_page=0, to_page=0)
-
-    contents_doc = fitz.open(str(contents))
-    result.insertPDF(contents_doc, from_page=start_page)
-
-    result.save(str(output))
-
-
-def pdf_page_to_png(source_pdf: Union[Path, str], destination: Union[Path, str]):
-    """
-    get front page png from pdf
-    """
-    doc = fitz.open(source_pdf)
-    page = doc.loadPage(0)  # number of page
-    pix = page.getPixmap()
-    pix.writePNG(destination)
-
-
-def create_thumbnail(
-    source: Union[Path, str], destination: Union[Path, str], base_width: int = 110
-):
-    """
-    get a thumbnail version of an image (in this case, front cover)
-    """
-    img = Image.open(source)
-    wpercent = base_width / float(img.size[0])
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((base_width, hsize), Image.ANTIALIAS)
-    img.save(destination)
-
-
-def create_hero(
-    source: Union[Path, str], destination: Union[Path, str], base_width: int = 1024
-):
-    """
-    Create a hero image from the header image
-    """
-    print("resizing hero image")
-    target_height = 680
-    img = Image.open(source)
-    wpercent = base_width / float(img.size[0])
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((base_width, hsize), Image.ANTIALIAS)
-    height = img.size[1]
-    img.save(destination, optimize=True, quality=95)
 
 
 def select_doc(func: Callable) -> Callable:
