@@ -63,3 +63,26 @@ def test_authenticated_templates_do_not_load_jquery() -> None:
     assert "jquery" not in frontend.lower()
     assert "jquery" not in registration.lower()
     assert "jquery" not in publication_home.lower()
+
+
+def test_authenticated_layout_uses_responsive_bootstrap_shell() -> None:
+    """The shared management shell uses a standard navbar without a fixed sidebar."""
+    base = get_template("frontend/base.html").template.source
+    navigation = get_template("frontend/side_nav.html").template.source
+    css_path = (
+        Path(__file__).resolve().parents[2]
+        / "stringprint2"
+        / "static"
+        / "css"
+        / "stringprint-front.css"
+    )
+    css = css_path.read_text()
+
+    assert "navbar navbar-inverse navbar-static-top" in base
+    assert "container admin-main" in base
+    assert 'id="wrapper"' not in base
+    assert "publication_management:publication_list" in navigation
+    assert "publication_management:operation_list" in navigation
+    assert 'method="post"' in navigation
+    assert ".admin-main" in css
+    assert "padding-left: 225px" not in css
