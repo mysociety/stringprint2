@@ -7,6 +7,11 @@
 <p><a href="{% url 'publication_management:publication_list' %}">All publications</a></p>
 
 <h2>Actions</h2>
+<form method="post" action="{% url 'publication_management:create_operation' article.slug 'load' %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="refresh_header"> Refresh header</label>
+    <button type="submit">Load configuration</button>
+</form>
 <form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
     {% csrf_token %}
     <label><input type="checkbox" name="refresh_header" checked> Refresh assets and header</label>
@@ -24,6 +29,11 @@
     </label>
     <label><input type="checkbox" name="refresh"> Full refresh</label>
     <button type="submit">Render</button>
+</form>
+<form method="post" action="{% url 'publication_management:create_operation' article.slug 'archive' %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="refresh"> Full refresh</label>
+    <button type="submit">Create ZIP archive</button>
 </form>
 
 <h2>Recent operations</h2>

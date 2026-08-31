@@ -9,6 +9,7 @@ from typing import Annotated, Literal, NamedTuple, Protocol, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
+from stringprint2.services.publication_archiving import render_publication_archive
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     RenderablePublication,
@@ -16,6 +17,7 @@ from stringprint2.services.publication_rendering import (
 )
 from stringprint2.services.publication_workflow import (
     PublicationDocument,
+    load_publication,
     process_publication,
 )
 
@@ -23,16 +25,20 @@ from stringprint2.services.publication_workflow import (
 class PublicationOperationName(StrEnum):
     """Identify an operation that delivery interfaces may execute."""
 
+    LOAD = "load"
     PROCESS = "process"
     RENDER = "render"
+    ARCHIVE = "archive"
 
 
 class PublicationOperationStage(StrEnum):
     """Describe stable, user-facing stages of an operation."""
 
     STARTING = "starting"
+    LOADING = "loading"
     PROCESSING = "processing"
     RENDERING = "rendering"
+    ARCHIVING = "archiving"
     COMPLETE = "complete"
 
 
@@ -63,6 +69,17 @@ class PublicationOperationContext(NamedTuple):
     progress: ProgressReporter
 
 
+class LoadPublicationRequest(BaseModel):
+    """Request configuration loading without source compilation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.LOAD] = PublicationOperationName.LOAD
+    organisation_slug: str
+    publication_slug: str
+    refresh_header: bool = False
+
+
 class ProcessPublicationRequest(BaseModel):
     """Request compilation of one publication's authored source."""
 
@@ -91,10 +108,35 @@ class RenderPublicationRequest(BaseModel):
     refresh: bool = False
 
 
+class ArchivePublicationRequest(BaseModel):
+    """Request a ZIP archive of a rendered web publication."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.ARCHIVE] = (
+        PublicationOperationName.ARCHIVE
+    )
+    organisation_slug: str
+    publication_slug: str
+    refresh: bool = False
+
+
 PublicationOperationRequest: TypeAlias = Annotated[
-    ProcessPublicationRequest | RenderPublicationRequest,
+    LoadPublicationRequest
+    | ProcessPublicationRequest
+    | RenderPublicationRequest
+    | ArchivePublicationRequest,
     Field(discriminator="operation"),
 ]
+
+
+class LoadPublicationResult(BaseModel):
+    """Describe a completed configuration-loading operation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.LOAD] = PublicationOperationName.LOAD
+    title: str
 
 
 class ProcessPublicationResult(BaseModel):
@@ -120,13 +162,43 @@ class RenderPublicationResult(BaseModel):
     output_format: PublicationRenderFormat
 
 
+class ArchivePublicationResult(BaseModel):
+    """Describe a completed publication archive artefact."""
+
+    model_config = ConfigDict(frozen=True)
+
+    operation: Literal[PublicationOperationName.ARCHIVE] = (
+        PublicationOperationName.ARCHIVE
+    )
+    location: Path
+
+
 PublicationOperationResult: TypeAlias = (
-    ProcessPublicationResult | RenderPublicationResult
+    LoadPublicationResult
+    | ProcessPublicationResult
+    | RenderPublicationResult
+    | ArchivePublicationResult
 )
 PublicationOperationHandler: TypeAlias = Callable[
     [PublicationOperationRequest, PublicationOperationContext],
     PublicationOperationResult,
 ]
+
+
+def run_load_operation(
+    request: PublicationOperationRequest,
+    context: PublicationOperationContext,
+) -> PublicationOperationResult:
+    """Execute a validated publication-loading request."""
+    if not isinstance(request, LoadPublicationRequest):
+        raise TypeError("The load handler requires a load request")
+    context.progress.update(PublicationOperationStage.LOADING, request.publication_slug)
+    result = load_publication(
+        context.publication,
+        context.source_folder,
+        refresh_header=request.refresh_header,
+    )
+    return LoadPublicationResult(title=result.title)
 
 
 def run_process_operation(
@@ -170,6 +242,25 @@ def run_render_operation(
     )
 
 
+def run_archive_operation(
+    request: PublicationOperationRequest,
+    context: PublicationOperationContext,
+) -> PublicationOperationResult:
+    """Execute a validated publication archive request."""
+    if not isinstance(request, ArchivePublicationRequest):
+        raise TypeError("The archive handler requires an archive request")
+    context.progress.update(
+        PublicationOperationStage.ARCHIVING, request.publication_slug
+    )
+    result = render_publication_archive(
+        context.publication,
+        context.source_folder,
+        request.publication_slug,
+        refresh=request.refresh,
+    )
+    return ArchivePublicationResult(location=result.location.with_suffix(".zip"))
+
+
 class PublicationOperationRegistry:
     """Resolve the fixed set of publication operations to typed handlers."""
 
@@ -208,8 +299,10 @@ class PublicationOperationRegistry:
 def create_publication_operation_registry() -> PublicationOperationRegistry:
     """Build the standard operation registry used by delivery interfaces."""
     registry = PublicationOperationRegistry()
+    registry.register(PublicationOperationName.LOAD, run_load_operation)
     registry.register(PublicationOperationName.PROCESS, run_process_operation)
     registry.register(PublicationOperationName.RENDER, run_render_operation)
+    registry.register(PublicationOperationName.ARCHIVE, run_archive_operation)
     return registry
 
 

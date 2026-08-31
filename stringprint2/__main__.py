@@ -21,21 +21,19 @@ from stringprint2.media_files import (
     merge_pdfs,
     pdf_page_to_png,
 )
-from stringprint2.services.publication_workflow import (
-    load_publication,
-    run_publication_command,
-)
+from stringprint2.services.publication_workflow import run_publication_command
 from stringprint2.services.publication_catalog import (
     PublicationCatalog,
     discover_publications,
 )
-from stringprint2.services.publication_archiving import render_publication_archive
 from stringprint2.services.publication_freshness import publication_needs_update
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     render_publication,
 )
 from stringprint2.services.publication_operations import (
+    ArchivePublicationRequest,
+    LoadPublicationRequest,
     ProcessPublicationRequest,
     RenderPublicationRequest,
     run_publication_operation,
@@ -378,7 +376,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        load_publication(doc, self.doc_folder, refresh_header=refresh_header)
+        request = LoadPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            refresh_header=refresh_header,
+        )
+        run_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
 
     def do_loadall(self, inp):
         """
@@ -608,11 +616,16 @@ class SPPrompt(cmd.Cmd):
         if not "no-thumbnail" in inp:
             self.do_pdfpng("")
 
-        result = render_publication_archive(
+        request = ArchivePublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=slug,
+            refresh=refresh_all,
+        )
+        result = run_publication_operation(
+            request,
             doc,
             path,
-            slug,
-            refresh=refresh_all,
+            Path(self.current_org.publish_dir, slug),
         )
         print(f"Zip created at {result.location}")
 

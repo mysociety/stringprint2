@@ -20,6 +20,8 @@ from publication_management.operation_store import enqueue_publication_operation
 from publication_management.worker_health import publication_worker_available
 from stringprint.models import Article, Organisation
 from stringprint2.services.publication_operations import (
+    ArchivePublicationRequest,
+    LoadPublicationRequest,
     ProcessPublicationRequest,
     RenderPublicationRequest,
 )
@@ -125,7 +127,13 @@ def create_operation(
         org=organisation,
         slug=publication_slug,
     )
-    if operation_name == "process":
+    if operation_name == "load":
+        operation_request = LoadPublicationRequest(
+            organisation_slug=organisation.slug,
+            publication_slug=article.slug,
+            refresh_header=request.POST.get("refresh_header") == "on",
+        )
+    elif operation_name == "process":
         operation_request = ProcessPublicationRequest(
             organisation_slug=organisation.slug,
             publication_slug=article.slug,
@@ -143,6 +151,12 @@ def create_operation(
             organisation_slug=organisation.slug,
             publication_slug=article.slug,
             output_format=output_format,
+            refresh=request.POST.get("refresh") == "on",
+        )
+    elif operation_name == "archive":
+        operation_request = ArchivePublicationRequest(
+            organisation_slug=organisation.slug,
+            publication_slug=article.slug,
             refresh=request.POST.get("refresh") == "on",
         )
     else:
