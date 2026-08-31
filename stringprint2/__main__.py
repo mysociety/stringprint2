@@ -2,11 +2,9 @@
 
 import cmd
 import os
-import signal
 import sys
 from datetime import datetime
 from pathlib import Path
-from subprocess import Popen
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
 import django
@@ -41,6 +39,10 @@ from stringprint2.services.publication_operations import (
     ProcessPublicationRequest,
     RenderPublicationRequest,
     run_publication_operation,
+)
+from stringprint2.services.process_supervisor import (
+    LocalProcessSupervisor,
+    ManagedProcessSpec,
 )
 from stringprint2.services.document_selection import (
     DocumentSelectionScope,
@@ -141,47 +143,67 @@ class SPPrompt(cmd.Cmd):
         self.current_org: Optional[str] = None
         self.current_doc: Optional[str] = None
         self.avaliable_docs: List[str] = []
+        self.process_supervisor = LocalProcessSupervisor()
         self.running_server: Optional[int] = None
+        self.running_worker: Optional[int] = None
         self.full_refresh: bool = False
         super().__init__(*args, **kwargs)
 
     def do_startserver(self, inp="noprint"):
-        """
-        Start the preview server
-        """
-        if self.running_server is not None:
-            print("Stop server first")
+        """Start the preview server and publication operation worker."""
+        if self.running_server is not None or self.running_worker is not None:
+            print("Stop the local services first")
             return None
 
-        f = open(os.devnull, "w")
-
-        cmd = "python manage.py runserver 0.0.0.0:8000"
-        p = Popen(
-            cmd.split(),
-            cwd=str(Path("stringprint2", "stringprint2")),
-            stdout=f,
-            stderr=f,
-            stdin=f,
+        working_directory = Path("stringprint2", "stringprint2")
+        log_directory = Path(".stringprint", "logs")
+        worker = self.process_supervisor.start(
+            ManagedProcessSpec(
+                name="worker",
+                arguments=(sys.executable, "manage.py", "run_publication_operations"),
+                working_directory=working_directory,
+                log_path=log_directory / "worker.log",
+            )
         )
+        try:
+            server = self.process_supervisor.start(
+                ManagedProcessSpec(
+                    name="server",
+                    arguments=(
+                        sys.executable,
+                        "manage.py",
+                        "runserver",
+                        "0.0.0.0:8000",
+                    ),
+                    working_directory=working_directory,
+                    log_path=log_directory / "server.log",
+                )
+            )
+        except Exception:
+            self.process_supervisor.stop("worker")
+            raise
 
-        self.running_server = p.pid
-
+        self.running_worker = worker.process_id
+        self.running_server = server.process_id
+        message = (
+            f"Started server with pid {server.process_id} and worker with pid "
+            f"{worker.process_id}"
+        )
         if "noprint" not in inp:
-            print(f"Started server with pid {p.pid}")
+            print(message)
             self.print_status()
-        else:
-            return f"Started server with pid {p.pid}"
+            return None
+        return message
 
     def do_stopserver(self, inp):
-        """
-        Stop the preview server
-        """
-        if self.running_server is None:
-            print("No server running")
+        """Stop the preview server and publication operation worker."""
+        if self.running_server is None and self.running_worker is None:
+            print("No local services running")
             return None
-        print("Stopping preview server")
-        os.kill(self.running_server, signal.SIGTERM)  # or signal.SIGKILL
+        print("Stopping preview server and worker")
+        self.process_supervisor.stop_all()
         self.running_server = None
+        self.running_worker = None
 
     def do_status(self, imp):
         """
@@ -196,6 +218,26 @@ class SPPrompt(cmd.Cmd):
 
         panel = PanelPrint(title="Current document status", padding=1)
         print = panel.print
+
+        for name, label, attribute in (
+            ("server", "Preview server", "running_server"),
+            ("worker", "Operation worker", "running_worker"),
+        ):
+            if getattr(self, attribute) is None:
+                print(f"{label}: [red]not running[/red]")
+                continue
+            status = self.process_supervisor.status(name)
+            if status.running:
+                print(
+                    f"{label}: [green]running[/green] "
+                    f"(pid {status.process_id}, log {status.log_path})"
+                )
+            else:
+                print(
+                    f"{label}: [red]stopped[/red] "
+                    f"(exit {status.return_code}, log {status.log_path})"
+                )
+                setattr(self, attribute, None)
 
         if self.current_org:
             print(f"Current org: [green]{self.current_org.name}[/green]")
