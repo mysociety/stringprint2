@@ -13,15 +13,17 @@ class PublicationLockedError(RuntimeError):
 
 
 class PublicationLock:
-    """Own a non-blocking advisory lock within a publication source folder."""
+    """Own a non-blocking advisory lock in the repository runtime directory."""
 
     def __init__(self, publication_folder: Path, owner: str) -> None:
-        self.path = publication_folder / ".stringprint-operation.lock"
+        runtime_root = publication_folder.parent.parent / ".stringprint" / "locks"
+        self.path = runtime_root / f"{publication_folder.name}.lock"
         self.owner = owner
         self.handle: IO[str] | None = None
 
     def acquire(self) -> None:
         """Acquire the lock or report the owner recorded by its holder."""
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.handle = self.path.open("a+")
         try:
             fcntl.flock(self.handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
