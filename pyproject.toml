@@ -6,6 +6,7 @@ authors = ["Alex Parsons <alex.parsons@mysociety.org>"]
 
 [tool.poetry.scripts]
 stringprint-validate = "stringprint2.configuration.cli:main"
+stringprint-migrate-tables = "stringprint2.configuration.table_migration_cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.14"
