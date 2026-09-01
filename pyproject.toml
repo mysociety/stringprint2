@@ -53,7 +53,6 @@ mkepub = ">=1.2"
 # itself only declares puremagic>=1.30 with no upper bound, so pin it here.
 puremagic = ">=1.30,<2.0"
 django-static-precompiler = ">=2.1"
-xlwt = ">=1.3.0"
 openpyxl = ">=2.6.4"
 xlrd = ">=1.2.0"
 PyMuPDF = ">=1.18.16"

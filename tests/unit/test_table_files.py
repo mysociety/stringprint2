@@ -18,12 +18,15 @@ def test_csv_round_trip(tmp_path) -> None:
     assert list(loaded.get_column(1)) == ["12", "15"]
 
 
-def test_word_table_can_be_saved_as_xls(tmp_path) -> None:
-    """The Word extraction path can still emit legacy XLS assets."""
-    path = tmp_path / "table.xls"
+def test_word_table_can_be_saved_as_xlsx(tmp_path) -> None:
+    """Word table values survive an XLSX round trip."""
+    path = tmp_path / "table.xlsx"
 
-    DataTable(["label", "value"], [["A", 1]]).save(path)
+    DataTable(
+        ["label", "value", "enabled", "notes", "empty"],
+        [["Café", 1, True, "First line\nSecond line", None]],
+    ).save(path)
     loaded = DataTable().open(path)
 
-    assert loaded.header == ["label", "value"]
-    assert loaded.data == [["A", 1.0]]
+    assert loaded.header == ["label", "value", "enabled", "notes", "empty"]
+    assert loaded.data == [["Café", 1, True, "First line\nSecond line", None]]

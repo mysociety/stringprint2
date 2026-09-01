@@ -439,7 +439,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
         qg.data = table_data[1:]
         di = {
             "content_type": "table",
-            "type": "xls",
+            "type": "xlsx",
             "content": qg,
             "caption": "",
             "slug": slug,
@@ -525,7 +525,7 @@ def extract_assets(q: TextFile) -> None:
     for a in q.assets:
         if a["content_type"] == "table":
             print("table", a["slug"])
-            a["content"].save([asset_folder, a["slug"] + ".xls"])
+            a["content"].save([asset_folder, a["slug"] + ".xlsx"])
         if a["content_type"] == "image":
             print("image", a["slug"])
             image_output = io.BytesIO()

@@ -179,6 +179,7 @@ class TestGetTables:
 
         assert "[asset:table-asset-1]" in converted
         assert len(assets) == 1
+        assert assets[0]["type"] == "xlsx"
 
 
 class TestUniqueSlugify:

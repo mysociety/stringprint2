@@ -8,8 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import xlrd  # type: ignore[import-untyped]
-import xlwt  # type: ignore[import-untyped]
-from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl import Workbook, load_workbook  # type: ignore[import-untyped]
 
 type CellValue = None | bool | int | float | str
 
@@ -64,7 +63,7 @@ class DataTable:
                 self.header = []
                 self.data = []
                 return self
-        self.data = list(rows)
+        self.data = [[*row, *([None] * (len(self.header) - len(row)))] for row in rows]
         return self
 
     @staticmethod
@@ -105,7 +104,7 @@ class DataTable:
         self,
         filename: str | Path | Sequence[str | Path] | None = None,
     ) -> None:
-        """Save the table as CSV, PSV, or legacy XLS."""
+        """Save the table as CSV, PSV, or XLSX."""
         target = file_path(filename) if filename is not None else self.filename
         if target is None:
             raise ValueError("No filename given")
@@ -116,13 +115,12 @@ class DataTable:
                 csv.writer(output, delimiter=delimiter).writerows(
                     [self.header, *self.data]
                 )
-        elif suffix == ".xls":
-            workbook = xlwt.Workbook()
-            sheet = workbook.add_sheet("table")
-            for row_index, row in enumerate([self.header, *self.data]):
-                for column_index, value in enumerate(row):
-                    sheet.write(row_index, column_index, value)
-            workbook.save(str(target))
+        elif suffix == ".xlsx":
+            workbook = Workbook(write_only=True)
+            sheet = workbook.create_sheet("table")
+            for row in [self.header, *self.data]:
+                sheet.append(list(row))
+            workbook.save(target)
         else:
             raise ValueError(f"Unsupported table format: {suffix or '<none>'}")
         self.filename = target
