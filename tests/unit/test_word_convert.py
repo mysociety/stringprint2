@@ -16,6 +16,7 @@ from stringprint.tools.word_convert import (
     fix_header,
     fix_markdown,
     fix_url,
+    get_tables,
     mammoth_adjust,
     markdown_table_contents,
     remove_supports,
@@ -129,10 +130,7 @@ class TestFixFootnotes:
         assert "[^2]: " in result
 
     def test_each_note_lands_on_its_own_line(self) -> None:
-        block = (
-            '<li id="footnote-0"><p>One</p></li>'
-            '<li id="footnote-1"><p>Two</p></li>'
-        )
+        block = '<li id="footnote-0"><p>One</p></li><li id="footnote-1"><p>Two</p></li>'
         assert len(fix_footnotes(block).split("\n")) == 2
 
 
@@ -160,6 +158,27 @@ class TestMarkdownTableContents:
             self.cell("<td><p>only</p></td>"), multi_line=True
         )
         assert result == "only\n\n"
+
+
+class TestGetTables:
+    def test_a_quote_entity_in_a_single_cell_table_is_replaced(self) -> None:
+        html = (
+            "<table><thead><tr><th><p>&quot;Quoted&quot;</p></th></tr></thead></table>"
+        )
+
+        converted, assets = get_tables(html)
+
+        assert '"Quoted"' in converted
+        assert "[[" in converted
+        assert assets == []
+
+    def test_a_data_table_becomes_an_asset_placeholder(self) -> None:
+        html = "<table><tr><td>Heading</td></tr><tr><td>Value</td></tr></table>"
+
+        converted, assets = get_tables(html)
+
+        assert "[asset:table-asset-1]" in converted
+        assert len(assets) == 1
 
 
 class TestUniqueSlugify:

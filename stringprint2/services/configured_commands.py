@@ -165,6 +165,8 @@ def run_configured_command(
     )
     arguments = rendered.split(" ")
     return_code = resolved_runner(arguments, str(command.working_directory))
+    if return_code != 0:
+        raise subprocess.CalledProcessError(return_code, arguments)
     return CommandExecutionResult(
         command=command,
         arguments=tuple(arguments),

@@ -8,6 +8,8 @@ handed to subprocess.call.
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from stringprint.models import Article
@@ -77,6 +79,19 @@ class TestTemplateForm:
         article.load_from_yaml(doc_folder("kitchen-sink"))
         article.run_command("publish")
         assert calls[0][1] == str(doc_source)
+
+    def test_a_non_zero_exit_status_raises(self, org, doc_folder, monkeypatch) -> None:
+        monkeypatch.setattr(
+            "stringprint2.services.configured_commands.subprocess.call",
+            lambda command, cwd=None: 9,
+        )
+        article = Article.objects.create(org=org, slug="kitchen-sink")
+        article.load_from_yaml(doc_folder("kitchen-sink"))
+
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            article.run_command("publish")
+
+        assert error.value.returncode == 9
 
     def test_an_unknown_command_does_nothing(
         self, org, doc_folder, monkeypatch

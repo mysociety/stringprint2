@@ -9,7 +9,7 @@ from collections import OrderedDict
 from typing import Tuple, List, Optional, Dict
 import html2markdown
 import mammoth
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from ruamel.yaml import YAML
 from stringprint2.table_files import DataTable
 from stringprint2.text_files import TextFile
@@ -421,7 +421,6 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
         slug = slug_format.format(table_count)
         table_data = []
         markdown_header = []
-        table_original_html = str(table)
         for n, row in enumerate(table.find_all("tr")):
             if n == 0:  # header:
                 table_data.append([td.get_text() for td in row.find_all("td")])
@@ -450,21 +449,20 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
                 replacement = "[[\n" + "\n".join(markdown_header[0]) + "\n]]"
                 replacement = replacement.replace("\\[", "[")
                 replacement = replacement.replace("\\]", "]")
-                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-                if table_html not in new_html:
-                    raise ValueError("Table html not found to extract.")
-                new_html = new_html.replace(table_html, replacement)
+                table.replace_with(NavigableString(replacement))
             if len(qg.header) == 2:
                 replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)
-                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-                new_html = new_html.replace(table_html, replacement)
+                table.replace_with(NavigableString(replacement))
         else:
             assets.append(di)
-            table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-            new_html = new_html.replace(table_html, asset_format.format(slug))
-            # if asset_format.format(slug) not in new_html:
-            #    raise ValueError("Table slug not successfully inserted.")
-    return new_html, assets
+            placeholder = soup.new_tag("p")
+            placeholder.string = f"[asset:{slug}]"
+            table.replace_with(placeholder)
+
+    if soup.body is None:
+        return str(soup), assets
+    converted_html = "".join(str(item) for item in soup.body.contents)
+    return converted_html, assets
 
 
 def get_asset_captions(qt: TextFile) -> None:
