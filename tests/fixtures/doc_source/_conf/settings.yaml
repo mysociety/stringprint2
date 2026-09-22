@@ -1,0 +1,19 @@
+name: Test Org
+twitter: testorg
+ga_code: G-TESTTESTTEST
+ga_cookies: false
+publish_root: https://example.invalid/html/
+icon: images/test_icon.png
+include_favicon: false
+orglinks:
+  Second Link:
+    link: https://example.invalid/second
+    order: 1
+  First Link:
+    link: https://example.invalid/first
+    order: 0
+commands:
+  publish: python script/publish.py {{article.slug}} {{article.repo_slug}}
+default_values:
+  repo_entry: https://example.invalid/publications/{{article.repo_slug}}
+  bottom_iframe: https://example.invalid/embed/related:{{article.repo_slug}}

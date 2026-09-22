@@ -1,7 +1,7 @@
 ﻿{% load static %}
 {% load extra_tags %}
 
-var tipuesearch = {"pages": [
+const publicationSearchIndex = {"pages": [
      {% for s in content.sections %}
      {% for g in s.search_grafs %}
 	 {% if g.asset %}

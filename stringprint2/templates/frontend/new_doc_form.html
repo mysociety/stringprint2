@@ -1,13 +1,12 @@
-{% load bootstrap%}
 
-<div class="panel panel-default">
-    <div class="panel-heading">
-        <h3 class="panel-title"><i class="fa fa-money fa-fw"></i> Start New Document</h3>
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title mb-0"><i class="fa fa-money fa-fw"></i> Start New Document</h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
     <form role="form" method="POST" enctype="multipart/form-data">
      {% csrf_token %}
-     {{new_document_form|bootstrap}}
+     {% include "frontend/bootstrap_form.html" with form=new_document_form only %}
     <input type="submit" class="btn btn-success btn-lg" value="Submit">
     </form>
     </div>

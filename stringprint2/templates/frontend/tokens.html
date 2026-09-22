@@ -1,5 +1,4 @@
 {% extends 'frontend/base.html' %}
-{% load bootstrap %}
 {% load extra_tags %}
     {% block title %}
     <title>{{SITE_NAME}} - Get Tokens</title>
@@ -29,9 +28,9 @@
 <div class="row">
     {% for o in options %}
         <div class="col-md-4" style="text-align:center">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{{o.verbose}}</h3>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">{{o.verbose}}</h3>
                 </div>
                 <h3>{{ o.verbose }} for £{{o.price|int}}</h3>
                 <br>

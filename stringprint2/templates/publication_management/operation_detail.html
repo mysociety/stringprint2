@@ -1,0 +1,76 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}
+<title>Operation {{ operation.pk }}</title>
+{% if operation.state == "pending" or operation.state == "running" or operation.state == "cancel_requested" %}<meta http-equiv="refresh" content="5">{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="float-end">
+        <a class="btn btn-outline-secondary" href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operation history</a>
+        <a class="btn btn-outline-secondary" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-book" aria-hidden="true"></span> Publications</a>
+    </div>
+    <h1>{{ operation.operation_name|title }} <small>{{ operation.publication_slug }}</small></h1>
+</div>
+
+{% if operation.state == "pending" or operation.state == "running" or operation.state == "cancel_requested" %}
+<div class="alert alert-info" role="status">
+    <span class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+    This page refreshes every five seconds while the operation is active.
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header"><h2 class="card-title mb-0">Operation status</h2></div>
+            <div class="card-body" aria-live="polite">
+                <dl class="dl-horizontal">
+                    <dt>State</dt><dd><strong>{{ operation.get_state_display }}</strong></dd>
+                    <dt>Stage</dt><dd>{{ operation.stage|default:"Not started" }}</dd>
+                    <dt>Detail</dt><dd>{{ operation.progress_detail|default:"—" }}</dd>
+                    <dt>Requested</dt><dd>{{ operation.created_at }}</dd>
+                    <dt>Started</dt><dd>{{ operation.started_at|default:"—" }}</dd>
+                    <dt>Finished</dt><dd>{{ operation.finished_at|default:"—" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header"><h2 class="card-title mb-0">Actions</h2></div>
+            <div class="card-body">
+                {% if operation.state == "pending" or operation.state == "running" %}
+                <form method="post" action="{% url 'publication_management:cancel_operation' operation.pk %}">
+                    {% csrf_token %}<button class="btn btn-danger" type="submit"><span class="fa fa-stop" aria-hidden="true"></span> Cancel operation</button>
+                </form>
+                {% elif operation.state == "cancel_requested" %}
+                <p class="text-info"><span class="fa fa-clock-o" aria-hidden="true"></span> Waiting for the worker to stop safely.</p>
+                {% elif operation.state == "failed" or operation.state == "interrupted" or operation.state == "cancelled" %}
+                <form method="post" action="{% url 'publication_management:retry_operation' operation.pk %}">
+                    {% csrf_token %}<button class="btn btn-primary" type="submit"><span class="fa fa-repeat" aria-hidden="true"></span> Retry operation</button>
+                </form>
+                {% else %}
+                <p class="text-muted">No action is required.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if operation.error_summary %}<div class="alert alert-danger" role="alert"><strong>Operation failed:</strong> {{ operation.error_summary }}</div>{% endif %}
+{% if operation.result %}
+<div class="card border-success mb-4">
+    <div class="card-header"><h2 class="card-title mb-0">Result and artefacts</h2></div>
+    <div class="card-body"><pre>{{ operation.result }}</pre></div>
+</div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header"><h2 class="card-title mb-0">Recent log</h2></div>
+    <div class="card-body">
+        {% if recent_log %}<pre style="max-height: 32rem; overflow: auto">{{ recent_log }}</pre>{% else %}<p class="text-muted">No log output has been recorded yet.</p>{% endif %}
+    </div>
+</div>
+{% endblock %}

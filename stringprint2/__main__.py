@@ -1,54 +1,73 @@
 # -*- coding: utf-8 -*-
 
 import cmd
-import io
-import json
 import os
-import shutil
-import signal
 import sys
 from datetime import datetime
 from pathlib import Path
-from subprocess import Popen
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
+
+PACKAGE_ROOT = str(Path(__file__).parent)
+if PACKAGE_ROOT not in sys.path:
+    sys.path.insert(0, PACKAGE_ROOT)
 
 import django
-import fitz
 import rich
 from cookiecutter.main import cookiecutter
-from PIL import Image
 from rich.panel import Panel
 from rich.prompt import Prompt
-from ruamel.yaml import YAML
-from useful_inkleby.files import QuickText
+from stringprint2.cli_arguments import parse_shell_options
+from stringprint2.configuration.loaders import validate_config
+from stringprint2.configuration.models import PublicationConfig
+from stringprint2.media_files import (
+    create_hero,
+    create_thumbnail,
+    merge_pdfs,
+    pdf_page_to_png,
+)
+from stringprint2.services.publication_workflow import run_publication_command
+from stringprint2.services.publication_catalog import (
+    PublicationCatalog,
+    discover_publications,
+)
+from stringprint2.services.publication_freshness import publication_needs_update
+from stringprint2.services.publication_rendering import PublicationRenderFormat
+from publication_management.foreground import (
+    run_foreground_publication_operation,
+    run_locked_publication_action,
+)
+from stringprint2.services.publication_operations import (
+    ArchivePublicationRequest,
+    LoadPublicationRequest,
+    ProcessPublicationRequest,
+    PublishPublicationRequest,
+    RenderPublicationRequest,
+)
+from stringprint2.services.process_supervisor import (
+    LocalProcessSupervisor,
+    ManagedProcessSpec,
+)
+from stringprint2.services.document_selection import (
+    DocumentSelectionScope,
+    parse_document_selection,
+)
 
 print = rich.print
 
-try:
-    os.environ.pop("DJANGO_SETTINGS_MODULE")
-except Exception:
-    pass
+os.environ.pop("DJANGO_SETTINGS_MODULE", None)
 
 
-# add the stringprint dir to the working directory
-sys.path.append(str(Path(__file__).parent))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proj.settings")
 django.setup()
 
 from django.conf import settings
 
 if TYPE_CHECKING:
-    from stringprint2.charts import Chart, ChartCollection
-    from stringprint2.frontend.views import ArticleSettingsView, HomeView
-    from stringprint2.stringprint.functions import compress_static
-    from stringprint2.stringprint.models import Article, Asset, Organisation
+    from stringprint2.stringprint.models import Article, Organisation
     from stringprint2.stringprint.tools.word_convert import convert_word
 
 else:
-    from charts import Chart, ChartCollection
-    from frontend.views import ArticleSettingsView, HomeView
-    from stringprint.functions import compress_static
-    from stringprint.models import Article, Asset, Organisation
+    from stringprint.models import Article, Organisation
     from stringprint.tools.word_convert import convert_word
 
 
@@ -70,27 +89,7 @@ class PanelPrint:
         rich.print(panel)
 
 
-def fix_yaml(ya):
-    if type(ya) == list:
-        items = [fix_yaml(x) for x in ya]
-        di = {}
-        for i in items:
-            di.update(i)
-        return di
-    if type(ya) == dict:
-        return {x: fix_yaml(y) for x, y in ya.items()}
-    return ya
-
-
-def get_yaml(yaml_file):
-    yaml = YAML(typ="safe")
-    with open(yaml_file, "rb") as doc:
-        data = yaml.load(doc)
-    # data = fix_yaml(data)
-    return data
-
-
-def load_org_details() -> str:
+def load_org_details() -> str | None:
     """
     ingest org details from files
     """
@@ -104,65 +103,6 @@ def load_org_details() -> str:
     return default_slug
 
 
-def merge_pdfs(
-    front: Union[str, Path],
-    contents: Union[str, Path],
-    output: Union[str, Path],
-    start_page: int = 1,
-):
-    """
-    replace front page with proper front page
-    """
-    result = fitz.open()
-
-    front_doc = fitz.open(str(front))
-    result.insertPDF(front_doc, from_page=0, to_page=0)
-
-    contents_doc = fitz.open(str(contents))
-    result.insertPDF(contents_doc, from_page=start_page)
-
-    result.save(str(output))
-
-
-def pdf_page_to_png(source_pdf: Union[Path, str], destination: Union[Path, str]):
-    """
-    get front page png from pdf
-    """
-    doc = fitz.open(source_pdf)
-    page = doc.loadPage(0)  # number of page
-    pix = page.getPixmap()
-    pix.writePNG(destination)
-
-
-def create_thumbnail(
-    source: Union[Path, str], destination: Union[Path, str], base_width: int = 110
-):
-    """
-    get a thumbnail version of an image (in this case, front cover)
-    """
-    img = Image.open(source)
-    wpercent = base_width / float(img.size[0])
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((base_width, hsize), Image.ANTIALIAS)
-    img.save(destination)
-
-
-def create_hero(
-    source: Union[Path, str], destination: Union[Path, str], base_width: int = 1024
-):
-    """
-    Create a hero image from the header image
-    """
-    print("resizing hero image")
-    target_height = 680
-    img = Image.open(source)
-    wpercent = base_width / float(img.size[0])
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((base_width, hsize), Image.ANTIALIAS)
-    height = img.size[1]
-    img.save(destination, optimize=True, quality=95)
-
-
 def select_doc(func: Callable) -> Callable:
     """
     decorator that allows a single or multiple documents to be processed
@@ -170,25 +110,18 @@ def select_doc(func: Callable) -> Callable:
     """
 
     def inner(self, inp):
-        protected_terms = ["refresh"]
-        inp = inp.strip().lower()
-        inp = inp.split(" ")
-        pass_down = " ".join([x for x in inp if x in protected_terms or "no-" in x])
-        inp = [x for x in inp if x not in protected_terms + [""] and "no-" not in x]
-        # use current doc
-        if not inp:
-            func(self, pass_down)
-        # apply to all
-        elif "all" in inp:
+        selection = parse_document_selection(inp)
+        if selection.scope is DocumentSelectionScope.CURRENT:
+            func(self, selection.option_text)
+        elif selection.scope is DocumentSelectionScope.ALL:
             print("running for all")
             for slug in self.loaded_docs():
                 self.do_setdoc(slug)
-                func(self, pass_down)
+                func(self, selection.option_text)
         else:
-            # apply to space seperated names
-            for i in inp:
-                self.do_setdoc(i)
-                func(self, pass_down)
+            for slug in selection.slugs:
+                self.do_setdoc(slug)
+                func(self, selection.option_text)
 
     inner.__doc__ = func.__doc__
 
@@ -211,47 +144,67 @@ class SPPrompt(cmd.Cmd):
         self.current_org: Optional[str] = None
         self.current_doc: Optional[str] = None
         self.avaliable_docs: List[str] = []
+        self.process_supervisor = LocalProcessSupervisor()
         self.running_server: Optional[int] = None
+        self.running_worker: Optional[int] = None
         self.full_refresh: bool = False
         super().__init__(*args, **kwargs)
 
     def do_startserver(self, inp="noprint"):
-        """
-        Start the preview server
-        """
-        if self.running_server is not None:
-            print("Stop server first")
+        """Start the preview server and publication operation worker."""
+        if self.running_server is not None or self.running_worker is not None:
+            print("Stop the local services first")
             return None
 
-        f = open(os.devnull, "w")
-
-        cmd = "python manage.py runserver 0.0.0.0:8000"
-        p = Popen(
-            cmd.split(),
-            cwd=str(Path("stringprint2", "stringprint2")),
-            stdout=f,
-            stderr=f,
-            stdin=f,
+        working_directory = Path("stringprint2", "stringprint2")
+        log_directory = Path(".stringprint", "logs")
+        worker = self.process_supervisor.start(
+            ManagedProcessSpec(
+                name="worker",
+                arguments=(sys.executable, "manage.py", "run_publication_operations"),
+                working_directory=working_directory,
+                log_path=log_directory / "worker.log",
+            )
         )
+        try:
+            server = self.process_supervisor.start(
+                ManagedProcessSpec(
+                    name="server",
+                    arguments=(
+                        sys.executable,
+                        "manage.py",
+                        "runserver",
+                        "0.0.0.0:8000",
+                    ),
+                    working_directory=working_directory,
+                    log_path=log_directory / "server.log",
+                )
+            )
+        except Exception:
+            self.process_supervisor.stop("worker")
+            raise
 
-        self.running_server = p.pid
-
+        self.running_worker = worker.process_id
+        self.running_server = server.process_id
+        message = (
+            f"Started server with pid {server.process_id} and worker with pid "
+            f"{worker.process_id}"
+        )
         if "noprint" not in inp:
-            print(f"Started server with pid {p.pid}")
+            print(message)
             self.print_status()
-        else:
-            return f"Started server with pid {p.pid}"
+            return None
+        return message
 
     def do_stopserver(self, inp):
-        """
-        Stop the preview server
-        """
-        if self.running_server is None:
-            print("No server running")
+        """Stop the preview server and publication operation worker."""
+        if self.running_server is None and self.running_worker is None:
+            print("No local services running")
             return None
-        print("Stopping preview server")
-        os.kill(self.running_server, signal.SIGTERM)  # or signal.SIGKILL
+        print("Stopping preview server and worker")
+        self.process_supervisor.stop_all()
         self.running_server = None
+        self.running_worker = None
 
     def do_status(self, imp):
         """
@@ -266,6 +219,26 @@ class SPPrompt(cmd.Cmd):
 
         panel = PanelPrint(title="Current document status", padding=1)
         print = panel.print
+
+        for name, label, attribute in (
+            ("server", "Preview server", "running_server"),
+            ("worker", "Operation worker", "running_worker"),
+        ):
+            if getattr(self, attribute) is None:
+                print(f"{label}: [red]not running[/red]")
+                continue
+            status = self.process_supervisor.status(name)
+            if status.running:
+                print(
+                    f"{label}: [green]running[/green] "
+                    f"(pid {status.process_id}, log {status.log_path})"
+                )
+            else:
+                print(
+                    f"{label}: [red]stopped[/red] "
+                    f"(exit {status.return_code}, log {status.log_path})"
+                )
+                setattr(self, attribute, None)
 
         if self.current_org:
             print(f"Current org: [green]{self.current_org.name}[/green]")
@@ -344,29 +317,25 @@ class SPPrompt(cmd.Cmd):
             return
         self.current_doc = slug
         if silent is False:
-            prompt.print_status()
+            self.print_status()
 
-    def loaded_docs(self) -> List[str]:
-        dir = Path(self.current_org.storage_dir, "_docs")
-        slugs = self.current_org.articles.all().values_list("slug", flat=True)
-        return [x.name for x in self.get_valid_doc_folders() if x.name in slugs]
+    def publication_catalog(self) -> PublicationCatalog:
+        """
+        Return source publications classified by their database load state.
+        """
 
-    def unloaded_docs(self) -> List[str]:
-        dir = Path(self.current_org.storage_dir, "_docs")
-        slugs = self.current_org.articles.all().values_list("slug", flat=True)
-        return [x.name for x in self.get_valid_doc_folders() if x.name in slugs]
-
-    def get_valid_doc_folders(self) -> List[Path]:
-        special = ["_template"]
         root = Path(self.current_org.storage_dir, "_docs")
-        l = [
-            x
-            for x in root.iterdir()
-            if (x / "settings.yaml").exists() and x.name not in [special]
-        ]
+        loaded_slugs = self.current_org.articles.values_list("slug", flat=True)
+        return discover_publications(root, loaded_slugs)
 
-        l.sort()
-        return l
+    def loaded_docs(self) -> list[str]:
+        return list(self.publication_catalog().loaded_slugs)
+
+    def unloaded_docs(self) -> list[str]:
+        return list(self.publication_catalog().unloaded_slugs)
+
+    def get_valid_doc_folders(self) -> list[Path]:
+        return [entry.folder for entry in self.publication_catalog().entries]
 
     def do_listdocs(self, silent: bool = False):
         """
@@ -377,7 +346,7 @@ class SPPrompt(cmd.Cmd):
             padding=1,
             style="yellow",
             title="Document list",
-            subtitle="(set document using 'setdoc \[slug or number]')",
+            subtitle=r"(set document using 'setdoc \[slug or number]')",
         )
         print = panel.print
         slugs = self.current_org.articles.all().values_list("slug", flat=True)
@@ -410,7 +379,17 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder, refresh_header)
+        request = LoadPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            refresh_header=refresh_header,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
 
     def do_loadall(self, inp):
         """
@@ -446,47 +425,26 @@ class SPPrompt(cmd.Cmd):
 
     def do_publish_updated(self, inp):
         """
-        ### unfinished
-        republish any that have been updated since last time
-        they were published
+        Process and republish documents changed since their last publication.
         """
         for f in self.get_valid_doc_folders():
             self.do_setdoc(f.name, silent=True)
             needs_update = self.do_check_for_update(inp)
             if needs_update:
                 print(f"Republishing {f.name}")
-                # self.do_load()
-                # self.do_process()
-                # self.do_renderzip("refresh")
-                # self.do_publish()
+                self.do_process("refresh")
+                self.do_renderzip("refresh")
+                self.do_publish("no-render-zip")
 
     def do_check_for_update(self, inp=""):
         """
         if document file or settings has been updated since last upload
         return true
         """
-        import subprocess
-
         doc_folder = Path(self.doc_folder)
-        root = doc_folder.parent.parent
-        upload_time_file = doc_folder / "upload_time.txt"
-
-        if upload_time_file.exists():
-            txt_date = upload_time_file.open().read()
-            upload_time = datetime.fromisoformat(txt_date)
-        else:
-            return False
-
         settings_file = doc_folder / "settings.yaml"
-        data = get_yaml(settings_file)
-        doc_file = doc_folder / data["file_source"]
-
-        cmd = f"git log -1 --format=%ct -- {str(settings_file.relative_to(root))} {str(doc_file.relative_to(root))}"
-        p = subprocess.check_output([cmd], shell=True)
-        if p:
-            last_commit = datetime.fromtimestamp(float(p))
-            return last_commit > upload_time
-        return False
+        config = validate_config(settings_file, PublicationConfig)
+        return publication_needs_update(doc_folder, config)
 
     @select_doc
     def do_convertword(self, demote=None):
@@ -508,7 +466,9 @@ class SPPrompt(cmd.Cmd):
         else:
             docx = Path(f, docxs[0])
             dest = Path(f, "document.md")
-            convert_word(docx, dest, demote)
+            run_locked_publication_action(
+                self.doc_folder, lambda: convert_word(docx, dest, demote)
+            )
 
     @select_doc
     def do_process(self, refresh: str):
@@ -519,16 +479,23 @@ class SPPrompt(cmd.Cmd):
             refresh_header = False
         else:
             refresh_header = True
-        if not "--no-preprocess" in refresh:
-            self.do_preprocess("")
+        preprocess = "--no-preprocess" not in refresh
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder, refresh_header)
-        doc.import_assets(Path(self.doc_folder, "assets"), refresh_header)
-        doc.load_from_file()
-        doc.process()
-        print("Finished Processing: {0}".format(doc.title))
+        request = ProcessPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            refresh_header=refresh_header,
+            preprocess=preprocess,
+        )
+        result = run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
+        print(f"Finished Processing: {result.title}")
         self.print_status()
 
     @select_doc
@@ -540,9 +507,11 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command(command)
-        print("Finished command {1}: {0}".format(doc.title, command))
+        result = run_locked_publication_action(
+            self.doc_folder,
+            lambda: run_publication_command(doc, self.doc_folder, command),
+        )
+        print(f"Finished command {command}: {result.title}")
 
     @select_doc
     def do_preprocess(self, inp):
@@ -555,9 +524,11 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command("preprocess")
-        print("Finished pre-processing: {0}".format(doc.title))
+        result = run_locked_publication_action(
+            self.doc_folder,
+            lambda: run_publication_command(doc, self.doc_folder, "preprocess"),
+        )
+        print(f"Finished pre-processing: {result.title}")
 
     @select_doc
     def do_publish(self, inp):
@@ -571,22 +542,32 @@ class SPPrompt(cmd.Cmd):
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc = cast(Article, doc)
-        doc.load_from_yaml(self.doc_folder)
-        doc.run_command("publish")
-        print("Finished publishing: {0}".format(doc.title))
+        request = PublishPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            render_archive=False,
+        )
+        result = run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
+        print(f"Finished publishing: {result.title}")
 
     def do_quit(self, inp):
-        """
-        quit shortcut
-        """
-        quit()
+        """Stop owned services and leave the interactive shell."""
+        if self.running_server is not None or self.running_worker is not None:
+            self.do_stopserver("")
+        return True
 
     def do_exit(self, inp):
-        """
-        quit shortcut
-        """
-        quit()
+        """Stop owned services and leave the interactive shell."""
+        return self.do_quit(inp)
+
+    def do_EOF(self, inp):
+        """Treat end-of-input as a clean managed shutdown."""
+        return self.do_quit(inp)
 
     @select_doc
     def do_render(self, inp):
@@ -597,41 +578,64 @@ class SPPrompt(cmd.Cmd):
             print("Need preview server to render documents")
             return None
         refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.render(path, refresh_all=refresh_all)
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.WEB,
+            refresh=refresh_all,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
+        )
 
     @select_doc
     def do_renderebook(self, inp):
         """
         render ebook file of current document
         """
-        refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.create_ebook(path)
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.EPUB,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
+        )
 
     @select_doc
     def do_renderkindle(self, inp):
         """
         render kindle file of current document
         """
-        refresh_all = "refresh" in inp.lower() or self.full_refresh
-        slug = self.current_doc
-        bake_folder = self.current_org.publish_dir
-        path = Path(bake_folder, slug)
+        path = Path(self.current_org.publish_dir, self.current_doc)
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc.create_kindle(path)
+        request = RenderPublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=self.current_doc,
+            output_format=PublicationRenderFormat.KINDLE,
+        )
+        run_foreground_publication_operation(
+            request,
+            doc,
+            self.doc_folder,
+            path,
+        )
 
     @select_doc
     def do_renderzip(self, inp):
@@ -644,14 +648,10 @@ class SPPrompt(cmd.Cmd):
             return None
         refresh_all = "refresh" in inp.lower() or self.full_refresh
         slug = self.current_doc
-        origin_folder = self.current_org.storage_dir
-        path = Path(origin_folder, "_docs", slug)
-        zip_destination = Path(path, slug)
+        path = self.doc_folder
         doc, created = Article.objects.get_or_create(
             org=self.current_org, slug=self.current_doc
         )
-        doc = cast(Article, doc)
-
         # specify some extra files to dump in the zip
 
         if not "no-hero" in inp:
@@ -659,33 +659,18 @@ class SPPrompt(cmd.Cmd):
         if not "no-thumbnail" in inp:
             self.do_pdfpng("")
 
-        hero_path = path / "hero.png"
-        cover_path = path / f"{slug}-cover.png"
-        thumbnail_path = path / f"{slug}-thumbnail.png"
-        json_settings_path = path / f"settings-for-render.json"
-
-        yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
-        if "commands" in yaml_data:
-            del yaml_data["commands"]
-
-        with open(json_settings_path, "w") as f:
-            json.dump(yaml_data, f, indent=4, default=str)
-
-        extra_files = []
-        if hero_path.exists():
-            extra_files.append((hero_path, Path(hero_path.name)))
-        if cover_path.exists():
-            extra_files.append((cover_path, Path(cover_path.name)))
-        if thumbnail_path.exists():
-            extra_files.append((thumbnail_path, Path(thumbnail_path.name)))
-        if json_settings_path.exists():
-            extra_files.append((json_settings_path, Path(json_settings_path.name)))
-
-        zip_location = doc.render_to_zip(
-            zip_destination, refresh_all=refresh_all, extra_files=extra_files
+        request = ArchivePublicationRequest(
+            organisation_slug=self.current_org.slug,
+            publication_slug=slug,
+            refresh=refresh_all,
         )
-        json_settings_path.unlink()  # don't cause confusion with two files
-        print(f"Zip created at {zip_location}")
+        result = run_foreground_publication_operation(
+            request,
+            doc,
+            path,
+            Path(self.current_org.publish_dir, slug),
+        )
+        print(f"Zip created at {result.location}")
 
     @select_doc
     def do_mergepdf(self, inp):
@@ -696,7 +681,9 @@ class SPPrompt(cmd.Cmd):
         front_page = Path(df, "cover.pdf")
         contents = Path(df, "contents.pdf")
         output = Path(df, "{0}.pdf".format(self.current_doc))
-        merge_pdfs(front_page, contents, output)
+        run_locked_publication_action(
+            self.doc_folder, lambda: merge_pdfs(front_page, contents, output)
+        )
 
     @select_doc
     def do_pdfpng(self, inp):
@@ -714,20 +701,28 @@ class SPPrompt(cmd.Cmd):
                 )
             )
             return None
-        pdf_page_to_png(front_page, output)
-        create_thumbnail(output, thumb)
+
+        def create_images() -> None:
+            pdf_page_to_png(front_page, output)
+            create_thumbnail(output, thumb)
+
+        run_locked_publication_action(self.doc_folder, create_images)
 
     @select_doc
     def do_hero(self, inp):
         """
         Create hero image for current document
         """
-        yaml_data = get_yaml(Path(self.doc_folder, "settings.yaml"))
-        if "header" in yaml_data:
-            hero_location = yaml_data["header"]["location"]
-            hero_path = Path(self.doc_folder, hero_location)
+        config = validate_config(
+            self.doc_folder / "settings.yaml",
+            PublicationConfig,
+        )
+        if config.header is not None:
+            hero_path = self.doc_folder / config.header.location
             destination = Path(self.doc_folder, "hero.png")
-            create_hero(hero_path, destination)
+            run_locked_publication_action(
+                self.doc_folder, lambda: create_hero(hero_path, destination)
+            )
 
     def do_newdoc(self, inp):
         """
@@ -749,55 +744,39 @@ class SPPrompt(cmd.Cmd):
                 org=self.current_org, slug=self.current_doc
             )
         if first in self.current_org.commands or first in doc.commands:
-            doc.load_from_yaml(self.doc_folder)
-            doc.run_command(line)
+            run_locked_publication_action(
+                self.doc_folder,
+                lambda: run_publication_command(doc, self.doc_folder, line),
+            )
             print("Finished command {1}: {0}".format(doc.title, line))
         else:
             return super().default(line)
 
 
-args = sys.argv[1:]
+def main(arguments: list[str] | None = None) -> None:
+    """Run requested commands, then optionally enter the interactive shell."""
+    passed_arguments = sys.argv[1:] if arguments is None else arguments
+    options = parse_shell_options(passed_arguments)
 
-if args and len(args) == 0 and args[0] in ["?", "help"]:
-    args = ("--help",)
+    panel = PanelPrint(padding=1, style="green")
+    panel.print(SPPrompt.intro)
+    default_org = load_org_details()
+    if default_org is None:
+        raise RuntimeError("No organisations are configured")
 
-special_args = ["--no-server", "--continue"]
+    prompt = SPPrompt(stdout=CatchOut())
+    if options.start_server:
+        panel.print(prompt.do_startserver("noprint"))
+    panel.print("")
+    panel.print("List available documents with .listdocs.")
+    panel.display()
 
-dont_start_server = "--no-server" in args
-continue_in_shell = "--continue" in args
-do_refresh = "--refresh" in args
-args = [x for x in args if x not in special_args]
-
-instructions = []
-current_instruction = []
-for n, a in enumerate(args):
-    if a.startswith("--"):
-        if current_instruction:
-            instructions.append(current_instruction)
-            current_instruction = []
-        current_instruction.append(a[2:])
-    else:
-        current_instruction.append(a)
-instructions.append(current_instruction)
-
-panel = PanelPrint(padding=1, style="green")
-
-panel.print(SPPrompt.intro)
-default_org = load_org_details()
-prompt = SPPrompt(stdout=CatchOut())
-panel.print(prompt.do_startserver("noprint"))
-panel.print("")
-panel.print("List avaliable documents with 'listdocs'")
-panel.display()
-
-
-def main():
     prompt.do_setorg(default_org)
-    if do_refresh:
+    if options.refresh:
         prompt.do_refresh("")
-    for i in instructions:
-        prompt.onecmd(" ".join(i))
-    if not sys.argv[1:] or continue_in_shell:
+    for command in options.commands:
+        prompt.onecmd(" ".join(command))
+    if not passed_arguments or options.continue_in_shell:
         prompt.cmdloop(intro="")
 
 

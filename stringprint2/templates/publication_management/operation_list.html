@@ -1,0 +1,32 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}<title>Publication operations</title>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a class="btn btn-outline-secondary float-end" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-book" aria-hidden="true"></span> Manage publications</a>
+    <h1>Publication operations</h1>
+</div>
+{% if worker_available %}<div class="alert alert-success" role="status"><span class="fa fa-check-circle" aria-hidden="true"></span> Operation worker available</div>{% else %}<div class="alert alert-danger" role="alert"><span class="fa fa-exclamation-triangle" aria-hidden="true"></span> Operation worker unavailable</div>{% endif %}
+<div class="card mb-4">
+    <div class="card-header"><h2 class="card-title mb-0">Filter history</h2></div>
+    <div class="card-body">
+        <form class="row gy-3 gx-3 align-items-end" method="get">
+            <div class="col-md-3">
+                <label class="form-label" for="operation-state">State</label>
+                <select class="form-control" id="operation-state" name="state"><option value="">All</option>{% for value, label in state_choices %}<option value="{{ value }}"{% if selected_state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="operation-name">Operation</label>
+                <input class="form-control" id="operation-name" name="operation" value="{{ selected_operation }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="publication-slug">Publication</label>
+                <input class="form-control" id="publication-slug" name="publication" value="{{ selected_publication }}">
+            </div>
+            <button class="btn btn-primary" type="submit"><span class="fa fa-filter" aria-hidden="true"></span> Filter</button>
+        </form>
+    </div>
+</div>
+{% include "publication_management/operation_table.html" %}
+{% endblock %}

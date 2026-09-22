@@ -1,8 +1,8 @@
-from useful_inkleby.useful_django.views import (
-    ComboView,
+from stringprint2.view_framework import (
     RedirectException,
-    prelogic,
-    postlogic,
+    StringprintView,
+    after_logic,
+    before_logic,
 )
 from . import forms as ff
 import os
@@ -10,13 +10,11 @@ from stringprint.models import Article, Organisation
 from django.utils.text import slugify
 from .models import UserSettings
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils.timezone import now
-from markdown import markdown
-from django.utils.safestring import mark_safe
 from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
-import html2text
 from wsgiref.util import FileWrapper
 from django.shortcuts import HttpResponse
 from django.conf import settings
@@ -45,7 +43,7 @@ class GroupedPage(Page):
         max_pages = self.paginator.num_pages
         number = self.number
         full_range = 10
-        h_range = full_range / 2
+        h_range = full_range // 2
         lower = number - h_range
         higher = number + h_range
         start = []
@@ -68,45 +66,36 @@ class GroupedPage(Page):
         return start + list(range(lower, higher)) + end
 
 
-def get_admin_user():
-    if User.objects.filter(username="admin").exists() is False:
-        User.objects.create_superuser(
-            "admin", password="admin", email="local@127.0.0.1"
-        )
-    return User.objects.get(username="admin")
-
-
 class GroupedPaginator(Paginator):
     def _get_page(self, *args, **kwargs):
         return GroupedPage(*args, **kwargs)
 
 
-class LoggedInView(ComboView):
-    require_login = False
+class LoggedInView(StringprintView):
+    """Require an authenticated user for legacy management views."""
 
-    @prelogic
+    view_decorators = (login_required,)
+
+    @before_logic
     def generic(self):
         self.url_name = self.__class__.url_name
 
-    @prelogic
+    @before_logic
     def get_org(self):
-        if self.request.user.is_authenticated is False:
-            admin_user = get_admin_user()
-            login(self.request, admin_user)
         self.org = UserSettings.get_org(self.request.user)
 
     def access_denied_no_auth(self, request):
         raise RedirectException(reverse("login"))
 
 
-class ArticleEditBase(ComboView):
+class ArticleEditBase(StringprintView):
     """
     article based editing views
     """
 
     args = ["article_id"]
 
-    @prelogic
+    @before_logic
     def get_article(self):
         org = UserSettings.get_org(self.request.user)
         try:
@@ -145,98 +134,20 @@ class ArticleHeadersView(ArticleEditBase, LoggedInView):
         self.submit_text = "Change Title Image"
 
 
-class ArticleEditView(ArticleEditBase, LoggedInView):
-    template = "frontend//doc_edit.html"
-    url_patterns = [r"^document/(.*)/edit"]
-    url_name = "article.edit"
-
-    def logic(self):
-        """
-        edit the text of the document
-        """
-        if self.request.POST:
-            new_text = self.request.POST["new_text"]
-            html_2_markdown = html2text.HTML2Text()
-            new_text = html_2_markdown.handle(new_text)
-            c = self.article.content()
-            c.raw = new_text
-            c.save()
-            self.article.trigger_reprocess()
-
-        raw = self.article.content().raw
-        if raw:
-            self.raw = mark_safe(markdown(raw))
-        else:
-            self.raw = ""
-
-
 class ArticlePublishView(ArticleEditBase, LoggedInView):
-    template = "frontend//doc_publish.html"
+    """Redirect the retired publish screen to durable operation management."""
+
     url_patterns = [r"^document/(.*)/publish"]
     url_name = "article.publish"
-    form = ff.ArticlePublishForm
 
     def logic(self):
-        """
-        configure the publishing screen
-        """
-
-        self.settings = UserSettings.get_settings(self.request.user)
-
-        default_url = "http://research.blah.com/{0}".format(self.article.slug)
-        default_date = self.article.publish_date
-        if default_date == None:
-            default_date = now().date
-
-        if self.request.POST:
-            form = self.form(self.request.POST, setting_url=default_url)
-            if form.is_valid():
-                self.article.production_url = form.cleaned_data["publish_url"]
-                self.article.publish_date = form.cleaned_data["publish_date"]
-                self.article.save()
-
-                if self.article.publish_tokens != -999:
-                    if self.article.publish_tokens <= 0:
-                        if self.settings.tokens > 0 or self.settings.tokens == -999:
-                            self.article.publish_tokens += 11
-                            self.article.save()
-                            if self.settings.tokens != -999:
-                                self.settings.tokens -= 1
-                                self.settings.save()
-
-                if self.article.publish_tokens:
-                    self.article.trigger_render()
-                else:
-                    self.message = "danger|You need more tokens."
-
-        else:
-            form = self.form(
-                initial={
-                    "publish_url": self.article.production_url,
-                    "publish_date": default_date,
-                },
-                setting_url=default_url,
+        """Preserve the documented URL without invoking removed queue models."""
+        raise RedirectException(
+            reverse(
+                "publication_management:publication_detail",
+                args=(self.article.slug,),
             )
-
-        self.form = form
-        self.submit_text = "Publish"
-
-        if self.settings.tokens == 0 and self.article.publish_tokens == 0:
-            url = reverse("tokens")
-            url = '<a href="{0}">{1}</a>'.format(url, "Click here to get tokens.")
-            self.message = "danger|You need more tokens to render this document. " + url
-
-        """
-        what is currently happening?
-        """
-        self.downloads = self.article.downloads.all().order_by(
-            "-time_requested", "-time_completed"
         )
-        if self.downloads.exists() and self.downloads[0].time_completed == None:
-            self.refresh = True
-            self.message = "Your document is currently rendering. This page will refresh when it is finished."
-        elif self.downloads.exists():
-            self.last_download = self.downloads[0]
 
 
 class ArticleSettingsView(ArticleEditBase, LoggedInView):
@@ -285,7 +196,7 @@ class OrgSettingsView(LoggedInView):
         self.form = form
 
 
-class RegisterView(ComboView):
+class RegisterView(StringprintView):
     template = "registration//register.html"
     url_patterns = [r"^register/"]
     url_name = "register"
@@ -323,7 +234,7 @@ class NewDocView(LoggedInView):
     url_patterns = [r"^document/new"]
     url_name = "document.new"
 
-    @prelogic
+    @before_logic
     def new_doc_form_logic(self):
         def short_title(v):
             if ":" in v:
@@ -375,7 +286,7 @@ class ReuploadFormView(ArticleEditBase, LoggedInView):
     url_patterns = [r"^document/([0-9]*)/reupload"]
     url_name = "document.reupload"
 
-    @prelogic
+    @before_logic
     def new_doc_form_logic(self):
         request = self.request
         form = ff.ReuploadWordForm

@@ -94,8 +94,21 @@ class CustomSCSS(SCSS):
             "--use",
             "autoprefixer",
             "--replace",
+            # without this postcss appends a base64 copy of the whole
+            # stylesheet as an inline sourcemap; sass is already run with
+            # --no-source-map
+            "--no-map",
         ]
 
         return_code, out, errors = utils.run_command(post_process, None, cwd=cwd)
+
+        if return_code:
+            # this used to be discarded, which meant a missing postcss or
+            # autoprefixer produced unprefixed css and said nothing about it
+            raise exceptions.StaticCompilationError(
+                "autoprefixer failed for {0} (exit {1}): {2}".format(
+                    source_path, return_code, errors
+                )
+            )
 
         return self.get_output_path(source_path)

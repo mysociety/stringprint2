@@ -1,23 +1,40 @@
 body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: $stringprint-body-font;
   font-size: 12pt;
-  background-color: $page-background-color;
+  background-color: $stringprint-page-background;
+  color: $stringprint-content-color;
 }
 
 .navbar-toggler {
-  color: $navbar-main-color;
+  color: $stringprint-navbar-color;
 }
 
 a {
-  color: $link-color;
+  color: $stringprint-link-color;
+}
+
+.toc_content a {
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+  }
 }
 
 .large-menu {
   padding-top: 0;
   padding-bottom: 0;
-  border-bottom: 1px solid $navbar-border-color;
+  border-bottom: 1px solid $stringprint-navbar-border;
   margin-left: 0;
   margin-right: 0;
+  padding-left: $stringprint-navbar-inline-padding;
+  padding-right: $stringprint-navbar-inline-padding;
+}
+
+.large-menu .dropdown-menu-end {
+  right: 0;
+  left: auto;
 }
 
 h1 {
@@ -58,14 +75,14 @@ h3 {
   .active>.nav-link,
   .nav-link.show,
   .nav-item.active {
-    background-color: $navbar-dark-active-background-color;
-    color: $navbar-dark-active-color;
+    background-color: $stringprint-navbar-active-background;
+    color: $stringprint-navbar-active-color;
   }
 }
 
 .header-icon {
-  background-color: $navbar-accent-color;
-  color: $link-icon-color;
+  background-color: $stringprint-navbar-background;
+  color: $stringprint-navbar-icon-color;
 }
 
 .content-row,
@@ -73,11 +90,11 @@ p.byline,
 p.other-formats-text,
 .container,
 #tipue_search_content {
-  background-color: $content-background-color;
+  background-color: $stringprint-content-background;
 }
 
 .highlighted-content {
-  background-color: $highlighted-content;
+  background-color: $stringprint-highlight-background;
 }
 
 .table td {
@@ -85,6 +102,13 @@ p.other-formats-text,
   padding-right: 0.75rem;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
+}
+
+.table > thead {
+  --bs-table-color: #{$stringprint-table-heading-color};
+  --bs-table-bg: #{$stringprint-table-heading-background};
+  color: $stringprint-table-heading-color;
+  background-color: $stringprint-table-heading-background;
 }
 
 #article_title {
@@ -126,8 +150,8 @@ ol {
 }
 
 .blockquote {
-  background-color: $blockquote-main-color;
-  border-left: 10px solid $blockquote-border-color;
+  background-color: $stringprint-blockquote-background;
+  border-left: 10px solid $stringprint-blockquote-border;
   quotes: \201C\201D\2018\2019;
   font-style: normal;
   margin: 0px 0px 0px 0px;
@@ -139,7 +163,7 @@ span.quote {
 }
 
 .footnotes {
-  border: 2px solid $footnote-border-color;
+  border: 2px solid $stringprint-footnote-border;
   quotes: \201C\201D\2018\2019;
   word-wrap: break-word;
   margin: 1.5em 10px;
@@ -147,7 +171,7 @@ span.quote {
 }
 
 .extended {
-  border: 10px solid $aside-border-color;
+  border: 10px solid $stringprint-aside-border;
   quotes: \201C\201D\2018\2019;
   display: none;
   margin: 1.5em 10px;
@@ -184,7 +208,7 @@ h1::after {
   width: 50%;
   margin-top: 20px;
   text-indent: -9999px;
-  border-top: 1px solid $divider-color;
+  border-top: 1px solid $stringprint-divider-color;
 }
 
 h2::after {
@@ -194,7 +218,7 @@ h2::after {
   width: 40%;
   margin-top: 20px;
   text-indent: -9999px;
-  border-top: 1px solid $divider-color;
+  border-top: 1px solid $stringprint-divider-color;
 }
 
 h3::after {
@@ -204,7 +228,7 @@ h3::after {
   width: 30%;
   margin-top: 20px;
   text-indent: -9999px;
-  border-top: 1px solid $divider-color;
+  border-top: 1px solid $stringprint-divider-color;
 }
 
 .index::after {
@@ -214,7 +238,7 @@ h3::after {
   width: 50%;
   margin-top: 20px;
   text-indent: -9999px;
-  border-top: 1px solid $divider-color;
+  border-top: 1px solid $stringprint-divider-color;
   margin-bottom: 20px;
 }
 

@@ -1,0 +1,70 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}<title>Manage {{ article.title }}</title>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a class="btn btn-outline-secondary float-end" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-arrow-left" aria-hidden="true"></span> All publications</a>
+    <h1>{{ article.title }} <small>{{ article.slug }}</small></h1>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h2 class="card-title mb-0">Load and process</h2></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'load' %}">
+                    {% csrf_token %}
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh_header"><label class="form-check-label">Refresh header configuration</label></div>
+                    <button class="btn btn-outline-secondary" type="submit"><span class="fa fa-download" aria-hidden="true"></span> Load configuration</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
+                    {% csrf_token %}
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh_header" checked><label class="form-check-label">Refresh assets and header</label></div>
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="preprocess" checked><label class="form-check-label">Run preprocessor</label></div>
+                    <button class="btn btn-primary" type="submit"><span class="fa fa-cogs" aria-hidden="true"></span> Process publication</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><h2 class="card-title mb-0">Generate output</h2></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'render' %}">
+                    {% csrf_token %}
+                    <div class="mb-3"><label for="output-format">Format</label><select class="form-select" id="output-format" name="output_format"><option value="web">Web</option><option value="epub">EPUB</option><option value="kindle">Kindle</option></select></div>
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
+                    <button class="btn btn-primary" type="submit"><span class="fa fa-file" aria-hidden="true"></span> Render</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'publication_management:create_operation' article.slug 'archive' %}">
+                    {% csrf_token %}
+                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
+                    <button class="btn btn-outline-secondary" type="submit"><span class="fa fa-file-archive-o" aria-hidden="true"></span> Create ZIP archive</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if publish_allowed %}
+<div class="card border-warning mb-4">
+    <div class="card-header"><h2 class="card-title mb-0">Publish</h2></div>
+    <div class="card-body">
+        <p>Build the publication archive and run its configured publishing command.</p>
+        <form method="post" action="{% url 'publication_management:create_operation' article.slug 'publish' %}">
+            {% csrf_token %}
+            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
+            <button class="btn btn-warning" type="submit"><span class="fa fa-cloud-upload" aria-hidden="true"></span> Publish</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header"><h2 class="card-title mb-0">Recent operations</h2></div>
+    {% include "publication_management/operation_table.html" %}
+</div>
+{% endblock %}

@@ -1,14 +1,13 @@
 import re
 import os
 
-from django.shortcuts import HttpResponseRedirect
+from django.shortcuts import HttpResponse, HttpResponseRedirect
 from django.conf import settings
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.utils.html import mark_safe
 from django.core.cache import cache
 from charts import ChartCollection
-from useful_inkleby.useful_django.views.functional import postlogic
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.template import Template, Context
@@ -17,10 +16,11 @@ from compressor.signals import post_compress
 
 
 from .models import Article, Asset
-from useful_inkleby.useful_django.views import ComboView
+from stringprint2.view_framework import StringprintView
 from django.core.handlers.wsgi import WSGIRequest
 from stringprint.models import Article, Version
 from stringprint.tools.deepink import Section
+from stringprint2.services.paragraph_links import paragraph_compatibility_map
 from typing import Any, Dict, List, Type, Union
 
 
@@ -38,7 +38,7 @@ def compression_callback(
     article.compressed_files.append(context["compressed"]["url"])
 
 
-class AssetView(ComboView):
+class AssetView(StringprintView):
     template = "ink//asset.html"
     url_patterns = [r"^asset/(.*)/(.*)/(.*)/", r"^asset/(.*)/(.*)/"]
     url_name = "asset_view"
@@ -51,7 +51,7 @@ class AssetView(ComboView):
         if a.chart:
             charts = [a.chart]
         else:
-            charts = [charts]
+            charts = []
 
         c = ChartCollection(charts)
         if static:
@@ -60,7 +60,7 @@ class AssetView(ComboView):
         return {"asset": a, "chart_collection": c}
 
 
-class HomeView(ComboView):
+class HomeView(StringprintView):
     share_image = settings.SHARE_IMAGE
     twitter_share_image = settings.TWITTER_SHARE_IMAGE
     share_description = settings.SITE_DESCRIPTION
@@ -74,7 +74,7 @@ class HomeView(ComboView):
 
     def view(self, request):
         return {
-            "books": Article.objects.filter(public=True),
+            "books": Article.objects.all().order_by("-publish_date"),
         }
 
 
@@ -156,7 +156,7 @@ class TOCView(HomeView):
         response = []
 
         def fix_trailing_numbers(v):
-            r = re.search("\d+\.\d*(.+)", v)
+            r = re.search(r"\d+\.\d*(.+)", v)
             if r:
                 return r.groups()[0].strip()
             else:
@@ -178,14 +178,14 @@ class TOCView(HomeView):
         return JsonResponse(response, safe=False)
 
 
-class TipueSearchView(HomeView):
+class SearchView(HomeView):
     """
-    view to create the search page for tipue
+    Render the publication search page.
     """
 
     template = "ink//search.html"
     url_patterns = [r"^([A-Za-z0-9_-]+)/search"]
-    url_name = "tipue_search"
+    url_name = "publication_search"
     article_settings_override = {"baking": False, "search": True}
 
     def get_article(self, request, article_slug):
@@ -205,14 +205,45 @@ class TipueSearchView(HomeView):
         return {"article": a, "content": c, "cache_nav": "full"}
 
 
-class TipueContentView(TipueSearchView):
+class SearchContentView(SearchView):
     """
-    view to create the contentfile for searches
+    Render the JavaScript publication search index.
     """
 
     template = "ink//search_js.html"
-    url_patterns = [r"^([A-Za-z0-9_-]+)/tipuesearch_content.js"]
-    url_name = "tipue_content"
+    url_patterns = [r"^([A-Za-z0-9_-]+)/search_content.js"]
+    url_name = "publication_search_content"
+
+    def context_to_html(
+        self, request: WSGIRequest, context: dict[str, object]
+    ) -> HttpResponse:
+        """
+        Render the search index with an executable JavaScript MIME type.
+        """
+        return render(
+            request,
+            self.template,
+            context=context,
+            content_type="application/javascript",
+        )
+
+
+class ParagraphMapView(SearchView):
+    """
+    Serve legacy paragraph mappings only when a client requests them.
+    """
+
+    url_patterns = [r"^([A-Za-z0-9_-]+)/paragraph_map.json"]
+    url_name = "paragraph_map"
+
+    def context_to_html(
+        self, request: WSGIRequest, context: dict[str, object]
+    ) -> JsonResponse:
+        content = context["content"]
+        return JsonResponse(
+            paragraph_compatibility_map(content.paragraph_lookup()),
+            json_dumps_params={"separators": (",", ":")},
+        )
 
 
 class TextView(KindleView):
@@ -363,7 +394,7 @@ class ArticleView(HomeView):
         prepare assets for charts and images
         """
         titles_and_images = list(a.headers_and_images())
-        if a.multipage and hasattr(a, 'active_section'):
+        if a.multipage and hasattr(a, "active_section"):
             asset_ids = a.active_section.used_assets()
         else:
             asset_ids = c.used_assets()

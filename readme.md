@@ -299,3 +299,19 @@ Populated blocks (where you'll need to consult the original templates to adjust 
 - `previous_section` - replace link to previous section (if multipage)
 - `next_section` - replace link to next section (if multipage)
 
+
+## Tests
+
+```sh
+script/test              # fast tier: no sass, no browser, no network
+script/test -m ""        # everything, including the external tier
+```
+
+The suite runs against a miniature document source in
+`tests/fixtures/doc_source`, selected through the `STRINGPRINT_CONFIG`
+environment variable. See [docs/feature-inventory.md](docs/feature-inventory.md)
+for what is covered, the catalogue of known defects, and the risk register for
+the Python 3.14 / Django 5.2 upgrade.
+
+If pytest is missing from your container:
+`pip install "pytest~=7.4" "pytest-django~=4.5"`.

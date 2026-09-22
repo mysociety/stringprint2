@@ -1,5 +1,5 @@
 from django.db import models
-from useful_inkleby.useful_django.serialisers import BasicSerial
+from stringprint2.serialization import ObjectSerializer
 from .display import Chart
 
 
@@ -24,7 +24,7 @@ class ChartField(models.TextField):
             else:
                 return Chart()
 
-        return BasicSerial.loads(value)
+        return ObjectSerializer.loads(value)
 
     def to_python(self, value):
         if isinstance(value, Chart):
@@ -33,7 +33,7 @@ class ChartField(models.TextField):
         if value is None:
             return value
 
-        return BasicSerial.loads(value)
+        return ObjectSerializer.loads(value)
 
     def get_prep_value(self, value):
-        return BasicSerial.dumps(value)
+        return ObjectSerializer.dumps(value)

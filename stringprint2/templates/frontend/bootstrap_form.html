@@ -1,0 +1,20 @@
+{% load admin_forms %}
+{% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for hidden_field in form.hidden_fields %}{{ hidden_field }}{% endfor %}
+{% for field in form.visible_fields %}
+    {% if field.field.widget.input_type == "checkbox" %}
+    <div class="form-check mb-3">
+        {{ field|bootstrap_widget }}
+        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+    {% else %}
+    <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|bootstrap_widget }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+    {% endif %}
+{% endfor %}

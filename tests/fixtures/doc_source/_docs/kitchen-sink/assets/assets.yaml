@@ -1,0 +1,28 @@
+- image-one:
+    content_type: image
+    type: png
+    caption: 'A caption for image one'
+    alt_text: 'Alt text for image one'
+- image-two:
+    content_type: image
+    type: jpg
+    caption: 'Caption doubles as alt text'
+    alt_text: ''
+- image-three:
+    content_type: image
+    type: png
+    caption: 'Caption with no alt_text key at all'
+- table-one:
+    content_type: table
+    type: xls
+    caption: 'Table one'
+    alt_text: ''
+    longdesc: "First line of the long description.\nSecond line of it."
+- table-no-header-one:
+    content_type: table-no-header
+    type: xlsx
+    caption: 'Table with no header row'
+- html-one:
+    content_type: html
+    type: html
+    caption: 'An embedded html block'

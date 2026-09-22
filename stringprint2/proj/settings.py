@@ -5,11 +5,23 @@ from shutil import copy
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-config_file = Path(BASE_DIR, "proj", "conf", "config.yaml")
-template_config_file = Path(BASE_DIR, "proj", "conf", "config-example.yaml")
+# STRINGPRINT_CONFIG points the app at an alternate config file - used by the
+# test suite, and usable by containers. When unset the behaviour is unchanged:
+# the in-tree config.yaml, seeded from config-example.yaml on first run.
+config_override = os.environ.get("STRINGPRINT_CONFIG")
 
-if config_file.exists() is False and template_config_file.exists():
-    copy(template_config_file, config_file)
+if config_override:
+    config_file = Path(config_override)
+    if config_file.exists() is False:
+        raise RuntimeError(
+            "STRINGPRINT_CONFIG points at a missing file: {0}".format(config_file)
+        )
+else:
+    config_file = Path(BASE_DIR, "proj", "conf", "config.yaml")
+    template_config_file = Path(BASE_DIR, "proj", "conf", "config-example.yaml")
+
+    if config_file.exists() is False and template_config_file.exists():
+        copy(template_config_file, config_file)
 
 # load settings from config file
 with open(config_file) as fi:
@@ -42,7 +54,9 @@ PAYPAL_TEST = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 PROJECT_PATH = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-MEDIA_ROOT = PROJECT_PATH + "/media/"
+# note: trailing separator is load-bearing - HeaderMixin.create_responsive
+# and create_tiny build paths by string concatenation onto MEDIA_ROOT
+MEDIA_ROOT = config.get("MEDIA_ROOT", PROJECT_PATH + "/media/")
 
 STATIC_ROOT = PROJECT_PATH + "/static/"
 COMPRESS_ROOT = STATIC_ROOT
@@ -67,14 +81,14 @@ for k, v in config["ORGS"].items():
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ORG_TEMPLATE_DIRS
-        + [
-            PROJECT_PATH + "/templates/",
-        ],
+        "DIRS": [PROJECT_PATH + "/templates/"],
         "OPTIONS": {
             "debug": DEBUG,
             "loaders": [
-                "proj.loaders.NamespaceAwareLoader",
+                (
+                    "proj.loaders.NamespaceAwareLoader",
+                    ORG_TEMPLATE_DIRS + [PROJECT_PATH + "/templates/"],
+                ),
                 "django.template.loaders.app_directories.Loader",
             ],
             "context_processors": [
@@ -83,6 +97,7 @@ TEMPLATES = [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
+                "django.template.context_processors.request",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
@@ -102,11 +117,14 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "compressor",
     "stringprint",
-    "bootstrapform",
     "import_export",
     "frontend",
+    "publication_management",
     "static_precompiler",
 )
+
+# Retain the primary-key type used by the historical migrations.
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",

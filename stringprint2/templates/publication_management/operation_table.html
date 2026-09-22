@@ -1,0 +1,23 @@
+<div class="table-responsive">
+<table class="table table-striped table-hover">
+    <thead><tr><th>Publication</th><th>Operation</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for operation in operations %}
+        <tr>
+            <td>{{ operation.publication_slug }}</td>
+            <td><a href="{% url 'publication_management:operation_detail' operation.pk %}">{{ operation.operation_name|title }}</a></td>
+            <td>
+                {% if operation.state == "succeeded" %}<span class="badge text-bg-success">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "failed" or operation.state == "interrupted" %}<span class="badge text-bg-danger">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "cancelled" %}<span class="badge text-bg-secondary">{{ operation.get_state_display }}</span>
+                {% elif operation.state == "running" or operation.state == "cancel_requested" %}<span class="badge text-bg-primary">{{ operation.get_state_display }}</span>
+                {% else %}<span class="badge text-bg-info">{{ operation.get_state_display }}</span>{% endif %}
+            </td>
+            <td>{{ operation.created_at }}</td>
+        </tr>
+    {% empty %}
+        <tr><td class="text-muted text-center" colspan="4">No operations.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>

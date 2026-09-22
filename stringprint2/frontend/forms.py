@@ -3,13 +3,24 @@ Created on Aug 21, 2016
 
 @author: Alex
 """
+
 from django import forms
-from useful_inkleby.useful_django.forms import HoneyPotForm
 from django.contrib.auth.models import User
 from stringprint.models import Organisation, Article, HeaderImage
 from django.core.exceptions import ValidationError
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
+
+
+class HoneyPotForm(forms.Form):
+    """Reject submissions that fill the hidden phone-number field."""
+
+    phone_number = forms.CharField(label="", required=False, widget=forms.HiddenInput())
+
+    def is_valid(self) -> bool:
+        """Return false when a bot has populated the honeypot."""
+        valid = super().is_valid()
+        return valid and not self.cleaned_data["phone_number"]
 
 
 class AdminImageWidget(AdminFileWidget):
@@ -91,7 +102,7 @@ class ArticlePublishForm(forms.Form):
     )
     publish_date = forms.DateField(
         label="Publish Date",
-        widget=forms.DateInput(attrs={"class": "datepicker"}),
+        widget=forms.DateInput(attrs={"type": "date"}),
         help_text="When will this document be first published?",
         required=True,
     )

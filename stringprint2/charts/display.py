@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import json
-from useful_inkleby.files import QuickGrid
+from stringprint2.table_files import DataTable
 from django.utils.safestring import mark_safe
 import random
 import string
 from django.template.loader import render_to_string
-from useful_inkleby.useful_django.serialisers.basic_json import SerialObject
+from stringprint2.serialization import SerialObject
+
+from .chart_config import ChartType
 import markdown
 from typing import Any, List
 
@@ -120,7 +122,7 @@ class Chart(SerialObject):
             self.load_from_file(file_name)
 
     def load_from_file(self, path):
-        qg = QuickGrid().open(path)
+        qg = DataTable().open(path)
         for x, h in enumerate(qg.header):
             col_name = h
             setting = None
@@ -153,6 +155,15 @@ class Chart(SerialObject):
 
         self.rows = qg.data
         return self
+
+    def package_name(self) -> str:
+        """
+        the javascript package this chart's type needs
+        """
+        chart_type = ChartType.registered.get(self.chart_type)
+        if chart_type is None:
+            return "corechart"
+        return chart_type.package_name
 
     def add_column(self, *args, **kwargs):
         column = Column(*args, **kwargs)

@@ -1,0 +1,20 @@
+title: Multipage Document
+subtitle: Sections split over pages
+short_title: Multipage
+description: A document rendered as one page per section.
+byline: by Ada Example
+copyright: ''
+authors: Ada Example
+cite_as: Example, A.
+file_source: document.md
+publish_date: 2026-01-29
+sections_over_pages: true
+display_notes: false
+display_footnotes_at_foot: true
+bottom_iframe:
+skip_epub: true
+seed: -1
+repo_slug: multipage-doc
+header:
+  location: background.jpg
+  size: background

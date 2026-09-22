@@ -1,34 +1,65 @@
 """
-Extention to filesystem loader that allows
-template directories to have namespaces
+Extend Django's filesystem loader with template-directory namespaces.
 """
-from django.template.loaders.filesystem import (
-    Loader,
-    safe_join,
-    SuspiciousFileOperation,
-    Origin,
-)
+
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
+from pathlib import Path
+
+from django.core.exceptions import SuspiciousFileOperation
+from django.template import Origin
+from django.template.loaders.filesystem import Loader
+from django.utils._os import safe_join
+
+TemplateDirectory = str | Path
+NamespacedTemplateDirectory = tuple[str, TemplateDirectory]
 
 
 class NamespaceAwareLoader(Loader):
-    def namespace_aware_dirs(self):
-        dirs = self.get_dirs()
-        for d in dirs:
-            if isinstance(d, tuple):
-                namespace, template_dir = d
+    """
+    Load templates from ordinary or namespace-prefixed directories.
+    """
+
+    def raw_dirs(
+        self,
+    ) -> Sequence[TemplateDirectory | NamespacedTemplateDirectory]:
+        """
+        Return the directories supplied when the loader was configured.
+
+        ``settings.py`` passes ``ORG_TEMPLATE_DIRS`` as ``(namespace, path)``
+        pairs through Django's ``(loader_path, dirs)`` loader form. This is a
+        different contract from ``get_dirs()``, whose external callers expect
+        plain paths.
+        """
+        return self.dirs if self.dirs is not None else self.engine.dirs
+
+    def get_dirs(self) -> list[TemplateDirectory]:
+        """
+        Return plain paths for Django.s template autoreloader.
+        """
+        return [
+            directory[1] if isinstance(directory, tuple) else directory
+            for directory in self.raw_dirs()
+        ]
+
+    def namespace_aware_dirs(
+        self,
+    ) -> Iterator[tuple[str | None, TemplateDirectory]]:
+        """
+        Return each configured directory together with its optional namespace.
+        """
+        for directory in self.raw_dirs():
+            if isinstance(directory, tuple):
+                namespace, template_dir = directory
             else:
                 namespace = None
-                template_dir = d
+                template_dir = directory
             yield namespace, template_dir
 
-    def get_template_sources(self, template_name):
+    def get_template_sources(self, template_name: str) -> Iterator[Origin]:
         """
-        Return an Origin object pointing to an absolute path in each directory
-        in template_dirs. For security reasons, if a path doesn't lie inside
-        one of the template_dirs it is excluded from the result set.
-
-        Adjusts template_name if referring to a namespace aware folder
-
+        Yield secure candidate origins for a possibly namespaced template.
         """
         for namespace, template_dir in self.namespace_aware_dirs():
             adjusted_template_name = template_name
@@ -40,8 +71,6 @@ class NamespaceAwareLoader(Loader):
             try:
                 name = safe_join(template_dir, adjusted_template_name)
             except SuspiciousFileOperation:
-                # The joined path was located outside of this template_dir
-                # (it might be inside another one, so this isn't fatal).
                 continue
             yield Origin(
                 name=name,

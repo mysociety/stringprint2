@@ -2,29 +2,39 @@
 from __future__ import annotations
 import time
 import sys
-import codecs
 import datetime
-import importlib
 import io
 import os
 import shutil
-import subprocess
 import time
 from collections import OrderedDict
 from pathlib import Path
-from tempfile import mkdtemp
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
-import Levenshtein as lev
 import markdown
-import mkepub
 import tinify
 from stringprint2.charts import Chart
+from stringprint2.configuration import (
+    load_assets_config,
+    load_organisation_config,
+    load_publication_config,
+)
+from stringprint2.services import (
+    build_asset_import_plan,
+    build_publication_load_plan,
+)
+from stringprint2.services.paragraph_links import (
+    ParagraphLinkState,
+    ParagraphLinkStore,
+)
+from stringprint2.services.configured_commands import run_configured_command
+from stringprint2.services.publication_sources import load_publication_source
+from stringprint2.services.ebook_rendering import EbookRenderResult, render_epub
+from stringprint2.services.kindle_rendering import KindleRenderResult, render_kindle
+from stringprint2.services.web_rendering import WebRenderResult, render_web_publication
 from stringprint2.charts.fields import ChartField
-from dirsync import sync
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.staticfiles import finders
 from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -33,24 +43,19 @@ from django.db.models import F
 from django.db.models.query import QuerySet
 from django.template import Context, Template
 from django.template.loader import render_to_string
-from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
-from ruamel.yaml import YAML
-from selenium import common, webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
-from useful_inkleby.files import QuickText
-from useful_inkleby.useful_django.fields import JsonBlockField
-from useful_inkleby.useful_django.models import FlexiBulkModel
+from playwright.sync_api import sync_playwright
+from stringprint2.text_files import TextFile
 from webptools import webplib as webp
+
+from stringprint2.serialization import JsonBlockField
 
 from stringprint.tools.deepink import Graf, Section
 
 from .tools.deepink import process_ink
-
-chrome_driver_path = settings.CHROME_DRIVER
 
 
 class OverwriteStorage(FileSystemStorage):
@@ -60,38 +65,17 @@ class OverwriteStorage(FileSystemStorage):
         return super().get_available_name(name, max_length)
 
 
-def fix_yaml(ya):
-    if type(ya) == list:
-        items = [fix_yaml(x) for x in ya]
-        di = {}
-        for i in items:
-            di.update(i)
-        return di
-    if type(ya) == dict:
-        return {x: fix_yaml(y) for x, y in ya.items()}
-    return ya
-
-
-def get_yaml(file_path: str) -> dict:
-    yaml = YAML(typ="safe")
-    with open(file_path, "rb") as doc:
-        data = yaml.load(doc)
-    # data = fix_yaml(data)
-    return data
-
-
-def write_yaml(file_path: str, content: dict) -> None:
-    yaml = YAML()
-    yaml.default_flow_style = False
-
-    with open(file_path, "wb") as f:
-        yaml.dump(content, f)
-
-
 def get_file(fi: str) -> File:
     reopen = open(fi, "rb")
     django_file = File(reopen)
     return django_file
+
+
+def render_article_template(template: str, publication: dict[str, object]) -> str:
+    """
+    Render an organisation default using the legacy Django template syntax.
+    """
+    return Template(template).render(Context({"article": publication}))
 
 
 class Organisation(models.Model):
@@ -107,9 +91,9 @@ class Organisation(models.Model):
     publish_root = models.URLField(max_length=255, blank=True, null=True)
     include_favicon = models.BooleanField(default=True)
     icon = models.CharField(max_length=255, blank=True, null=True)
-    default_values = JsonBlockField(default={})
-    commands = JsonBlockField(default={})
-    extra_values = JsonBlockField(default={})
+    default_values = JsonBlockField(default=dict)
+    commands = JsonBlockField(default=dict)
+    extra_values = JsonBlockField(default=dict)
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -160,7 +144,10 @@ class Organisation(models.Model):
         return self.org_scss("screenshot.scss")
 
     def load_from_yaml(self) -> None:
-        data = get_yaml(os.path.join(self.storage_dir, "_conf", "settings.yaml"))
+        organisation_config = load_organisation_config(
+            Path(self.storage_dir) / "_conf" / "settings.yaml"
+        )
+        data = organisation_config.model_dump(exclude_unset=True)
         ignore = ["orglinks"]
         change = False
 
@@ -244,36 +231,36 @@ class OrgLinks(models.Model):
 
 class Chrome(object):
     """
-    stores selenium driver to reduce time spent after
-    first start up
+    Owns a single headless Playwright browser/page, reused across calls in
+    one process to avoid paying the browser startup cost per paragraph
+    image. Playwright manages its own browser binary (installed via
+    `playwright install chromium`) rather than needing a separately
+    version-matched chromedriver.
     """
 
-    driver = None
+    _playwright = None
+    _browser = None
+    page = None
 
     @classmethod
-    def get_driver(cls) -> WebDriver:
-        if cls.driver:
-            return cls.driver
+    def get_page(cls):
+        if cls.page:
+            return cls.page
 
-        options = webdriver.ChromeOptions()
-        options.add_argument("headless")
-        options.add_argument("hide-scrollbars")
-        options.add_argument("--no-sandbox")
-        cls.driver = webdriver.Chrome(
-            executable_path=chrome_driver_path, options=options
-        )
-        return cls.driver
+        cls._playwright = sync_playwright().start()
+        cls._browser = cls._playwright.chromium.launch()
+        cls.page = cls._browser.new_page()
+        return cls.page
 
     @classmethod
     def quit(cls) -> None:
-        if cls.driver:
-            cls.driver.quit()
-        cls.driver = None
-
-    def __del__(self):
-        if self.driver:
-            self.driver.quit()
-        super(Chrome, self).__del__()
+        if cls._browser:
+            cls._browser.close()
+        if cls._playwright:
+            cls._playwright.stop()
+        cls._playwright = None
+        cls._browser = None
+        cls.page = None
 
 
 class Article(models.Model):
@@ -313,8 +300,8 @@ class Article(models.Model):
     display_footnotes_at_foot = models.BooleanField(default=True)
     display_toc = models.BooleanField(default=False)
     include_citation = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
-    commands = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
+    commands = JsonBlockField(default=dict)
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -375,55 +362,49 @@ class Article(models.Model):
         else:
             return None
 
+    def plain_url(self) -> str:
+        """
+        Return the plain-text output for baked and preview publications.
+        """
+        if self.baking:
+            return "plain.html"
+        return reverse("txt_view", args=(self.slug,))
+
     def load_from_yaml(self, storage_dir: Path, refresh_header: bool = False) -> None:
         """
         Load config for the article from the stored file
         """
         print("loading yaml")
-        data = get_yaml(os.path.join(storage_dir, "settings.yaml"))
-        ignore = ["header", "book_cover"]
+        organisation_config = load_organisation_config(
+            Path(self.org.storage_dir) / "_conf" / "settings.yaml"
+        )
+        publication_config = load_publication_config(
+            Path(storage_dir) / "settings.yaml", organisation_config
+        )
+        plan = build_publication_load_plan(
+            publication_config,
+            organisation_config,
+            self.extra_values.keys(),
+            render_article_template,
+        )
 
-        existing_keys = list(self.extra_values.keys())
-        for k in existing_keys:
-            if k not in data:
-                del self.extra_values[k]
-
-        # adapation for older files
-        if "sections_over_pages" in data:
-            data["multipage"] = data["sections_over_pages"]
-            del data["sections_over_pages"]
-
-        if "pdf" in data:
-            data["pdf_file"] = data["pdf"]
-            del data["pdf"]
-
-        if "pdf_file" not in data and self.pdf_file:
+        if plan.clear_pdf_file and self.pdf_file:
             self.pdf_file = ""
 
-        for k, v in self.org.default_values.items():
-            if k not in data:
-                print("adding {0} value".format(k))
-                rendered_v = Template(v).render(Context({"article": data}))
-                data[k] = rendered_v
+        for assignment in plan.field_assignments:
+            setattr(self, assignment.name, assignment.value)
+        self.extra_values = plan.extra_values
 
-        for k, v in data.items():
-            if k not in ignore:
-                if hasattr(self, k) and k not in existing_keys:
-                    setattr(self, k, v)
-                else:
-                    print(k, v)
-                    self.extra_values[k] = v
-
-        if "header" in data:
-            header = data["header"]
-            file_name = header["location"]
+        if plan.header is not None:
+            header = plan.header
+            file_name = header.location
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
                     self.org.storage_dir, "_docs", self.slug, file_name
                 )
             file_ext = os.path.splitext(file_name)[1]
             internal_name = self.slug + file_ext
-            image_size = header.get("size", "6")
+            image_size = header.size
             if image_size == "background":
                 image_size = -1
             self.add_image(
@@ -434,16 +415,16 @@ class Article(models.Model):
                 size=image_size,
             )
 
-        if "book_cover" in data:
+        if plan.book_cover is not None:
             print("loading book cover")
-            file_name = data["book_cover"]
+            file_name = plan.book_cover
             if os.path.exists(file_name) is False:
                 file_name = os.path.join(
                     self.org.storage_dir, "_docs", self.slug, file_name
                 )
             self.get_book_cover(file_name)
 
-        if "production_url" not in data:
+        if plan.use_default_production_url:
             self.production_url = self.org.publish_root + self.slug + "/"
 
         if os.path.exists(self.file_source) is False:
@@ -492,9 +473,6 @@ class Article(models.Model):
         exports a folder of images - 1 for each element labeled with the
         combo key
         """
-        import base64
-        from io import BytesIO
-
         BAKE_SERVER = "http://127.0.0.1:8000"
 
         url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
@@ -514,47 +492,50 @@ class Article(models.Model):
         if len(grafs_to_do) == 0:
             return None
 
-        driver = Chrome.get_driver()
-        driver.set_page_load_timeout(60)
+        page = Chrome.get_page()
         print(url)
         # Updated for 1200 x 630 Bluesky/modern social media aspect ratio (1.90:1)
-        driver.set_window_size(1200, 800)
-        driver.get(url)
+        page.set_viewport_size({"width": 1200, "height": 800})
+        page.goto(url, timeout=60_000)
 
         for g in grafs_to_do:
             print(g.order, g.combo_key())
-            try:
-                element = driver.find_element_by_xpath(
-                    "//div[@id='r{0}']".format(g.order)
-                )
-            except common.exceptions.NoSuchElementException:
+            locator = page.locator("#r{0}".format(g.order))
+            if locator.count() == 0:
                 print("skipping - element {0} not found".format(g.order))
                 continue
-            location = element.location
-            size = element.size
+            box = locator.bounding_box()
+            if box is None:
+                print("skipping - element {0} not found".format(g.order))
+                continue
 
             offset = 50
             left_offset = 30
             # if g.blockquote:
             #    left_offset += 30
 
-            driver.execute_script(
-                "window.scrollTo(0, {0});".format(location["y"] - offset)
-            )
+            page.evaluate("window.scrollTo(0, {0});".format(box["y"] - offset))
 
-            screenshot = driver.get_screenshot_as_base64()
-            img = Image.open(BytesIO(base64.decodebytes(screenshot.encode("utf-8"))))
             # Updated dimensions for 1200 x 630 aspect ratio for Bluesky social sharing
             width = 1200
             height = 630
-            left = location["x"] - left_offset
+            left = box["x"] - left_offset
             top = offset - 8
             right = left + 16 + width
-            bottom = top + height  # size['height'] + 2
+            bottom = top + height
 
-            elements = (int(left), int(top), int(right), int(bottom))
-            im = img.crop(elements)
-            im.save(g.destination_location)
+            # Playwright clips and writes the PNG directly - no base64/PIL
+            # round-trip needed, unlike the old full-viewport-screenshot-
+            # then-crop approach.
+            page.screenshot(
+                path=g.destination_location,
+                clip={
+                    "x": left,
+                    "y": top,
+                    "width": right - left,
+                    "height": bottom - top,
+                },
+            )
         Chrome.quit()
 
     def reprocessing(self):
@@ -563,8 +544,7 @@ class Article(models.Model):
     def search_url(self) -> str:
         if self.baking:
             return "search.html"
-        else:
-            return "search"
+        return reverse("publication_search", args=(self.slug,))
 
     def import_assets(self, asset_folder: Path, refresh: bool) -> None:
         """
@@ -573,36 +553,26 @@ class Article(models.Model):
         yaml_file = os.path.join(asset_folder, "assets.yaml")
         if not os.path.isfile(yaml_file):
             return None
-        data = get_yaml(yaml_file)
-        slugs = []
-        assets = []
-        for i in data:
-            for k, v in i.items():
-                v["slug"] = k
-                slugs.append(k)
-                assets.append(v)
-        Asset.objects.filter(article=self, slug__in=slugs).delete()
-        slugs = []
-        for a in assets:
-            no_header = False
-            if a["content_type"] == "table-no-header":
-                a["content_type"] = "table"
-                no_header = True
-
+        collection = load_assets_config(Path(yaml_file))
+        plan = build_asset_import_plan(collection)
+        Asset.objects.filter(
+            article=self, slug__in=[item.slug for item in plan.items]
+        ).delete()
+        for item in plan.items:
             f = Asset(
                 article=self,
-                slug=a["slug"],
-                type=a["content_type"],
-                alt_text=a.get("alt_text", a.get("caption", "")),
-                caption=a.get("caption", ""),
-                content=markdown.markdown(a.get("longdesc", "").replace("\n", "\n\n")),
-                no_header=no_header,
+                slug=item.slug,
+                type=item.content_type,
+                alt_text=item.alt_text,
+                caption=item.caption,
+                content=markdown.markdown(item.long_description.replace("\n", "\n\n")),
+                no_header=item.no_header,
             )
-            file_name = "{0}.{1}".format(a["slug"], a["type"])
+            file_name = "{0}.{1}".format(item.slug, item.extension)
             file_path = os.path.join(asset_folder, file_name)
-            if a["content_type"] == "image":
+            if item.content_type == "image":
                 reopen = open(file_path, "rb")
-                filename = "{2}_{0}.{1}".format(a["slug"], a["type"], self.id)
+                filename = "{2}_{0}.{1}".format(item.slug, item.extension, self.id)
                 process_images = True
                 if (
                     os.path.exists(os.path.join(settings.MEDIA_ROOT, filename))
@@ -615,7 +585,7 @@ class Article(models.Model):
                 )
                 f.image = suf
                 django_file.close()
-                f.size = a.get("size", 6)
+                f.size = item.size
                 if process_images:
                     f.extra_values = {}
                     f.create_responsive(ignore_first=True)
@@ -625,25 +595,16 @@ class Article(models.Model):
                     f.get_ratio()
                     f.get_average_color()
                     f.header_image_res()
-            if "table" in a["content_type"]:
+            if item.content_type == "table":
                 f.chart = Chart(chart_type="table_chart", file_name=file_path)
-            if a["content_type"] == "html":
+            if item.content_type == "html":
                 f.content_type = "html"
                 f.type = Asset.RAW_HTML
-                file_name = ".".join([a["slug"], a["type"]])
+                file_name = ".".join([item.slug, item.extension])
                 file_path = os.path.join(asset_folder, file_name)
-                f.content = QuickText().open(file_path).text
+                f.content = TextFile().open(file_path).text
             print("saving {0}".format(f.slug))
             f.save()
-
-    def prepare_assets(self) -> None:
-        """
-        if assets have a chart - produce the image
-        """
-        for a in self.assets.filter(regenerate_image_chart=True):
-            if a.chart and a.chart.chart_type != "table_chart":
-                print("making image for {0}".format(a.slug))
-                a.get_chart_image()
 
     def tinify_headers(self) -> None:
         """
@@ -695,6 +656,23 @@ class Article(models.Model):
                     paragraph.combo_key(),
                 ),
             )
+
+    def paragraph_link_pattern(self) -> str:
+        """
+        Return one URL pattern used by the shared paragraph-link control.
+        """
+        placeholder = "__paragraph__"
+        if hasattr(self, "baking") and self.baking:
+            return f"{self.production_url.rstrip('/')}/l/{placeholder}.html"
+        return reverse("redirect_link", args=(self.slug, placeholder))
+
+    def paragraph_map_url(self) -> str:
+        """
+        Return the lazily loaded legacy paragraph-link map URL.
+        """
+        if hasattr(self, "baking") and self.baking:
+            return "paragraph_map.json"
+        return reverse("paragraph_map", args=(self.slug,))
 
     def social_cite_link(self, paragraph: Graf) -> str:
         """
@@ -787,433 +765,53 @@ class Article(models.Model):
                 last = current_mod
             time.sleep(2)
 
-    def render_to_zip(
-        self,
-        zip_destination,
-        extra_files: List[Tuple[Path, Path]] = [],
-        *args,
-        **kwargs,
-    ):
-        """
-        render the article and return the location of a zip file
-        """
-        temp_folder = mkdtemp()
-        self.render(destination=temp_folder, *args, **kwargs)
-        for origin, dest in extra_files:
-            dest_loc = Path(temp_folder, dest)
-            shutil.copyfile(origin, dest_loc)
-        shutil.make_archive(zip_destination, "zip", temp_folder)
-        return zip_destination
-
     def render(
         self,
         destination: Path,
-        url: None = None,
+        url: str | None = None,
         plain: bool = True,
         kindle: bool = True,
         refresh_all: bool = False,
-    ) -> None:
+    ) -> WebRenderResult:
         """
-        export this and supporting files to location
+        Render this publication as a self-contained static website.
         """
 
-        if url is None:
-            url = self.production_url
-        elif url != self.production_url:
-            self.production_url = url
-            self.save()
-
-        if not url:
-            raise ValueError("No valid sharing URl stated.")
-
-        files = []
-
-        # compress_static(files)
-        self.prepare_assets()
-        self.tinify_headers()
-
-        from .views import (
-            ArticleView,
-            RedirectLink,
-            TextView,
-            TipueContentView,
-            TipueSearchView,
-            TOCView,
-        )
-
-        """
-        create destination folders
-        """
-        dirs = [
+        return render_web_publication(
+            self,
             destination,
-            os.path.join(destination, "static"),
-            os.path.join(destination, "static", "css"),
-            os.path.join(destination, "static", "CACHE"),
-            os.path.join(destination, "static", "CACHE", "css"),
-            os.path.join(destination, "static", "CACHE", "js"),
-            os.path.join(destination, "static", "js"),
-            os.path.join(destination, "static", "images"),
-            os.path.join(destination, "media"),
-            os.path.join(destination, "media", "paragraphs"),
-            os.path.join(destination, "l"),
-        ]
-
-        # discovery is there is a specific org directory to copy across
-        org_static_folder = os.path.join(self.org.storage_dir, "_static")
-        if os.path.exists(org_static_folder):
-            dirs.append(os.path.join(destination, "static", "orgs"))
-            dirs.append(os.path.join(destination, "static", "orgs", self.org.slug))
-
-        for d in dirs:
-            if os.path.isdir(d) is False:
-                os.makedirs(d)
-
-        # set media urls to now be below where we start
-        settings.MEDIA_URL = "media/"
-        settings.SITE_ROOT = url
-        settings.STATIC_URL = "static/"
-        settings.COMPRESS_URL = "static/"
-        settings.DEBUG = False
-        settings.COMPRESS_ENABLED = True
-
-        """
-        move pdf if local
-        """
-
-        if self.pdf_file:
-            source_file = os.path.join(
-                self.org.storage_dir, "_docs", self.slug, self.pdf_file
-            )
-            dest_file = os.path.join(destination, "{0}.pdf".format(self.slug))
-            shutil.copyfile(source_file, dest_file)
-
-        extra_files = self.extra_values.get("copy_files", [])
-        for f in extra_files:
-            source_file = os.path.join(self.org.storage_dir, "_docs", self.slug, f)
-            dest_file = os.path.join(destination, f)
-            print("copying {0}".format(f))
-            shutil.copyfile(source_file, dest_file)
-
-        """
-        generate paragraph images
-        """
-        self.export_paragraph_images(
-            os.path.join(destination, "media", "paragraphs"), refresh_all=refresh_all
+            url=url,
+            plain=plain,
+            kindle=kindle,
+            refresh_all=refresh_all,
         )
 
+    def create_ebook(self, destination: Path) -> EbookRenderResult:
         """
-        subclass so we can amend article override settings - force paywall off
-        """
-
-        current_article = self
-        current_article.__dict__.update(self.extra_values)
-
-        class BakeArticleView(ArticleView):
-            share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-            twitter_share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-            def get_article(self, request, article_slug):
-                return current_article
-
-        class BakeTipueContentView(TipueContentView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": True,
-            }
-
-        class BakeTipueSearchView(TipueSearchView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": True,
-            }
-
-            def get_article(self, request, article_slug):
-                return current_article
-
-        class BakeTOCView(TOCView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-        class BakePlainView(TextView):
-            article_settings_override = {
-                "paywall": False,
-                "baking": True,
-                "search": False,
-            }
-
-        article = self
-        article.baking = True
-
-        c = self.display_content()
-
-        grafs = {x.long_combo_key(): x for x in c.all_grafs()}
-        grafs.update({x.combo_key(): x for x in c.all_grafs()})
-        paragraph_lookup = c.paragraph_lookup()
-
-        for k, v in paragraph_lookup.items():
-            shorter_link = ".".join(k.split(".")[:6])
-
-            class BakeRedirectLinkView(RedirectLink):
-                def load_article(self, request, article_slug, paragraph_slug):
-                    self.article = article
-                    self.article.baking = True
-                    self.content = c
-                    self.graf = None
-                    if v is True:
-                        self.graf = grafs.get(k, None)
-                    elif v is not None:
-                        self.graf = grafs.get(v, None)
-                    if self.graf:
-                        self.graf._article = article
-                    else:
-                        print("old tag: rendering {0}".format(k))
-                    self.paragraph_tag = shorter_link
-
-            args = ("blah", "blah")
-            BakeRedirectLinkView.write_file(
-                path=os.path.join(destination, "l", shorter_link + ".html"), args=args
-            )
-
-        if self.multipage:
-            c = self.display_content()
-            for s in c.sections:
-                args = (self.slug, s.anchor())
-                name = "{0}.html".format(s.anchor())
-                BakeArticleView.write_file(
-                    path=os.path.join(destination, name), args=args
-                )
-
-        args = (self.slug,)
-        BakeArticleView.write_file(
-            path=os.path.join(destination, "index.html"), args=args
-        )
-        BakeTipueSearchView.write_file(
-            path=os.path.join(destination, "search.html"), args=args
-        )
-        BakeTipueContentView.write_file(
-            path=os.path.join(destination, "tipuesearch_content.js"), args=args
-        )
-        BakeTOCView.write_file(path=os.path.join(destination, "toc.json"), args=args)
-
-        if plain:
-            BakePlainView.write_file(
-                path=os.path.join(destination, "plain.html"), args=args
-            )
-
-        print("moving compressed files")
-
-        self.compressed_files = [
-            x[len(settings.COMPRESS_URL) :] for x in self.compressed_files
-        ]
-
-        for c in self.compressed_files:
-            print(c)
-
-        """
-        move required static files
+        Render this publication as an EPUB file.
         """
 
-        files = [
-            "js//sweetalert2.all.min.js",
-            "js//picturefill.min.js",
-            "js//tipuesearch.min.js",
-            "js//tipuesearch_set.js",
-            "css//tipuesearch.css",
-            "css//kindle.css",
-            "css//text_mode.css",
-            "css//fa_reduced.css",
-        ]
-
-        files.extend(self.compressed_files)
-
-        folders = ["favicon", "licences", "font"]
-
-        media = settings.MEDIA_ROOT
-
-        for f in files:
-            print(f)
-            shutil.copyfile(finders.find(f), os.path.join(destination, "static", f))
-
-        for f in folders:
-            print(f)
-            d = os.path.join(destination, "static", f)
-            if os.path.isdir(d) is False:
-                os.makedirs(d)
-            sync(finders.find(f), d, "sync")
-
-        """
-        pull in org based static directories
-        """
-
-        org_directory = os.path.join(self.org.storage_dir, "_static")
-
-        if os.path.exists(org_directory):
-            d = os.path.join(destination, "static", "orgs", self.org.slug)
-            sync(org_directory, d, "sync")
-
-        """
-        move media files - from headerimages and assets
-        """
-
-        for i in self.images.all():
-            for f in i.get_all_files():
-                print(f)
-                if os.path.exists(os.path.join(media, f)):
-                    shutil.copyfile(
-                        os.path.join(media, f), os.path.join(destination, "media", f)
-                    )
-
-        for a in self.assets.filter(active=True):
-            if a.image:
-                for f in a.get_all_files():
-                    shutil.copyfile(
-                        os.path.join(media, f), os.path.join(destination, "media", f)
-                    )
-            if a.image_chart:
-                print(a.image_chart.name)
-                shutil.copyfile(
-                    os.path.join(media, a.image_chart.name),
-                    os.path.join(destination, "media", a.image_chart.name),
-                )
-
-        if kindle:
-            self.create_kindle(destination, use_temp=True)
-            self.create_ebook(destination)
-
-    def create_ebook(self, destination: Path) -> None:
-        from .views import EbookChapterView
-
-        authors = self.authors.split(",") if self.authors else ""
-        book = mkepub.Book(title=self.title, authors=authors)
-
-        book.set_stylesheet(
-            """.asset-long-desc{
-                            display: None;
-                            }"""
+        return render_epub(
+            self,
+            destination,
+            image_asset_type=Asset.IMAGE,
+            chart_asset_type=Asset.CHART,
         )
 
-        if self.book_cover and os.path.exists(self.book_cover.path):
-            with open(self.book_cover.path, "rb") as file:
-                book.set_cover(file.read())
-
-        sections = []
-        # iterate through sections:
-        for s in self.content().sections:
-            anchor = s.anchor()
-            args = (self.slug, s.anchor())
-            path = self.slug + "/epub/" + anchor
-            request = RequestFactory().get(path)
-            content = EbookChapterView.as_view(decorators=False)(request, *args).content
-            content = content.decode("utf-8")
-            content = content.replace('src="/media/', 'src="images/')
-            book.add_page(s.name, content)
-
-        media_files = []
-        for a in self.assets.filter(active=True):
-            if a.type == Asset.IMAGE:
-                media_files.append(a.get_image_name(1200))
-            if a.type == Asset.CHART:
-                if a.chart.chart_type != "table_chart":
-                    media_files.append(a.image_chart.name)
-
-        for f in media_files:
-            origin = os.path.join(settings.MEDIA_ROOT, f)
-            with open(origin, "rb") as file:
-                book.add_image(f, file.read())
-
-        file_path = os.path.join(destination, self.slug + ".epub")
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        book.save(file_path)
-        print("rendered epub")
-
-    def create_kindle(self, destination: Path, use_temp: bool = False) -> None:
+    def create_kindle(
+        self, destination: Path, use_temp: bool = False
+    ) -> KindleRenderResult:
         """
-        export views and supporting files to location and generate kindle file
+        Render this publication using the configured Kindle generator.
         """
 
-        from shutil import copyfile
-
-        from .views import KindleNCX, KindleOPF, KindleView
-
-        if use_temp:
-            staging = mkdtemp()
-        else:
-            staging = destination
-
-        if not os.path.exists(destination):
-            os.makedirs(destination)
-        if not os.path.exists(staging):
-            os.makedirs(staging)
-
-        # set media urls to now be below where we start
-
-        self.prepare_assets()
-        self.tinify_headers()
-
-        settings.STATIC_URL = "./"
-        settings.DEBUG = False
-
-        args = (self.slug,)  # (self.short_title.replace(" ","-").lower(),)
-
-        css_dir = os.path.join(staging, "css")
-        if not os.path.exists(css_dir):
-            os.makedirs(css_dir)
-
-        media_dir = os.path.join(staging, "media")
-        if not os.path.exists(media_dir):
-            os.makedirs(media_dir)
-
-        opf = os.path.join(staging, self.slug + ".opf")
-
-        media_files = []
-        for a in self.assets.filter(active=True):
-            if a.type == Asset.IMAGE:
-                media_files.append(a.get_image_name(1200))
-            if a.type == Asset.CHART:
-                if a.chart.chart_type != "table_chart":
-                    media_files.append(a.image_chart.name)
-
-        for f in media_files:
-            copyfile(os.path.join(settings.MEDIA_ROOT, f), os.path.join(media_dir, f))
-
-        KindleView.write_file(
-            path=os.path.join(staging, "text.html"), args=args, minimise=False
+        return render_kindle(
+            self,
+            destination,
+            use_temporary_directory=use_temp,
+            image_asset_type=Asset.IMAGE,
+            chart_asset_type=Asset.CHART,
         )
-        KindleOPF.write_file(path=opf, args=args, minimise=False)
-        KindleNCX.write_file(
-            path=os.path.join(staging, "toc.ncx"), args=args, minimise=False
-        )
-        copyfile(
-            finders.find(os.path.join("css", "kindle.css")),
-            os.path.join(css_dir, "kindle.css"),
-        )
-        if self.book_cover and os.path.exists(self.book_cover.path):
-            copyfile(self.book_cover.path, os.path.join(staging, "bookcover.jpg"))
-
-        print("generating mobi")
-        com = settings.KINDLEGEN_LOC + " " + opf
-        os.system(com)
-
-        if staging != destination:
-            if os.path.exists(os.path.join(staging, self.slug + ".mobi")):
-                print("copying to destination")
-                shutil.copyfile(
-                    os.path.join(staging, self.slug + ".mobi"),
-                    os.path.join(destination, self.slug + ".mobi"),
-                )
-            else:
-                print("error! kindle file not present")
 
     def social_url(self) -> str:
         """
@@ -1240,7 +838,7 @@ class Article(models.Model):
             else:
                 args = (self.slug,)
 
-            return settings.SITE_ROOT + reverse("article_view", args=args)
+            return reverse("article_view", args=args)
 
     def live_url(self):
         """
@@ -1270,51 +868,10 @@ class Article(models.Model):
         python script.py {{article.slug}} - passes the slug
 
         """
-        command_str = None
-        if command in self.org.commands:
-            command_str = self.org.commands[command]
-            working_directory = self.org.storage_dir
-        if command in self.commands:
-            command_str = self.commands[command]
-            working_directory = self.storage_dir
-
-        if not command_str:
-            print("No {0} command configured".format(command))
-            return
-
-        if command_str.startswith("module::"):
-            module_path = command_str.replace("module::", "")
-            module, item = module_path.split(":")
-            if "$doc/" in module:
-                module = module.replace("$doc/", "")
-                file_path = Path(self.storage_dir) / module
-            if "$org/" in module:
-                module = module.replace("$org/", "")
-                file_path = Path(self.org.storage_dir) / module
-            spec = importlib.util.spec_from_file_location("module.name", file_path)
-            my_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(my_module)
-            detected_item = getattr(my_module, item)
-            result = detected_item(self)
-            # allow for classes to be instanced and then run
-            if callable(result):
-                result()
-            return result
-
-        # prevent execution by restricting to listed fields
         fields = self._meta.fields
         lookup_dict = {x.name: getattr(self, x.name) for x in fields if x.name != "org"}
         lookup_dict.update(self.extra_values)
-
-        c_context = Context({"article": lookup_dict})
-
-        rendered_command = Template(command_str).render(c_context)
-
-        commands = rendered_command.split(" ")
-
-        print("Running {0} commands".format(command))
-        subprocess.call(commands, cwd=working_directory)
-        print("{0} complete".format(command))
+        return run_configured_command(self, command, lookup_dict)
 
     def process(self) -> None:
         """
@@ -1359,12 +916,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        with codecs.open(self.file_source, encoding="utf-8") as f:
-            raw = f.read()
-        if raw:
-            c = self.content()
-            c.raw = raw
-            c.save()
+        load_publication_source(self.content(), Path(self.file_source))
 
     def title_image(self) -> Optional[HeaderImage]:
         """
@@ -1646,7 +1198,7 @@ class HeaderMixin(object):
                     )
 
 
-class HeaderImage(FlexiBulkModel, HeaderMixin):
+class HeaderImage(models.Model, HeaderMixin):
     title_image = models.BooleanField(default=False)
     section_name = models.CharField(max_length=255, null=True, blank=True)
     source_loc = models.CharField(max_length=255, null=True, blank=True)
@@ -1659,7 +1211,7 @@ class HeaderImage(FlexiBulkModel, HeaderMixin):
     size = models.IntegerField(default=0)
     queue_responsive = models.BooleanField(default=False)
     queue_tiny = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
 
 
 class Version(models.Model):
@@ -1673,12 +1225,8 @@ class Version(models.Model):
     paragraph_links = JsonBlockField(blank=True, null=True)
     has_notes = models.BooleanField(default=False)
 
-    def load_from_file(self):
-        with codecs.open(self.article.file_source, encoding="utf-8") as f:
-            raw = f.read()
-        if raw:
-            self.raw = raw
-            self.save()
+    def load_from_file(self) -> None:
+        load_publication_source(self, Path(self.article.file_source))
 
     def section_link_lookup(self):
         """
@@ -2031,19 +1579,26 @@ class Version(models.Model):
         return files
 
     def load_paragraph_links(self) -> None:
-        para_file = os.path.join(
-            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
         )
-        if os.path.exists(para_file):
-            self.paragraph_links = get_yaml(para_file)
-        else:
-            self.paragraph_links = []
+        self.paragraph_links = store.load().as_legacy()
 
     def save_paragraph_links(self) -> None:
-        para_file = os.path.join(
-            self.article.org.storage_dir, "_docs", self.article.slug, "_paragraphs.yaml"
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
         )
-        write_yaml(para_file, self.paragraph_links)
+        store.save(ParagraphLinkState.from_legacy(self.paragraph_links))
 
     def paragraph_lookup(self) -> Dict[str, Optional[Union[bool, str]]]:
         """
@@ -2053,153 +1608,32 @@ class Version(models.Model):
         'reference' = graf this now maps to
         None = no good mappng
         """
-        lookup = {}
-        for r in self.paragraph_links:
-            if r:
-                lookup.update(r)
-        return lookup
+        return ParagraphLinkState.from_legacy(self.paragraph_links).lookup()
 
     def update_paragraph_links(self) -> None:
         """
         upgrade the list of paragraph links (past and present)
         """
 
-        def six_from_seven(key):
-            parts = key.split(".")
-            return ".".join(parts[:6])
-
         self.load_paragraph_links()
-        paragraph_lookup = self.paragraph_lookup()
-
-        existing_grafs = []
-        for s in self.sections:
-            for g in s.grafs:
-                key = g.long_combo_key()
-                existing_grafs.append(key)
-                if paragraph_lookup.get(key, True) == None:
-                    paragraph_lookup[key] = True
-
-        short_keys = [six_from_seven(x) for x in paragraph_lookup.keys()]
-
-        from_render = self.source_paragraph_links_from_render()
-        print("{0} previously rendered".format(len(from_render)))
-        new_render = [x for x in from_render if x not in short_keys]
-        print("{0} old links found".format(len(new_render)))
-        for n in new_render:
-            paragraph_lookup[n] = None
-
-        new_existing_grafs = [x for x in existing_grafs if x not in paragraph_lookup]
-
-        orphan_grafs = []
-        for k, v in paragraph_lookup.items():
-            if k not in existing_grafs:
-                if v not in existing_grafs:
-                    orphan_grafs.append(k)
-
-        print("{0} new paragraph links".format(len(new_existing_grafs)))
-
-        orphan_mappings = self.anchor_orphans(existing_grafs, orphan_grafs)
-        paragraph_lookup.update(orphan_mappings)
-
-        new_paragraph_links = []
-
-        for i in self.paragraph_links:
-            if i:
-                key = list(i.keys())[0]
-                new_paragraph_links.append({key: paragraph_lookup[key]})
-
-        for i in new_existing_grafs:
-            new_paragraph_links.append({i: True})
-
-        for i in new_render:
-            new_paragraph_links.append({i: paragraph_lookup[i]})
-
-        self.paragraph_links = new_paragraph_links
-        self.save_paragraph_links()
-
-    def anchor_orphans(self, all_grafs: List[str], orphan_grafs: List[str]) -> dict:
-        """
-        given orphan paragraphs, match to better ones
-        """
-
-        class MiniGraf(object):
-            order = [
-                "para_key_position",
-                "para_key",
-                "letter_key",
-                "start_and_end",
-                "fuzzy_match",
-                "start_and_pos",
-                "end_and_pos",
-                "start_key",
-                "end_key",
-                "pos_and_section",
-            ]
-
-            def __init__(self, key):
-                self.key = key
-                parts = key.split(".")
-                if len(parts) == 5:
-                    parts.extend([None, None])
-                if len(parts) == 6:
-                    parts.extend([None])
-
-                self.section = parts[0]
-                self.para_pos = parts[1]
-                self.para_key = parts[2]
-                self.start_key = parts[3]
-                self.end_key = parts[4]
-                self.letter_key = parts[5]
-                self.letter_seq = parts[6]
-
-                self.para_key_position = self.para_pos + self.para_key
-                self.start_and_end = self.start_key + self.end_key
-                self.start_and_pos = self.start_key + self.para_pos
-                self.end_and_pos = self.end_key + self.para_pos
-                self.pos_and_section = self.section + self.para_pos
-                self.match = None
-
-                self.fuzzy_distance = 7
-
-            def check_match(self, other, key):
-                return getattr(self, key) == getattr(other, key)
-
-            def fuzzy_match(self, candidates):
-                matches = []
-                for c in candidates:
-                    if self.letter_seq and c.letter_seq:
-                        c.distance = lev.distance(self.letter_seq, c.letter_seq)
-                        if c.distance <= self.fuzzy_distance:
-                            matches.append(c)
-                if matches:
-                    print("{0} matched fuzzy".format(self.key))
-                    matches.sort(key=lambda x: x.distance)
-                    self.match = matches[0].key
-
-            def find_match(self, candidates):
-                for s in MiniGraf.order:
-                    if s == "fuzzy_match":
-                        self.fuzzy_match(candidates)
-                        if self.match == None:
-                            continue
-                        else:
-                            return
-                    matches = []
-                    for c in candidates:
-                        if self.check_match(c, s):
-                            matches.append(c.key)
-                    if len(matches) == 1:
-                        print("matched {1} {0}".format(s, self.key))
-                        self.match = matches[0]
-                        return
-
-        candidates = [MiniGraf(x) for x in all_grafs]
-        orphans = [MiniGraf(x) for x in orphan_grafs]
-
-        for o in orphans:
-            o.find_match(candidates)
-
-        return {x.key: x.match for x in orphans}
+        store = ParagraphLinkStore(
+            path=Path(
+                self.article.org.storage_dir,
+                "_docs",
+                self.article.slug,
+                "_paragraphs.yaml",
+            )
+        )
+        current_keys = [
+            graf.long_combo_key() for section in self.sections for graf in section.grafs
+        ]
+        state = store.reconcile(
+            ParagraphLinkState.from_legacy(self.paragraph_links),
+            current_keys,
+            self.source_paragraph_links_from_render(),
+        )
+        self.paragraph_links = state.as_legacy()
+        store.save(state)
 
     def process(self) -> None:
         """
@@ -2242,7 +1676,7 @@ class Version(models.Model):
         super(Version, self).save(*args, **kwargs)
 
 
-class Asset(FlexiBulkModel, HeaderMixin):
+class Asset(models.Model, HeaderMixin):
     RAW_HTML = "h"
     IMAGE = "i"
     CHART = "c"
@@ -2265,7 +1699,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
     code_content = models.TextField(null=True)
     no_header = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
-    extra_values = JsonBlockField(default={})
+    extra_values = JsonBlockField(default=dict)
 
     def search_name(self):
         txt = ""
@@ -2285,47 +1719,6 @@ class Asset(FlexiBulkModel, HeaderMixin):
         txt = txt.replace(b"[", b"").replace(b"]", b"").replace(b"\n", b"")
         return txt.decode("utf-8")
 
-    def get_chart_image(self):
-        """
-        loads the chart in selenium so we can fetch the image version
-        """
-        import io
-        import tempfile
-
-        from selenium import webdriver
-
-        from .views import AssetView
-
-        temp_dir = tempfile._get_default_tempdir()
-        temp_name = next(tempfile._get_candidate_names())
-        file_destination = os.path.join(temp_dir, temp_name + ".html")
-        address = "file:///" + file_destination.replace("\\", "/")
-        AssetView.write_file(
-            args=(self.article.slug, self.slug, "yes"), path=file_destination
-        )
-        driver = webdriver.Firefox()
-        driver.get(address)
-        elem = driver.find_element_by_id(self.chart.ident)
-        contents = elem.get_attribute("innerHTML")
-        contents = contents.replace('<img src="data:image/png;base64,', "")[:-2]
-        driver.quit()
-        image_output = io.StringIO()
-        # Write decoded image to buffer
-        image_output.write(contents.decode("base64"))
-        image_output.seek(0)  # seek beginning of the image string
-
-        suf = SimpleUploadedFile(
-            "{0}.png".format(self.chart.ident),
-            image_output.read(),
-            content_type="image/png",
-        )
-
-        self.image_chart = suf
-        self.regenerate_image_chart = False
-        self.save()
-
-        os.remove(file_destination)
-
     def add_image(self, file_location):
         """
         add image from file location
@@ -2344,7 +1737,7 @@ class Asset(FlexiBulkModel, HeaderMixin):
         """
         extract content for a html asset
         """
-        with codecs.open(self.location, encoding="utf-8") as f:
+        with open(self.location, encoding="utf-8") as f:
             raw = f.read()
         if "---CODE---" in raw:
             self.content, self.code_content = raw.split("---CODE---")

@@ -3,7 +3,10 @@
 {% load static %}
 {% load compress %}
 
-{% block title_image %}
+{% block title_and_image %}
+{% endblock %}
+
+{% block table_of_contents %}
 {% endblock %}
 
 {% block extra_head %}
@@ -20,14 +23,16 @@
 
 {% block search %}
 
-<div class = "container content-row search-content">
+<div class="content-row search-content">
     <div class="content" >
-    <form>
+    <header class="publication-search-header">
+      <h1 class="publication-search-title">{{article.short_title}}</h1>
+      <a class="publication-search-toc-link" href="{{article.url}}#index">View table of contents</a>
+    </header>
+    <form id="publication-search-form">
 <div class="input-group mb-3">
-      <input name="q" id="tipue_search_input"  autocomplete="off"  type="text" class="form-control" placeholder="Search for..." required>
-  <div class="input-group-append">
-        <button class="btn btn-success" type="submit">Search</button>
-  </div>
+      <input name="q" id="publication-search-input" autocomplete="off" type="text" class="form-control" placeholder="Search for..." required>
+      <button class="btn btn-success" type="submit">Search</button>
 </div>
     </form>
 </div>
@@ -35,9 +40,8 @@
 {% endblock %}
 
 {% block search_results %}
-<div class = "container content-row">
-    <div id="tipue_search_content"></div>
-    <div class="search_credit"><p><i>Search powered by <a href="http://www.tipue.com">Tipue</a>.</p></i></div>
+<div class="content-row">
+    <div class="content" id="publication-search-results"></div>
 </div>
 {% endblock %}
 
@@ -45,28 +49,7 @@
 {% endblock %}
 
 {% block code %}
-
-
-<script type="text/javascript" src="{% static 'js/tipuesearch_set.js' %}" defer></script>
-<script type="text/javascript" src="tipuesearch_content.js" defer></script>
-<script type="text/javascript" src="{% static 'js/tipuesearch.min.js' %}" defer></script>
-
-
-
-<script>
-    window.addEventListener('DOMContentLoaded', function() {
-
-	$('form input').keydown(function (e) {
-		if (e.keyCode == 13) {
-			e.preventDefault();
-			return false;
-		}
-	});
-
-     $('#tipue_search_input').tipuesearch({'showURL':false,
-                                           'showTitleCount':false}
-     );
-});
-</script>
+<script type="text/javascript" src="{% url 'publication_search_content' article.slug %}" defer></script>
+<script type="text/javascript" src="{% static 'js/document_search.js' %}" defer></script>
 
 {% endblock %}

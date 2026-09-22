@@ -3,6 +3,7 @@
 Deep Ink Processor
 classes and object
 """
+
 import markdown
 import math
 import base64
@@ -10,7 +11,7 @@ import hashlib
 import re
 from bs4 import BeautifulSoup, NavigableString
 
-from useful_inkleby.useful_django.serialisers import SerialObject
+from stringprint2.serialization import SerialObject
 from django.utils.html import mark_safe, escape
 import random
 import string
@@ -108,7 +109,7 @@ class Footnote(SerialObject):
 
     def kindle_content(self):
         text = self.content
-        links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
+        links = BeautifulSoup(text, features="html5lib").find_all({"a": True})
         text = text.replace("&", "&amp;")
         if len(links) > 1:
             for l in links:
@@ -221,7 +222,7 @@ class Section(SerialObject):
                     return article.url(anchor)
             else:
                 if article.search:
-                    return "index#" + anchor
+                    return article.url() + "#" + anchor
                 else:
                     return "#" + anchor
 
@@ -488,7 +489,7 @@ class Graf(SerialObject):
                 if self._section._version.article.baking:
                     return "index.html#" + anchor
                 else:
-                    return "./#" + anchor
+                    return self._section._version.article.url() + "#" + anchor
             else:
                 return "#" + anchor
 
@@ -511,29 +512,6 @@ class Graf(SerialObject):
             return "extended-row"
         else:
             return ""
-
-    def anchor_code(self) -> SafeText:
-        """
-        produces the code used to anchor the magic_cite system
-        """
-        properties = {
-            "class": "anchor",
-            "name": self.order,
-            "position_key": self.position_key,
-            "key": self.key,
-            "start_key": self.start_key,
-            "end_key": self.end_key,
-            "parent": self._section.order,
-            "last_title": self.last_title_order,
-            "letter_key": self.letter_key,
-            "tag": self.tag,
-            "para_tag": self.para_tag,
-            "page_tag": self.page_tag,
-        }
-
-        lines = ['{0} = "{1}"'.format(x, y) for x, y in properties.items() if y]
-        code = "<a {0}></a>".format(" ".join(lines))
-        return mark_safe(code)
 
     def social_cite_link(self) -> str:
         return self._article.social_cite_link(self)
@@ -601,7 +579,7 @@ class Graf(SerialObject):
 
     def connect_to_footnote(self, text):
         for l in text.split("\n"):
-            ref = re.search("\[\^[0-9\*]+\]\:", l)
+            ref = re.search(r"\[\^[0-9A-Za-z*_-]+\]\:", l)
             if ref:
                 ref = ref.group()[:-1]
                 note = l[l.find(":") + 1 :].strip()
@@ -644,7 +622,7 @@ class Graf(SerialObject):
 
         if self.h_name == "blockquote":
             self.blockquote = True
-        if re.search("\[\^[0-9\*]+\]\:", text):
+        if re.search(r"\[\^[0-9*]+\]:", text):
             self.connect_to_footnote(text)
             self.html = ""
             self.type = None
@@ -674,22 +652,22 @@ class Graf(SerialObject):
         text = text.replace("%EMPTYHTMLTAG%", '=""')
 
         """ extract any tags """
-        for q in re.findall("\[tag[^\)]*?]", text):
+        for q in re.findall(r"\[tag[^)]*?]", text):
             self.tag = q.replace("[tag:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract any para_tags """
-        for q in re.findall("\[para[^\)]*?]", text):
+        for q in re.findall(r"\[para[^)]*?]", text):
             self.para_tag = q.replace("[para:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract any page_tags """
-        for q in re.findall("\[page[^\)]*?]", text):
+        for q in re.findall(r"\[page[^)]*?]", text):
             self.page_tag = q.replace("[page:", "").replace("]", "")
             text = text.replace(q, "")
 
         """ extract and replace header-assets """
-        for q in re.findall("\[header-asset:[^\)]*]", text):
+        for q in re.findall(r"\[header-asset:[^)]*]", text):
             asset = q.replace("[header-asset:", "").replace("]", "")
             real_asset = article.article.assets.filter(slug=asset)
             print("found header asset {0}".format(asset))
@@ -701,7 +679,7 @@ class Graf(SerialObject):
             text = text.replace(q, "")
 
         """ extract and replace assets """
-        for q in re.findall("\[asset:[^\)]*]", text):
+        for q in re.findall(r"\[asset:[^)]*]", text):
             asset = q.replace("[asset:", "").replace("]", "")
             real_asset = article.article.assets.filter(slug=asset)
             if real_asset.exists():
@@ -716,7 +694,7 @@ class Graf(SerialObject):
         # process footnotes - can't use an iter because amending size as we go
         match = True
         while match:
-            match = re.search("\[\^.*?\]", text)
+            match = re.search(r"\[\^.*?\]", text)
             if match:
                 q = match.group()
                 new_note = Footnote(local_ref=q)
@@ -747,7 +725,7 @@ class Graf(SerialObject):
         render for display
         """
         text = self.html
-        refs = BeautifulSoup(text, "html.parser").findAll({"footref": True})
+        refs = BeautifulSoup(text, "html.parser").find_all({"footref": True})
 
         footnotes = self.footnotes
         footnote_lookup = {x.num: x for x in footnotes}
@@ -800,14 +778,14 @@ class Graf(SerialObject):
 
     def display_kindle(self, remove_links: bool = True) -> SafeText:
         text = self.html
-        links = BeautifulSoup(text, features="html5lib").findAll({"a": True})
+        links = BeautifulSoup(text, features="html5lib").find_all({"a": True})
 
         if remove_links:
             for l in links:
                 if "href" in l and "#tag." not in l["href"]:
                     text = text.replace(str(l), l.text)
 
-        refs = BeautifulSoup(text, features="html5lib").findAll({"footref": True})
+        refs = BeautifulSoup(text, features="html5lib").find_all({"footref": True})
 
         footnotes = self.footnotes
         footnote_lookup = {x.num: x for x in footnotes}
@@ -963,7 +941,7 @@ def process_ink(version: "Version", content: str) -> None:
         "table",
     ]
 
-    lines = BeautifulSoup(processed, features="html5lib").findAll(
+    lines = BeautifulSoup(processed, features="html5lib").find_all(
         {x: True for x in good_to_extract}
     )
 

@@ -9,9 +9,10 @@ from collections import OrderedDict
 from typing import Tuple, List, Optional, Dict
 import html2markdown
 import mammoth
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from ruamel.yaml import YAML
-from useful_inkleby.files import QuickGrid, QuickText
+from stringprint2.table_files import DataTable
+from stringprint2.text_files import TextFile
 from django.utils.text import slugify
 from pathlib import Path
 
@@ -77,10 +78,10 @@ def fix_footnotes(block: str) -> str:
     return "\n".join(final)
 
 
-def fix_markdown(text:str):
+def fix_markdown(text: str):
     """
     There's a big issue where markdown is landing incorrectly.
-    with whitespace inside the markdown. 
+    with whitespace inside the markdown.
     For odd instances of '__', we need to check if it's followed by a whitespace character.
     If so, we need to move the whitespace before it.
     For even instances, we need to make sure it's not preceeded by a whitespace character.
@@ -91,30 +92,32 @@ def fix_markdown(text:str):
     positions = []
     start = 0
     while True:
-        start = text.find('__', start)
-        if start == -1: break
+        start = text.find("__", start)
+        if start == -1:
+            break
         positions.append(start)
         start += 1
 
     # iterate through positions and fix
     for i, pos in enumerate(positions):
-        i = i + 1 # stupid 0 indexing
+        i = i + 1  # stupid 0 indexing
         # if odd
         if i % 2 == 1:
             # check if whitespace after
-            if text[pos+2] == ' ':
+            if pos + 2 < len(text) and text[pos + 2] == " ":
                 # move whitespace before
-                text = text[:pos] + " __" + text[pos+3:]
+                text = text[:pos] + " __" + text[pos + 3 :]
         # if even
         else:
             # check if whitespace before
-            if text[pos-1] == ' ':
+            if pos > 0 and text[pos - 1] == " ":
                 # move whitespace after
-                text = text[:pos-1] + "__ " + text[pos+2:]
+                text = text[: pos - 1] + "__ " + text[pos + 2 :]
 
     return text
 
-def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
+
+def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
     """
     given the results of a mammoth conversion:
     fixes up footnotes
@@ -163,30 +166,30 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
         count += 1
 
     # remove weird TOC links
-    for r in re.findall('<a id="_Toc[\d]*"></a>', text):
+    for r in re.findall(r'<a id="_Toc[\d]*"></a>', text):
         text = text.replace(r, "")
-    for r in re.findall('<a id="_[\d\w]*"></a>', text):
+    for r in re.findall(r'<a id="_[\d\w]*"></a>', text):
         text = text.replace(r, "")
 
     # get correct markdown out of action
-    for r in re.findall("\*\*(.*?)\*\*", text):
+    for r in re.findall(r"\*\*(.*?)\*\*", text):
         if r and r[0] != " " and r[-1] != " ":
             text = text.replace(
                 "**{0}**".format(r), "!!DOUBLE!!{0}!!DOUBLE!!".format(r)
             )
-    for r in re.findall("\*(.*?)\*", text):
+    for r in re.findall(r"\*(.*?)\*", text):
         if r and r[0] != " " and r[-1] != " ":
             text = text.replace("*{0}*".format(r), "!!SINGLE!!{0}!!SINGLE!!".format(r))
 
     patterns = [
-        ("(\*\*(.*?) \*\*)", "**{0}** "),
-        ("(\*\* (.*?)\*\*)", " **{0}**"),
-        ("(\*(.*?) \*)", "*{0}* "),
-        ("(\* (.*?)\*)", " *{0}*"),
-        ("(\_\_(._?) \_\_)", "__{0}__ "),
-        ("(\_\_ (._?)\_\_)", " __{0}__"),
-        ("(\_(._?) \_)", "_{0}_ "),
-        ("(\_ (._?)\_)", " _{0}_"),
+        (r"(\*\*(.*?) \*\*)", "**{0}** "),
+        (r"(\*\* (.*?)\*\*)", " **{0}**"),
+        (r"(\*(.*?) \*)", "*{0}* "),
+        (r"(\* (.*?)\*)", " *{0}*"),
+        (r"(__(.+?) __)", "__{0}__ "),
+        (r"(__ (.+?)__)", " __{0}__"),
+        (r"(_(.+?) _)", "_{0}_ "),
+        (r"(_ (.+?)_)", " _{0}_"),
     ]
     count = 0
     for p, replace in patterns:
@@ -201,7 +204,10 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
     text = text.replace("!!SINGLE!!", "*")
 
     # move any bold away from neighbouring text
-    patterns = [("(\*\*(.+?)\*\*)\w", "**{0}** "), ("\w(\*\*(.+?)\*\*)", " **{0}**")]
+    patterns = [
+        (r"(\*\*(.+?)\*\*)\w", "**{0}** "),
+        (r"\w(\*\*(.+?)\*\*)", " **{0}**"),
+    ]
     for p, replace_format in patterns:
         for full, contents in re.findall(p, text):
             if "*" not in r and len(r) < 15:
@@ -215,7 +221,7 @@ def mammoth_adjust(qt: QuickText, demote: bool = True) -> None:
 
     # another fix to catch instances where things have been grouped wrong
 
-    options = ["(\_{2})(.*)(\_{2})", "(\_{1})(.*)(\_{1})"]
+    options = [r"(_{2})(.*)(_{2})", r"(_{1})(.*)(_{1})"]
     for o in options:
         for r in re.finditer(o, text):
             open_underline, contained, close_underline = r.groups()
@@ -392,7 +398,7 @@ def markdown_table_contents(x, multi_line=False):
 def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = html
 
-    for r in re.findall('<a id="_[\d\w]*"></a>', new_html):
+    for r in re.findall(r'<a id="_[\d\w]*"></a>', new_html):
         new_html = new_html.replace(r, "")
     new_html = new_html.replace("<br />", "<br/>")
 
@@ -404,7 +410,7 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
     new_html = new_html.replace("<tbody>", "")
     new_html = new_html.replace("</tbody>", "")
     soup = BeautifulSoup(new_html, features="html5lib")
-    tables = soup.findAll("table")
+    tables = soup.find_all("table")
     slug_format = "table-asset-{0}"
     table_count = 0
     asset_format = "<p>[asset:{0}]</p>"
@@ -415,7 +421,6 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
         slug = slug_format.format(table_count)
         table_data = []
         markdown_header = []
-        table_original_html = str(table)
         for n, row in enumerate(table.find_all("tr")):
             if n == 0:  # header:
                 table_data.append([td.get_text() for td in row.find_all("td")])
@@ -429,12 +434,12 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
                 table_data.append(
                     [markdown_table_contents(td) for td in row.find_all("td")]
                 )
-        qg = QuickGrid()
+        qg = DataTable()
         qg.header = table_data[0]
         qg.data = table_data[1:]
         di = {
             "content_type": "table",
-            "type": "xls",
+            "type": "xlsx",
             "content": qg,
             "caption": "",
             "slug": slug,
@@ -444,24 +449,23 @@ def get_tables(html: str) -> Tuple[str, List[Dict]]:
                 replacement = "[[\n" + "\n".join(markdown_header[0]) + "\n]]"
                 replacement = replacement.replace("\\[", "[")
                 replacement = replacement.replace("\\]", "]")
-                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-                if table_html not in new_html:
-                    raise ValueError("Table html not found to extract.")
-                new_html = new_html.replace(table_html, replacement)
+                table.replace_with(NavigableString(replacement))
             if len(qg.header) == 2:
                 replacement = "!!BLOCKQUOTE!! **{0}**: {1}".format(*qg.header)
-                table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-                new_html = new_html.replace(table_html, replacement)
+                table.replace_with(NavigableString(replacement))
         else:
             assets.append(di)
-            table_html = str(table).replace("<tbody>", "").replace("</tbody>", "")
-            new_html = new_html.replace(table_html, asset_format.format(slug))
-            # if asset_format.format(slug) not in new_html:
-            #    raise ValueError("Table slug not successfully inserted.")
-    return new_html, assets
+            placeholder = soup.new_tag("p")
+            placeholder.string = f"[asset:{slug}]"
+            table.replace_with(placeholder)
+
+    if soup.body is None:
+        return str(soup), assets
+    converted_html = "".join(str(item) for item in soup.body.contents)
+    return converted_html, assets
 
 
-def get_asset_captions(qt: QuickText) -> None:
+def get_asset_captions(qt: TextFile) -> None:
     """
     if there's an italic line beneath an asset, uses it as a
     """
@@ -486,7 +490,7 @@ def get_asset_captions(qt: QuickText) -> None:
                 last_asset = None
 
 
-def convert_docx(file_path, demote=False) -> QuickText:
+def convert_docx(file_path, demote=False) -> TextFile:
     """
     given a word file as a file object, converts to markdown
     and then does post processing for stringprint specific features
@@ -498,7 +502,7 @@ def convert_docx(file_path, demote=False) -> QuickText:
     html, assets = get_tables(html)
 
     markdown = html2markdown.convert(html)
-    q = QuickText()
+    q = TextFile()
     q.filename = file_path
     q.text = markdown
     q.assets = []
@@ -512,7 +516,7 @@ def convert_docx(file_path, demote=False) -> QuickText:
     return q
 
 
-def extract_assets(q: QuickText) -> None:
+def extract_assets(q: TextFile) -> None:
     folder = os.path.dirname(q.filename)
     asset_folder = os.path.join(folder, "assets")
     if not os.path.exists(asset_folder):
@@ -521,7 +525,7 @@ def extract_assets(q: QuickText) -> None:
     for a in q.assets:
         if a["content_type"] == "table":
             print("table", a["slug"])
-            a["content"].save([asset_folder, a["slug"] + ".xls"])
+            a["content"].save([asset_folder, a["slug"] + ".xlsx"])
         if a["content_type"] == "image":
             print("image", a["slug"])
             image_output = io.BytesIO()

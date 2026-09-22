@@ -32,10 +32,10 @@
 	  {% endblock %}
 	  {% block other_formats %}
 		  <p class="other-formats-text">
-		  Other formats: <a href="{{SITE_ROOT}}plain.html" class="alt_link" type="plain" >Plain text</a>,
+		  Other formats: <a href="{{article.plain_url}}" class="alt_link" type="plain" >Plain text</a>,
 		  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf">PDF</a>,{% endif %}
 		  {% if kindle %}<a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>{% endif %},
-		  <a href="{{SITE_ROOT}}{{article.slug}}.epub"  class="alt_link" type="epub" >EPUB</a>.</p>
+		  {% if article.baking %}<a href="{{article.slug}}.epub" class="alt_link" type="epub">EPUB</a>.{% endif %}</p>
       {% endblock %}
       </div>
 {% endblock %}
@@ -47,12 +47,12 @@
 	{% block search %}
 	{% endblock %}
         <a class="anchor" id="index" name="index"></a> 
-        <div id="index-container" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
+		<div id="index-container" class="index content {% if article.display_toc == False %}hide-index{% endif %}">
 		
 			{% block search_results %}
 			{% endblock %}
 		
-
+			{% block table_of_contents %}
                 <div class="toc_content content_row">
                 <H1 id="toc">Contents</h1>
 				<ul>
@@ -70,11 +70,15 @@
 					{% endif %}
 				{% endfor %}
 				{% endwith %}
-				</div> 
+				</div>
+			{% endblock %}
         </div> 
     {% block content %}
 	<main>
     <div class="content">  
+	<a class="cite-link cite-copy" id="paragraph-cite-link" href="#" title="Get paragraph link" hidden>
+		<i class="icon-link"></i>
+	</a>
 
     {% for s in content.display_sections %}
 		{# iterate through sections #}
@@ -128,12 +132,7 @@
 					{% endif %}
 				</div>
 			{% endif %}
-			<a class="noscript-anchor" name = "{{g.combo_key}}"></a>
-			{% if g.tag %}
-			<a class="noscript-anchor" name = "tag.{{g.tag}}"></a>
-			{% endif %}
-			{{g.anchor_code}}
-			<div class = "content-row {{g.classes}}" id = "r{{g.order}}">
+			<div class="content-row {{g.classes}}" id="{{g.combo_key}}" data-paragraph-order="{{g.order}}" data-section="{{s.order}}"{% if g.tag %} data-paragraph-tag="{{g.tag}}"{% endif %}{% if g.para_tag %} data-display-tag="{{g.para_tag}}"{% endif %}>
 
 					{% if g.start_tag %}
 					<div id="g{{g.order}}" class="{{g.start_tag_class_type}}">
@@ -143,11 +142,6 @@
 					{% endif %}
 					{# blockquotes and notes sections count additional sections of text in the same 'graf' #}
 					{% for p in g.self_and_extras %}
-					{% if forloop.counter == 1 %}
-						<a class="cite-link cite-copy" id="c{{g.order}}" href="{{article|cite_link:g}}" para_tag="{{g.para_tag|empty_if_none}}" title="Get paragraph link" aria-hidden="true" tabindex="-1">
-						<i class="icon-link"></i>
-						</a>
-					{% endif %}
 					<{{p.h_name}} id = "p{{p.order}}" {% if p.custom_classes %} class="{% for p in p.custom_classes%}{{p|safe}} {% endfor %}"{% endif%}>
 								{% if p.asset %}
 									{{article|display_asset:p.asset}}

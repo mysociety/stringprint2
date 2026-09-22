@@ -1,6 +1,6 @@
+from django.core.exceptions import PermissionDenied
 from django.db import models
 
-from useful_inkleby.useful_django.models import FlexiBulkModel
 from django.contrib.auth.models import User
 from stringprint.models import Organisation, Article
 from django.utils.timezone import now
@@ -10,7 +10,7 @@ from django.conf import settings
 from django.urls import reverse
 
 
-class UserSettings(FlexiBulkModel):
+class UserSettings(models.Model):
     user = models.ForeignKey(User, related_name="settings", on_delete=models.CASCADE)
     org = models.ForeignKey(
         Organisation, related_name="user_settings", on_delete=models.CASCADE
@@ -22,10 +22,10 @@ class UserSettings(FlexiBulkModel):
 
     @classmethod
     def get_org(cls, user):
-        if cls.objects.filter(user=user).exists() is False:
-            default = Organisation.objects.all()[0]
-            cls(user=user, org=default).save()
-        return cls.objects.get(user=user).org
+        membership = cls.objects.filter(user=user).select_related("org").first()
+        if membership is None:
+            raise PermissionDenied("No organisation is assigned to this user")
+        return membership.org
 
     @classmethod
     def change_org(cls, user, org):
