@@ -120,3 +120,25 @@ def test_console_module_imports_with_legacy_django_apps_available() -> None:
         capture_output=True,
         text=True,
     )
+
+
+def test_engine_manage_launcher_resolves_the_current_layout(
+    tmp_path: Path, command_environment: tuple[dict[str, str], Path]
+) -> None:
+    """
+    The standalone engine launcher finds manage.py from an unrelated directory.
+    """
+    environment, command_log = command_environment
+    engine = Path(__file__).resolve().parents[2]
+    subprocess.run(
+        [str(engine / "script" / "manage"), "check"],
+        cwd=tmp_path,
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert (
+        command_log.read_text().strip()
+        == f"poetry run python {engine}/stringprint2/manage.py check"
+    )
