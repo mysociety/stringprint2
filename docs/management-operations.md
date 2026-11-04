@@ -37,6 +37,19 @@ The interface supports initial load, process, web/EPUB/Kindle render, archive, a
 
 The browser never accepts arbitrary command names or shell input.
 
+Web rendering generates plain HTML and EPUB independently; `skip_epub: true`
+suppresses automatic EPUB output. MOBI is opt-in and requires an installed Kindle
+generator configured through `KINDLEGEN_LOC` or available as `kindlegen` on PATH.
+An explicit EPUB operation is still available for documents that skip automatic
+EPUB generation. Optional download links reflect files produced by the build.
+
+The original dashboard and browser-upload screens redirect to this interface.
+Source files remain in the document repository; posted uploads to retired screens
+do not create or modify publications. Legacy settings and header-image screens are read-only, with their organisation
+access checks preserved. Edit repository YAML and source images, then reload.
+Archive and publish requests expose optional hero/thumbnail regeneration; those
+steps execute inside the same publication lock as archive creation and publishing.
+
 ## Operation states and recovery
 
 Queued operations move through explicit states:

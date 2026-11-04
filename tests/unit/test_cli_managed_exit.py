@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from stringprint.models import Article
-from stringprint2.__main__ import SPPrompt
+from stringprint2.cli import SPPrompt
 from stringprint2.services.publication_operations import RenderPublicationRequest
 from stringprint2.services.publication_rendering import PublicationRenderFormat
 
@@ -64,7 +64,7 @@ def test_ebook_commands_use_locked_typed_render_operation(
     )
     captured = []
     monkeypatch.setattr(
-        "stringprint2.__main__.run_foreground_publication_operation",
+        "stringprint2.cli.run_foreground_publication_operation",
         lambda request, document, source, destination: captured.append(request),
     )
 
@@ -73,3 +73,33 @@ def test_ebook_commands_use_locked_typed_render_operation(
     assert len(captured) == 1
     assert isinstance(captured[0], RenderPublicationRequest)
     assert captured[0].output_format is expected_format
+
+
+def test_command_failure_stops_supervised_children(monkeypatch):
+    """Noninteractive failure closes the same resources as interactive quit."""
+    import stringprint2.cli as cli
+
+    stopped = []
+
+    class Prompt:
+        intro = "test"
+
+        def __init__(self, **kwargs):
+            self.process_supervisor = SimpleNamespace(
+                stop_all=lambda: stopped.append(True)
+            )
+
+        def do_startserver(self, value):
+            return "started"
+
+        def do_setorg(self, slug):
+            pass
+
+        def onecmd(self, command):
+            raise RuntimeError("operation failed")
+
+    monkeypatch.setattr(cli, "SPPrompt", Prompt)
+    monkeypatch.setattr(cli, "load_org_details", lambda: "default")
+    with pytest.raises(RuntimeError, match="operation failed"):
+        cli.main(["--process"])
+    assert stopped == [True]

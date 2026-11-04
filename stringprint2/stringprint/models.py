@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
+from stringprint2.presentation.navigation import build_table_of_contents
+from stringprint2.presentation.document import DocumentPresentation
 import time
 import sys
 import datetime
@@ -9,16 +12,18 @@ import shutil
 import time
 from collections import OrderedDict
 from pathlib import Path
+from urllib.parse import urljoin
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import markdown
-import tinify
 from stringprint2.charts import Chart
 from stringprint2.configuration import (
     load_assets_config,
     load_organisation_config,
     load_publication_config,
 )
+from stringprint2.configuration.model_values import ConfiguredModelValues
+from stringprint2.services.publication_loading import ARTICLE_FIELDS
 from stringprint2.services import (
     build_asset_import_plan,
     build_publication_load_plan,
@@ -47,15 +52,15 @@ from django.urls import reverse
 from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
-from playwright.sync_api import sync_playwright
 from stringprint2.text_files import TextFile
-from webptools import webplib as webp
+from stringprint2.services.image_derivatives import create_responsive, create_tiny
+from stringprint2.services.paragraph_screenshots import ScreenshotParagraph, export_paragraph_images
 
 from stringprint2.serialization import JsonBlockField
 
-from stringprint.tools.deepink import Graf, Section
+from stringprint2.document_structure import Graf, Section
 
-from .tools.deepink import process_ink
+from stringprint2.services.document_compilation import compile_document
 
 
 class OverwriteStorage(FileSystemStorage):
@@ -78,7 +83,12 @@ def render_article_template(template: str, publication: dict[str, object]) -> st
     return Template(template).render(Context({"article": publication}))
 
 
-class Organisation(models.Model):
+class Organisation(ConfiguredModelValues, models.Model):
+    configuration_fields = frozenset({
+        "name", "twitter", "ga_code", "ga_cookies", "publish_root",
+        "include_favicon", "icon", "default_values", "commands",
+    })
+
     # for twitter card and ciations 'ny times'
     name = models.CharField(max_length=255, blank=True, null=True)
     slug = models.CharField(max_length=255, blank=True, null=True)
@@ -97,10 +107,10 @@ class Organisation(models.Model):
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        make extra values directly accessible from the object
+        Apply explicitly supported legacy configuration field overrides
         """
         super().__init__(*args, **kwargs)
-        self.__dict__.update(self.extra_values)
+        self.apply_configuration_field_overrides()
 
     @property
     def storage_dir(self) -> str:
@@ -148,25 +158,19 @@ class Organisation(models.Model):
             Path(self.storage_dir) / "_conf" / "settings.yaml"
         )
         data = organisation_config.model_dump(exclude_unset=True)
-        ignore = ["orglinks"]
-        change = False
 
         for k in list(self.extra_values.keys()):
             if k not in data:
                 del self.extra_values[k]
 
-        for k, v in data.items():
-            if k not in ignore:
-                if hasattr(self, k):
-                    current = getattr(self, k)
-                    if current != v:
-                        setattr(self, k, v)
-                        change = True
-                else:
-                    current = self.extra_values.get(k)
-                    if current != v:
-                        self.extra_values[k] = v
-                        change = True
+        for name, value in data.items():
+            if name == "orglinks":
+                continue
+            if name in self.configuration_fields:
+                self.extra_values.pop(name, None)
+                setattr(self, name, value)
+            else:
+                self.extra_values[name] = value
 
         self.save()
 
@@ -229,41 +233,9 @@ class OrgLinks(models.Model):
     order = models.IntegerField(default=0)
 
 
-class Chrome(object):
-    """
-    Owns a single headless Playwright browser/page, reused across calls in
-    one process to avoid paying the browser startup cost per paragraph
-    image. Playwright manages its own browser binary (installed via
-    `playwright install chromium`) rather than needing a separately
-    version-matched chromedriver.
-    """
+class Article(ConfiguredModelValues, models.Model):
+    configuration_fields = ARTICLE_FIELDS | {"display_toc", "include_citation"}
 
-    _playwright = None
-    _browser = None
-    page = None
-
-    @classmethod
-    def get_page(cls):
-        if cls.page:
-            return cls.page
-
-        cls._playwright = sync_playwright().start()
-        cls._browser = cls._playwright.chromium.launch()
-        cls.page = cls._browser.new_page()
-        return cls.page
-
-    @classmethod
-    def quit(cls) -> None:
-        if cls._browser:
-            cls._browser.close()
-        if cls._playwright:
-            cls._playwright.stop()
-        cls._playwright = None
-        cls._browser = None
-        cls.page = None
-
-
-class Article(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     subtitle = models.CharField(max_length=255, blank=True, null=True)
     short_title = models.CharField(max_length=255, blank=True, null=True)
@@ -305,10 +277,10 @@ class Article(models.Model):
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        make extra values directly accessible from the object
+        Apply explicitly supported legacy configuration field overrides
         """
         super().__init__(*args, **kwargs)
-        self.__dict__.update(self.extra_values)
+        self.apply_configuration_field_overrides()
 
     @property
     def storage_dir(self):
@@ -378,9 +350,7 @@ class Article(models.Model):
         organisation_config = load_organisation_config(
             Path(self.org.storage_dir) / "_conf" / "settings.yaml"
         )
-        publication_config = load_publication_config(
-            Path(storage_dir) / "settings.yaml", organisation_config
-        )
+        publication_config = load_publication_config(Path(storage_dir) / "settings.yaml")
         plan = build_publication_load_plan(
             publication_config,
             organisation_config,
@@ -394,6 +364,7 @@ class Article(models.Model):
         for assignment in plan.field_assignments:
             setattr(self, assignment.name, assignment.value)
         self.extra_values = plan.extra_values
+        self.apply_configuration_field_overrides()
 
         if plan.header is not None:
             header = plan.header
@@ -468,75 +439,17 @@ class Article(models.Model):
         with open(filename, "wb") as f:
             yaml.dump(output, f)
 
-    def export_paragraph_images(self, folder: str, refresh_all: bool = False) -> None:
-        """
-        exports a folder of images - 1 for each element labeled with the
-        combo key
-        """
-        BAKE_SERVER = "http://127.0.0.1:8000"
-
-        url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
-        url = url + "?id={0}&screenshot=true".format(self.id)
-        c = self.display_content()
-        grafs_to_do = []
-        for g in c.all_grafs():
-            g.destination_location = os.path.join(
-                folder, "{0}.png".format(g.combo_key())
-            )
-            if os.path.exists(g.destination_location) and refresh_all is False:
-                continue
-            if g.plain_txt.strip() == "" or "[asset:" in g.plain_txt.lower():
-                continue
-            grafs_to_do.append(g)
-
-        if len(grafs_to_do) == 0:
-            return None
-
-        page = Chrome.get_page()
-        print(url)
-        # Updated for 1200 x 630 Bluesky/modern social media aspect ratio (1.90:1)
-        page.set_viewport_size({"width": 1200, "height": 800})
-        page.goto(url, timeout=60_000)
-
-        for g in grafs_to_do:
-            print(g.order, g.combo_key())
-            locator = page.locator("#r{0}".format(g.order))
-            if locator.count() == 0:
-                print("skipping - element {0} not found".format(g.order))
-                continue
-            box = locator.bounding_box()
-            if box is None:
-                print("skipping - element {0} not found".format(g.order))
-                continue
-
-            offset = 50
-            left_offset = 30
-            # if g.blockquote:
-            #    left_offset += 30
-
-            page.evaluate("window.scrollTo(0, {0});".format(box["y"] - offset))
-
-            # Updated dimensions for 1200 x 630 aspect ratio for Bluesky social sharing
-            width = 1200
-            height = 630
-            left = box["x"] - left_offset
-            top = offset - 8
-            right = left + 16 + width
-            bottom = top + height
-
-            # Playwright clips and writes the PNG directly - no base64/PIL
-            # round-trip needed, unlike the old full-viewport-screenshot-
-            # then-crop approach.
-            page.screenshot(
-                path=g.destination_location,
-                clip={
-                    "x": left,
-                    "y": top,
-                    "width": right - left,
-                    "height": bottom - top,
-                },
-            )
-        Chrome.quit()
+    def export_paragraph_images(
+        self, folder: str, refresh_all: bool = False, *,
+        preview_origin: str = "http://127.0.0.1:8000",
+    ) -> None:
+        url = urljoin(preview_origin, reverse("article_view", args=(self.slug,)))
+        url += f"?id={self.id}&screenshot=true"
+        paragraphs = tuple(
+            ScreenshotParagraph(order=g.order, key=g.combo_key(), text=g.plain_txt)
+            for g in self.display_content().all_grafs()
+        )
+        export_paragraph_images(url, paragraphs, Path(folder), refresh=refresh_all)
 
     def reprocessing(self):
         return self.needs_processing or self.reprocess_source
@@ -613,24 +526,6 @@ class Article(models.Model):
         for h in self.images.filter(queue_tiny=True):
             h.create_tiny()
         self.images.filter(queue_tiny=True).update(queue_tiny=False)
-
-    def authenticate(self, user, access):
-        """
-        is the current user allowed to use this article?
-        """
-        if user.is_staff:
-            return True
-
-        access = Access.objects.get_or_none(user=user, article=self)
-        if access is None:
-            return False
-
-        if access.is_valid() is False:
-            return False
-
-        access.use_access()
-
-        return access
 
     def get_book_cover(self, path: str) -> None:
         if os.path.exists(path):
@@ -770,8 +665,9 @@ class Article(models.Model):
         destination: Path,
         url: str | None = None,
         plain: bool = True,
-        kindle: bool = True,
+        kindle: bool = False,
         refresh_all: bool = False,
+        epub: bool = True,
     ) -> WebRenderResult:
         """
         Render this publication as a self-contained static website.
@@ -783,6 +679,7 @@ class Article(models.Model):
             url=url,
             plain=plain,
             kindle=kindle,
+            epub=epub,
             refresh_all=refresh_all,
         )
 
@@ -877,28 +774,24 @@ class Article(models.Model):
         """
         creates the section and graf structure from raw markup
         """
-        self.content().process()
+        self.ensure_content().process()
         self.needs_processing = False
         self.save()
 
     def content(self) -> Version:
-        """
-        retrieve current version of content
-        """
-        q = Version.objects.filter(article=self, number=self.current_version)
-        # error handling
-        if q.count() > 1:
-            print("deleting previous")
-            q.delete()
+        """Read the current version without creating or repairing stored content.
 
-        if not q.exists():
-            print("creating new content")
-            v = Version.objects.get_or_create(
-                article=self, number=self.current_version
-            )[0]
-        else:
-            v = q[0]
-        return v
+        Missing or duplicate versions are errors: readers must never silently
+        create content or discard conflicting versions.
+        """
+        return Version.objects.get(article=self, number=self.current_version)
+
+    def ensure_content(self) -> Version:
+        """Create a current version explicitly when loading or processing source."""
+        version, _ = Version.objects.get_or_create(
+            article=self, number=self.current_version
+        )
+        return version
 
     def display_content(
         self, slugs: List[Any] = [], display_first_section: bool = False
@@ -916,7 +809,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        load_publication_source(self.content(), Path(self.file_source))
+        load_publication_source(self.ensure_content(), Path(self.file_source))
 
     def title_image(self) -> Optional[HeaderImage]:
         """
@@ -1079,123 +972,13 @@ class HeaderMixin(object):
         yield self.image.name
 
     def create_tiny(self) -> None:
-        """
-
-        Passes up to tinyimg to reduce.
-        """
-
-        tinify.key = settings.TINY_PNG_KEY
-
-        if hasattr(self, "image_vertical") and self.image_vertical:
-            images = (
-                (self.image_vertical, [768]),
-                (self.image, [992, 1200, 1440, 1920]),
-            )
-        else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
-        for i_file, res in images:
-            for width in res:
-                file_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
-                tiny_name = settings.MEDIA_ROOT + self.get_tiny_responsive_image_name(
-                    width
-                )
-                if settings.TINY_PNG_KEY:
-                    print("reducing using tinify")
-                    source = tinify.from_file(str(file_name))
-                    source.to_file(tiny_name)
-                else:
-                    # boring and simply reduction of file if not
-                    # using tinify
-                    print("using native to reduce")
-                    img = Image.open(file_name)
-                    img.save(tiny_name, optimize=True, quality=95)
+        create_tiny(self, Path(settings.MEDIA_ROOT), settings.TINY_PNG_KEY)
 
     def create_responsive(self, ignore_first: bool = True) -> None:
-        """
-        creates the different sized versions of the header image.
-
-        If vertical image will make the smaller one mirror that.
-
-        Passes up to tinyimg to reduce.
-        """
-
-        if hasattr(self, "image_vertical") and self.image_vertical:
-            images = (
-                (self.image_vertical, [768]),
-                (self.image, [992, 1200, 1440, 1920]),
-            )
-        else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
-
-        pos = 0
-        web_p_files = []
-        for i_file, res in images:
-            print("creating responsive versions")
-            image = Image.open(i_file)
-            o_width, o_height = image.size
-            print(self.image.path)
-            print(f"original width {o_width}, height {o_height}")
-
-            size_adjustment = {}
-            column_size = {}
-            if isinstance(self, Asset):
-                size_adjustment = {1920: -2, 1440: 2, 1200: 2, 992: 2, 768: 12}
-                column_size = {1920: 970 * (5 / 6), 1440: 970 * (5 / 6)}
-            for width in res:
-                pos += 1
-                # if display is being scaled down, reduce size of image
-                new_width = width
-                if (pos > 1 or ignore_first is False) and self.size != -1:
-                    if width in column_size:
-                        new_width = column_size[width]
-                        print(f"forcing use of {new_width}")
-                    else:
-                        relative_size = self.size + size_adjustment.get(
-                            width, 0
-                        )  # in twelves
-                        if relative_size > 12:
-                            relative_size = 12
-                        new_width = (float(new_width) / 12) * relative_size
-                    print(
-                        f"size={self.size},relative_size={relative_size},new_width={new_width} "
-                    )
-
-                    if new_width == 960:  # minor adaption so can appear full screen
-                        new_width = 970
-                    print("resizing to {0}".format(new_width))
-                new_height = round(new_width * (float(o_height) / o_width))
-                thumbnail = image.copy()
-                print(f"{new_width=}, {o_width=}, {new_height=}")
-                if new_width < o_width and new_width > 1 and new_height > 1:
-                    thumbnail.thumbnail((new_width, new_height), Image.BICUBIC)
-                else:
-                    print("new size is larger than original, not downsizing")
-                new_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
-                print("saving as {0}".format(new_name))
-                if os.path.exists(new_name):
-                    print("deleting")
-                    os.remove(new_name)
-                thumbnail.save(new_name)
-                webp_name = os.path.splitext(new_name)[0] + ".webp"
-                web_p_files.append([i_file.path, webp_name, new_width, new_height])
-            if os.path.exists(i_file.path) is False:
-                image.save(i_file.path)
-            for source_name, dest, new_width, new_height in web_p_files:
-                if os.path.exists(dest):
-                    print("deleting")
-                    os.remove(dest)
-                print("creating webp")
-                result = webp.cwebp(
-                    source_name,
-                    dest,
-                    f"-lossless -q 100 -resize {new_width} {new_height}",
-                )
-                if os.path.exists(dest) is False:
-                    print(result)
-                    raise ValueError(
-                        f"Webp {dest} not created, with settings:"
-                        + f"-lossless -q 100 -resize {new_width} {new_height}"
-                    )
+        create_responsive(
+            self, Path(settings.MEDIA_ROOT),
+            is_asset=isinstance(self, Asset), ignore_first=ignore_first,
+        )
 
 
 class HeaderImage(models.Model, HeaderMixin):
@@ -1278,17 +1061,10 @@ class Version(models.Model):
         construct a self.sections connected to the content
         """
 
-        for s in self.sections:
-            s._version = self
-            if s.anchor() in slugs or slugs == []:
-                s.active_section = True
-            else:
-                s.active_section = False
-            if display_first_section:
-                if s.order == 1:
-                    s.active_section = True
-                else:
-                    s.active_section = False
+        presentation = DocumentPresentation.for_version(
+            self, slugs, display_first_section=display_first_section
+        )
+        self.sections = presentation.sections
 
     def used_assets(self) -> List[Any]:
         """
@@ -1305,167 +1081,8 @@ class Version(models.Model):
                 yield s
 
     def toc(self, levels=None):
-        """
-        return a set of links for the different parts
-        """
-
-        class Link(object):
-            def __init__(self, **kwargs):
-                self.id = 0
-                self.order = 0
-                self.anchor = ""
-                self.nav_url = ""
-                self.name = ""
-                self.level = 1
-                self.__dict__.update(kwargs)
-                self._toc = None
-
-            @property
-            def collection(self):
-                return self._toc.items
-
-            def future(self):
-                if self.order + 1 < len(self.collection):
-                    return self.collection[self.order + 1]
-                return None
-
-            def future_level_difference(self):
-                f = self.future()
-                if not f:
-                    return 0
-                return f.level - self.level
-
-            def has_children(self):
-                f = self.future()
-                if not f:
-                    return False
-                else:
-                    return f.level > self.level
-
-            def caret_title(self):
-                """
-                splits title into layers based on words
-                to stop very long horizontal titles in submenus
-                """
-
-                def character_group(v):
-                    limit = 35
-                    words = v.split(" ")
-                    groups = []
-                    current = []
-                    count = 0
-                    for w in words:
-                        count += len(w)
-                        current.append(w)
-                        if count > limit:
-                            groups.append(" ".join(current))
-                            current = []
-                            count = 0
-                    if current:  # final set
-                        groups.append(" ".join(current))
-
-                    return "<br>".join(groups)
-
-                return mark_safe(character_group(self.name))
-
-            def children(self):
-                future = self._toc.items[self.order + 1 :]
-                children = []
-                for i in future:
-                    if i.level == self.level:
-                        break
-                    if i.level == self.level + 1:
-                        children.append(i)
-                return children
-
-        class Toc(object):
-            def __init__(self):
-                self.items = []
-
-            def final_level(self):
-                return self.items[-1].level
-
-            def final_level_range(self):
-                return range(0, self.final_level())
-
-            def final_level_range_left_open(self, offset=1):
-                item = 0
-                for i in self.items[::-1]:
-                    if i.level in [1, 2]:
-                        item = i.level
-                        break
-                return range(0, item - offset)
-
-            def final_level_range_left_open_minus_one(self):
-                return self.final_level_range_left_open(2)
-
-            def add(self, **kwargs):
-                item = Link(**kwargs)
-                item.order = len(self.items)
-                item._toc = self
-                self.items.append(item)
-
-            def top_two_levels(self):
-                items = []
-                for i in self.items:
-                    if i.level in [1, 2]:
-                        items.append(i)
-
-                for l in range(0, len(items)):
-                    current = items[l]
-                    current_level = current.level
-                    if l < len(items) - 1:
-                        next = items[l + 1]
-                        next_level = next.level
-                    else:
-                        next_level = 0
-                    current.reduced_diff = next_level - current_level
-                    yield current
-
-            def __iter__(self):
-                for i in self.items:
-                    yield i
-
-            def level_1(self):
-                """
-                get just top level (sections)
-                """
-                for s in self:
-                    if s.level == 1:
-                        yield s
-
-        toc = Toc()
-
-        stand_in_introduction = "Introduction"
-
-        for s in self.sections:
-            if s.name == stand_in_introduction:
-                stand_in_introduction = "Summary"
-                break
-
-        for s in self.sections:
-            if s.has_grafs():
-                name = s.name
-                if s.order == 1 and not name:
-                    name = stand_in_introduction
-                if name:
-                    toc.add(
-                        name=name,
-                        anchor=s.anchor(),
-                        nav_url=s.nav_url(),
-                        id=s.order,
-                        level=1,
-                    )
-                for g in s.get_grafs():
-                    if g.title:
-                        toc.add(
-                            name=g.title,
-                            anchor=g.anchor(),
-                            nav_url=g.nav_url(),
-                            id=g.order,
-                            level=g.header_level,
-                        )
-        return toc
+        """Build template navigation from the displayed sections."""
+        return build_table_of_contents(self.sections)
 
     def anchors(self) -> Iterator[Dict[str, Union[str, int]]]:
         """
@@ -1639,10 +1256,16 @@ class Version(models.Model):
         """
         creates the section and graf structure from raw markup
         """
-        self.article.assets.all().update(active=False)
         if not self.raw:
             self.load_from_file()
-        process_ink(self, self.raw)
+        compiled = compile_document(
+            self.raw, seed=self.article.seed,
+            assets=dict(self.article.assets.values_list("slug", "id")),
+        )
+        self.sections = list(compiled.sections)
+        self.has_notes = compiled.has_notes
+        self.article.assets.all().update(active=False)
+        self.article.assets.filter(id__in=compiled.used_asset_ids).update(active=True)
         self.update_paragraph_links()
         first_section = "start"
         if self.sections:

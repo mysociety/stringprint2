@@ -2,7 +2,7 @@
 
 from django.db import migrations
 import stringprint2.charts.fields
-import useful_inkleby.useful_django.fields.serial
+import stringprint2.serialization
 
 
 class Migration(migrations.Migration):
@@ -15,12 +15,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='article',
             name='commands',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='article',
             name='extra_values',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='asset',
@@ -30,26 +30,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='asset',
             name='extra_values',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='headerimage',
             name='extra_values',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='organisation',
             name='commands',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='organisation',
             name='default_values',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
         migrations.AlterField(
             model_name='organisation',
             name='extra_values',
-            field=useful_inkleby.useful_django.fields.serial.JsonBlockField(default=dict),
+            field=stringprint2.serialization.JsonBlockField(default=dict),
         ),
     ]

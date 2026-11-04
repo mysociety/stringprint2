@@ -320,7 +320,6 @@ def mammoth_adjust(qt: TextFile, demote: bool = True) -> None:
         if "!!!footnote!!!" in l_line:
             footnote_count += 1
             new_line = line.replace("!!!FOOTNOTE!!!", "")
-            new_line = remove_supports(new_line)
             new_line = fix_url(new_line)
             line.update(new_line)
         if line and line[0] == "-" and prev and prev.strip()[0] != "-":
@@ -361,15 +360,6 @@ def fix_header(line: str) -> str:
     if text and text == text.upper():
         text = text[0] + text[1:].lower()
     return "{0} {1}".format(level, text)
-
-
-def remove_supports(t):
-    return t
-    for x in range(0, 100):
-        t = t.replace("footnote-{0}".format(x), "")
-    t = t.replace('<li id=""><p>', "")
-    t = t.replace("</p></li>", "")
-    return t
 
 
 def markdown_table_contents(x, multi_line=False):

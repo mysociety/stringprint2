@@ -66,7 +66,7 @@ def validate_document_source(source: Path) -> ValidationReport:
     organisation_path = source / "_conf" / "settings.yaml"
 
     try:
-        organisation = load_organisation_config(organisation_path)
+        load_organisation_config(organisation_path)
     except ConfigurationError as error:
         return ValidationReport(source=source, issues=[issue_from_error(error)])
 
@@ -74,7 +74,7 @@ def validate_document_source(source: Path) -> ValidationReport:
     asset_manifest_count = 0
     for document_path in sorted((source / "_docs").glob("*/settings.yaml")):
         try:
-            load_publication_config(document_path, organisation)
+            load_publication_config(document_path)
             publication_count += 1
         except ConfigurationError as error:
             issues.append(issue_from_error(error))

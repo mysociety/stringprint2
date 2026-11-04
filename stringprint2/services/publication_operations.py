@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal, NamedTuple, Protocol, TypeAlias
+from typing import Annotated, Literal, NamedTuple, Protocol, TypeAlias, assert_never
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from stringprint2.services.publication_archiving import render_publication_archive
+from stringprint2.services.publication_archiving import (
+    prepare_archive_media,
+    render_publication_archive,
+)
 from stringprint2.services.publication_rendering import (
     PublicationRenderFormat,
     RenderablePublication,
@@ -122,6 +124,8 @@ class ArchivePublicationRequest(BaseModel):
     organisation_slug: str
     publication_slug: str
     refresh: bool = False
+    prepare_hero: bool = False
+    prepare_thumbnail: bool = False
 
 
 class PublishPublicationRequest(BaseModel):
@@ -136,6 +140,8 @@ class PublishPublicationRequest(BaseModel):
     publication_slug: str
     render_archive: bool = True
     refresh: bool = False
+    prepare_hero: bool = False
+    prepare_thumbnail: bool = False
 
 
 PublicationOperationRequest: TypeAlias = Annotated[
@@ -210,19 +216,13 @@ PublicationOperationResult: TypeAlias = (
     | ArchivePublicationResult
     | PublishPublicationResult
 )
-PublicationOperationHandler: TypeAlias = Callable[
-    [PublicationOperationRequest, PublicationOperationContext],
-    PublicationOperationResult,
-]
 
 
 def run_load_operation(
-    request: PublicationOperationRequest,
+    request: LoadPublicationRequest,
     context: PublicationOperationContext,
-) -> PublicationOperationResult:
+) -> LoadPublicationResult:
     """Execute a validated publication-loading request."""
-    if not isinstance(request, LoadPublicationRequest):
-        raise TypeError("The load handler requires a load request")
     context.progress.update(PublicationOperationStage.LOADING, request.publication_slug)
     result = load_publication(
         context.publication,
@@ -233,12 +233,10 @@ def run_load_operation(
 
 
 def run_process_operation(
-    request: PublicationOperationRequest,
+    request: ProcessPublicationRequest,
     context: PublicationOperationContext,
-) -> PublicationOperationResult:
+) -> ProcessPublicationResult:
     """Execute a validated publication-processing request."""
-    if not isinstance(request, ProcessPublicationRequest):
-        raise TypeError("The process handler requires a process request")
     context.progress.update(
         PublicationOperationStage.PROCESSING, request.publication_slug
     )
@@ -252,12 +250,10 @@ def run_process_operation(
 
 
 def run_render_operation(
-    request: PublicationOperationRequest,
+    request: RenderPublicationRequest,
     context: PublicationOperationContext,
-) -> PublicationOperationResult:
+) -> RenderPublicationResult:
     """Execute a validated publication-rendering request."""
-    if not isinstance(request, RenderPublicationRequest):
-        raise TypeError("The render handler requires a render request")
     context.progress.update(
         PublicationOperationStage.RENDERING, request.output_format.value
     )
@@ -274,43 +270,44 @@ def run_render_operation(
 
 
 def run_archive_operation(
-    request: PublicationOperationRequest,
+    request: ArchivePublicationRequest,
     context: PublicationOperationContext,
-) -> PublicationOperationResult:
+) -> ArchivePublicationResult:
     """Execute a validated publication archive request."""
-    if not isinstance(request, ArchivePublicationRequest):
-        raise TypeError("The archive handler requires an archive request")
+    return ArchivePublicationResult(location=_prepare_and_archive(request, context))
+
+
+def _prepare_and_archive(
+    request: ArchivePublicationRequest | PublishPublicationRequest,
+    context: PublicationOperationContext,
+) -> Path:
+    """Prepare requested media and build the shared web archive."""
     context.progress.update(
         PublicationOperationStage.ARCHIVING, request.publication_slug
     )
-    result = render_publication_archive(
+    prepare_archive_media(
+        context.source_folder,
+        request.publication_slug,
+        hero=request.prepare_hero,
+        thumbnail=request.prepare_thumbnail,
+    )
+    archive = render_publication_archive(
         context.publication,
         context.source_folder,
         request.publication_slug,
         refresh=request.refresh,
     )
-    return ArchivePublicationResult(location=result.location.with_suffix(".zip"))
+    return archive.location.with_suffix(".zip")
 
 
 def run_publish_operation(
-    request: PublicationOperationRequest,
+    request: PublishPublicationRequest,
     context: PublicationOperationContext,
-) -> PublicationOperationResult:
+) -> PublishPublicationResult:
     """Execute the fixed configured publish workflow."""
-    if not isinstance(request, PublishPublicationRequest):
-        raise TypeError("The publish handler requires a publish request")
     archive_location = None
     if request.render_archive:
-        context.progress.update(
-            PublicationOperationStage.ARCHIVING, request.publication_slug
-        )
-        archive = render_publication_archive(
-            context.publication,
-            context.source_folder,
-            request.publication_slug,
-            refresh=request.refresh,
-        )
-        archive_location = archive.location.with_suffix(".zip")
+        archive_location = _prepare_and_archive(request, context)
     context.progress.update(
         PublicationOperationStage.PUBLISHING, request.publication_slug
     )
@@ -325,58 +322,9 @@ def run_publish_operation(
     )
 
 
-class PublicationOperationRegistry:
-    """Resolve the fixed set of publication operations to typed handlers."""
-
-    def __init__(self) -> None:
-        self.handlers: dict[PublicationOperationName, PublicationOperationHandler] = {}
-
-    def register(
-        self,
-        name: PublicationOperationName,
-        handler: PublicationOperationHandler,
-    ) -> None:
-        """Register one explicitly supported operation handler."""
-        if name in self.handlers:
-            raise ValueError(f"Operation already registered: {name}")
-        self.handlers[name] = handler
-
-    def execute(
-        self,
-        request: PublicationOperationRequest,
-        context: PublicationOperationContext,
-    ) -> PublicationOperationResult:
-        """Execute a request and report its stable lifecycle stages."""
-        handler = self.handlers.get(request.operation)
-        if handler is None:
-            raise ValueError(f"Unsupported publication operation: {request.operation}")
-        context.progress.update(
-            PublicationOperationStage.STARTING, request.publication_slug
-        )
-        result = handler(request, context)
-        context.progress.update(
-            PublicationOperationStage.COMPLETE, request.publication_slug
-        )
-        return result
-
-
-def create_publication_operation_registry() -> PublicationOperationRegistry:
-    """Build the standard operation registry used by delivery interfaces."""
-    registry = PublicationOperationRegistry()
-    registry.register(PublicationOperationName.LOAD, run_load_operation)
-    registry.register(PublicationOperationName.PROCESS, run_process_operation)
-    registry.register(PublicationOperationName.RENDER, run_render_operation)
-    registry.register(PublicationOperationName.ARCHIVE, run_archive_operation)
-    registry.register(PublicationOperationName.PUBLISH, run_publish_operation)
-    return registry
-
-
 def validate_publication_operation(value: object) -> PublicationOperationRequest:
     """Validate serialized input as one supported operation request."""
     return TypeAdapter(PublicationOperationRequest).validate_python(value)
-
-
-publication_operation_registry = create_publication_operation_registry()
 
 
 def run_publication_operation(
@@ -386,11 +334,31 @@ def run_publication_operation(
     publish_folder: Path,
     progress: ProgressReporter | None = None,
 ) -> PublicationOperationResult:
-    """Execute one publication operation through the standard registry."""
+    """Execute one of the supported operations and report its lifecycle."""
     context = PublicationOperationContext(
         publication=publication,
         source_folder=source_folder,
         publish_folder=publish_folder,
         progress=progress or NullProgressReporter(),
     )
-    return publication_operation_registry.execute(request, context)
+    context.progress.update(
+        PublicationOperationStage.STARTING, request.publication_slug
+    )
+    result: PublicationOperationResult
+    match request:
+        case LoadPublicationRequest():
+            result = run_load_operation(request, context)
+        case ProcessPublicationRequest():
+            result = run_process_operation(request, context)
+        case RenderPublicationRequest():
+            result = run_render_operation(request, context)
+        case ArchivePublicationRequest():
+            result = run_archive_operation(request, context)
+        case PublishPublicationRequest():
+            result = run_publish_operation(request, context)
+        case _:
+            assert_never(request)
+    context.progress.update(
+        PublicationOperationStage.COMPLETE, request.publication_slug
+    )
+    return result

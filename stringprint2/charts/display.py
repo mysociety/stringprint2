@@ -196,9 +196,9 @@ class Chart(SerialObject):
             ]
             rows.append(row)
 
-            if no_header:
-                rows.insert(0, header)
-                header = []
+        if no_header:
+            rows.insert(0, header)
+            header = []
 
         context = {"header": header, "rows": rows, "caption": caption}
 

@@ -7,44 +7,106 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from django.utils.html import mark_safe
 from django.core.cache import cache
-from charts import ChartCollection
+from stringprint2.charts import ChartCollection
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.template import Template, Context
-from django.dispatch import receiver
-from compressor.signals import post_compress
 
 
 from .models import Article, Asset
-from stringprint2.view_framework import StringprintView
+from django.views import View
+from copy import copy
+from stringprint2.services.render_context import PublicationRenderContext
 from django.core.handlers.wsgi import WSGIRequest
-from stringprint.models import Article, Version
-from stringprint.tools.deepink import Section
+from stringprint2.stringprint.models import Article, Version
+from stringprint2.document_structure import Section
 from stringprint2.services.paragraph_links import paragraph_compatibility_map
 from typing import Any, Dict, List, Type, Union
+from collections.abc import Callable
 
 
-@receiver(post_compress)
-def compression_callback(
-    sender: Any, type: str, mode: str, context: Dict[str, Any], **kwargs
-) -> None:
-    """
-    Logs files compressed back into the article object
-    this lets the rendering process capture and move them
-    """
-    article = context["article"]
-    if hasattr(article, "compressed_files") is False:
-        article.compressed_files = []
-    article.compressed_files.append(context["compressed"]["url"])
+class PublicationView(View):
+    """Normal Django dispatch with explicit context and a detached presentation snapshot."""
+
+    template = ""
+    publication = None
+    redirect_target = None
+    render_context = None
+    search = False
+    share_image = ""
+    share_site_name = ""
+    share_image_alt = ""
+    share_description = ""
+    share_title = ""
+    share_twitter = ""
+    share_url = ""
+    twitter_share_image = ""
+    page_title = ""
+
+    @classmethod
+    def as_view(
+        cls, decorators: bool = True, **kwargs: Any
+    ) -> Callable[..., HttpResponse]:
+        return super().as_view(**kwargs)
+
+    def get(self, request, *args, **kwargs):
+        result = self.view(request, *args, **kwargs)
+        if isinstance(result, dict):
+            return self.context_to_html(request, self.extra_params(result))
+        return result
+
+    def get_article(self, request, article_slug):
+        persisted = (
+            self.publication
+            if self.publication is not None
+            else Article.objects.get(slug=article_slug)
+        )
+        # Legacy templates still call Article helpers. Their transient attributes
+        # belong exclusively to this page's snapshot, never the persisted instance.
+        article = copy(persisted)
+        options = self.render_context or PublicationRenderContext()
+        article.baking = options.baking
+        article.search = self.search
+        article.paywall = False
+        return article
+
+    def extra_params(self, context):
+        context.setdefault("SITE_ROOT", settings.SITE_ROOT)
+        context.update(
+            (self.render_context or PublicationRenderContext()).template_values()
+        )
+        context["social_settings"] = self.social_settings(context)
+        context["page_title"] = self.render_setting(self.page_title, context)
+        return context
+
+    def render_setting(self, value, context):
+        return Template(value).render(Context(context))
+
+    def social_settings(self, context):
+        return {
+            key: self.render_setting(value, context)
+            for key, value in {
+                "share_site_name": self.share_site_name,
+                "share_image": self.share_image,
+                "twitter_share_image": self.twitter_share_image or self.share_image,
+                "share_image_alt": self.share_image_alt,
+                "share_description": self.share_description,
+                "share_title": self.share_title,
+                "url": self.share_url,
+            }.items()
+        }
+
+    def context_to_html(self, request, context):
+        return render(request, self.template, context=context)
 
 
-class AssetView(StringprintView):
+class AssetView(PublicationView):
     template = "ink//asset.html"
     url_patterns = [r"^asset/(.*)/(.*)/(.*)/", r"^asset/(.*)/(.*)/"]
     url_name = "asset_view"
 
     def view(self, request, article_slug, slug, static=None):
-        from charts import ChartCollection, Chart
+        from stringprint2.charts import ChartCollection, Chart
 
         a = Asset.objects.get(article__slug=article_slug, slug=slug)
 
@@ -60,7 +122,7 @@ class AssetView(StringprintView):
         return {"asset": a, "chart_collection": c}
 
 
-class HomeView(StringprintView):
+class HomeView(PublicationView):
     share_image = settings.SHARE_IMAGE
     twitter_share_image = settings.TWITTER_SHARE_IMAGE
     share_description = settings.SITE_DESCRIPTION
@@ -88,16 +150,6 @@ class KindleView(HomeView):
     url_name = "kindle_view"
     require_staff = False
     txt_mode = "kindle"
-    article_settings_override = {"baking": False, "search": False}
-
-    def get_article(self, request: WSGIRequest, article_slug: str) -> Article:
-        a = Article.objects.get(slug=article_slug)
-        """
-        lets the bake view interact with the settings for the article
-        """
-        if self.__class__.article_settings_override:
-            a.__dict__.update(self.__class__.article_settings_override)
-        return a
 
     def restrict(self, sections: List[Section], code: str) -> List[Section]:
         if code:
@@ -140,16 +192,9 @@ class TOCView(HomeView):
     url_patterns = [r"^([A-Za-z0-9_-]+)/tocjson"]
     url_name = "json_toc_view"
     require_staff = True
-    article_settings_override = {"search": False}
-
-    def get_article(self, request, article_slug):
-        return Article.objects.get(slug=article_slug)
 
     def view(self, request, article_slug, paragraph_code=""):
         a = self.get_article(request, article_slug)
-
-        if self.__class__.article_settings_override:
-            a.__dict__.update(self.__class__.article_settings_override)
 
         c = a.display_content()
 
@@ -179,6 +224,8 @@ class TOCView(HomeView):
 
 
 class SearchView(HomeView):
+    search = True
+
     """
     Render the publication search page.
     """
@@ -186,15 +233,9 @@ class SearchView(HomeView):
     template = "ink//search.html"
     url_patterns = [r"^([A-Za-z0-9_-]+)/search"]
     url_name = "publication_search"
-    article_settings_override = {"baking": False, "search": True}
-
-    def get_article(self, request, article_slug):
-        return Article.objects.get(slug=article_slug)
 
     def view(self, request, article_slug, paragraph_code=""):
         a = self.get_article(request, article_slug)
-        if self.__class__.article_settings_override:
-            a.__dict__.update(self.__class__.article_settings_override)
         c = a.display_content()
 
         for s in c.sections:
@@ -294,12 +335,9 @@ class ArticleView(HomeView):
     share_site_name = "{{article.org.name}}"
     page_title = "{{article.title}}"
     share_url = "{{article.social_url}}"
-    article_settings_override = {"baking": False, "search": False}
 
     def extra_params(self, context):
         params = super(ArticleView, self).extra_params(context)
-        if hasattr(settings, "SITE_ROOT"):
-            params["SITE_ROOT"] = settings.SITE_ROOT
         extra = {
             "social_settings": self.social_settings(params),
             "page_title": self._page_title(params),
@@ -340,17 +378,12 @@ class ArticleView(HomeView):
 
         return di
 
-    def get_article(self, request, article_slug):
-        return Article.objects.get(slug=article_slug)
-
     def view(self, request, article_slug, section_slug=""):
         a = self.get_article(request, article_slug)
         self.article = a
         """
         lets the bake view interact with the settings for the article
         """
-        if self.__class__.article_settings_override:
-            a.__dict__.update(self.__class__.article_settings_override)
 
         """
         move these along if we're not loading over multiple pages
@@ -448,16 +481,18 @@ class RedirectLink(HomeView):
     twitter_share_image = "{{SITE_ROOT}}{{article.get_share_image}}"
     share_twitter = "{{article.org.twitter}}"
 
-    article_settings_override = {"baking": False, "search": False}
-
     def load_article(self, request, article_slug, paragraph_code):
-        self.article = Article.objects.get(slug=article_slug)
-        if self.__class__.article_settings_override:
-            self.article.__dict__.update(self.__class__.article_settings_override)
+        self.article = self.get_article(request, article_slug)
+        if self.redirect_target is not None:
+            self.content, self.graf, self.paragraph_tag = self.redirect_target
+            if self.graf:
+                self.graf._article = self.article
+            return
         self.content = self.article.display_content()
         graf, section = self.content.get_paragraph(paragraph_code)
-        graf._section = section
-        graf._article = self.article
+        if graf:
+            graf._section = section
+            graf._article = self.article
         self.paragraph_tag = None
         self.graf = graf
 

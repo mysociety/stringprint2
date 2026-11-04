@@ -1,18 +1,18 @@
 <div class="collapse navbar-collapse" id="admin-navbar">
     <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}"><span class="fa fa-dashboard" aria-hidden="true"></span> Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-tasks" aria-hidden="true"></span> Publications</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operations</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'document.list' %}"><span class="fa fa-list" aria-hidden="true"></span> Documents</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'org.settings' %}"><span class="fa fa-building" aria-hidden="true"></span> Organisation</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:publication_list' %}">Publications</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'publication_management:operation_list' %}">Operations</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'document.list' %}">Documents</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'org.settings' %}">Organisation</a></li>
         {% if article %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'article.settings' article.id %}"><span class="fa fa-sliders" aria-hidden="true"></span> Document settings</a></li>
-        <li class="nav-item"><a class="nav-link" target="_blank" rel="noopener" href="{% url 'article_view' article.slug %}"><span class="fa fa-external-link" aria-hidden="true"></span> Preview</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'article.settings' article.id %}">Document settings</a></li>
+        <li class="nav-item"><a class="nav-link" target="_blank" rel="noopener" href="{% url 'article_view' article.slug %}">Preview</a></li>
         {% endif %}
     </ul>
     <ul class="navbar-nav ms-auto align-items-lg-center">
-        {% if request.user.is_authenticated %}<li class="nav-item"><span class="navbar-text"><span class="fa fa-user" aria-hidden="true"></span> {{ request.user.get_username }}</span></li>{% endif %}
-        {% if request.user.is_staff %}<li class="nav-item"><a class="nav-link" href="/admin/"><span class="fa fa-wrench" aria-hidden="true"></span> Django admin</a></li>{% endif %}
-        {% if request.user.is_authenticated %}<li class="nav-item"><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-link nav-link" type="submit"><span class="fa fa-sign-out" aria-hidden="true"></span> Sign out</button></form></li>{% endif %}
+        {% if request.user.is_authenticated %}<li class="nav-item"><span class="navbar-text">{{ request.user.get_username }}</span></li>{% endif %}
+        {% if request.user.is_staff %}<li class="nav-item"><a class="nav-link" href="/admin/">Django admin</a></li>{% endif %}
+        {% if request.user.is_authenticated %}<li class="nav-item"><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-link nav-link" type="submit">Sign out</button></form></li>{% endif %}
     </ul>
 </div>

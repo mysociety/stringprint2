@@ -52,18 +52,13 @@ def build_publication_dashboard(
         latest_operations.setdefault(operation.publication_slug, operation)
 
     entries = []
-    organisation_config = load_organisation_config(
-        Path(organisation.storage_dir, "_conf", "settings.yaml")
-    )
+    load_organisation_config(Path(organisation.storage_dir, "_conf", "settings.yaml"))
     for source in catalog.entries:
         article = articles.get(source.slug)
         latest = latest_operations.get(source.slug)
         configuration_error = ""
         try:
-            load_publication_config(
-                source.folder / "settings.yaml",
-                organisation_config,
-            )
+            load_publication_config(source.folder / "settings.yaml")
         except (OSError, RuntimeError, ValueError) as error:
             configuration_error = str(error)
         entries.append(

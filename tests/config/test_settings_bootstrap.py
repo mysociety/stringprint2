@@ -55,22 +55,11 @@ def test_static_root_points_at_the_session_directory() -> None:
     )
 
 
-def test_static_root_still_carries_the_real_hand_authored_assets() -> None:
-    """
-    CompressorFinder and StaticPrecompilerFinder are both BaseStorageFinders
-    rooted at COMPRESS_ROOT/STATIC_ROOT - that is how a git-tracked file like
-    stringprint2/static/css/fa_reduced.css gets found by finders.find() even
-    though it is nowhere in STATICFILES_DIRS. Article.render depends on
-    finding files like this one (models.py's `files` list in `render`), so
-    the session's isolated STATIC_ROOT has to start as a copy of the real
-    tree, not an empty directory - this caught a real regression the first
-    time the isolation was added.
-    """
+def test_authored_assets_are_separate_from_build_outputs() -> None:
     from django.contrib.staticfiles import finders
-
-    assert finders.find("css/fa_reduced.css") == str(
-        STATIC_ROOT / "css" / "fa_reduced.css"
-    )
+    from stringprint_test_env import REAL_STATIC_ROOT
+    assert finders.find("css/fa_reduced.css") == str(REAL_STATIC_ROOT / "css" / "fa_reduced.css")
+    assert not (STATIC_ROOT / "css" / "fa_reduced.css").exists()
 
 
 def test_org_static_dir_is_derived_from_storage_dir() -> None:

@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import fitz
-from stringprint.models import Article
-from stringprint.tools.word_convert import convert_word
+from stringprint2.stringprint.models import Article
+from stringprint2.stringprint.tools.word_convert import convert_word
 from stringprint2.text_files import TextFile
 
 from .google_download import GoogleDownloader
@@ -79,51 +79,6 @@ class SectionDelete(SectionActionBase):
             raise ValueError("'{self.section}' not in section list.")
 
         order.pop(order.index(self.section))
-        new_lines = []
-        for s in order:
-            new_lines.extend(sections[s])
-
-        return TextFile("\n".join(new_lines))
-
-
-@dataclass
-class SectionMove(SectionActionBase):
-    """
-    Swap sections around in the document
-    """
-
-    section: str
-    to_delete: Optional[str] = None
-    after: Optional[str] = None
-
-    def __post_init__(self):
-        if self.before is None and self.after is None:
-            raise ValueError("SectionMove requires 'before' or 'after' parameter")
-
-    def process_text(self, qt: TextFile) -> TextFile:
-        """
-        Swap sections around in document
-        """
-        sections, order = self.get_sections_order(qt)
-
-        if self.section not in order:
-            raise ValueError("'{self.section}' not in section list.")
-
-        if self.before and self.before not in order:
-            raise ValueError("'{self.before}' not in section list.")
-
-        if self.after and self.after not in order:
-            raise ValueError("'{self.after}' not in section list.")
-
-        order.pop(self.section)
-
-        if self.before:
-            pos = order.index(self.before)
-        if self.after:
-            pos = order.index(self.after) + 1
-
-        order.insert(pos, self.section)
-
         new_lines = []
         for s in order:
             new_lines.extend(sections[s])

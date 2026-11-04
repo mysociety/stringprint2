@@ -2,10 +2,7 @@
 
 
 from django.db import migrations, models
-import frontend.models
-import useful_inkleby.useful_django.models.mixins
-
-
+import stringprint2.frontend.models
 class Migration(migrations.Migration):
     dependencies = [
         ("stringprint", "0013_auto_20160829_1340"),
@@ -37,7 +34,7 @@ class Migration(migrations.Migration):
                     "file",
                     models.FileField(
                         null=True,
-                        upload_to=frontend.models.org_download_path,
+                        upload_to=stringprint2.frontend.models.org_download_path,
                         blank=True,
                     ),
                 ),
@@ -58,7 +55,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
     ]

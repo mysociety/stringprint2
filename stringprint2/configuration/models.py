@@ -8,7 +8,7 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
 
 class ConfigurationModel(BaseModel):
@@ -27,6 +27,11 @@ class RepositoryOrganisationConfig(ConfigurationModel):
     storage_dir: Path
     publish_dir: Path | None = None
 
+    @field_validator("publish_dir", mode="before")
+    @classmethod
+    def empty_publish_directory(cls, value: object) -> object:
+        return None if value == "" else value
+
 
 class RepositoryConfig(ConfigurationModel):
     """
@@ -39,7 +44,9 @@ class RepositoryConfig(ConfigurationModel):
     secret_key: str = Field(alias="SECRET_KEY")
     tiny_png_key: str = Field(default="", alias="TINY_PNG_KEY")
     media_root: Path | None = Field(default=None, alias="MEDIA_ROOT")
-    organisations: dict[str, RepositoryOrganisationConfig] = Field(alias="ORGS")
+    organisations: dict[str, RepositoryOrganisationConfig] = Field(
+        alias="ORGS", min_length=1
+    )
 
 
 class OrganisationLinkConfig(ConfigurationModel):

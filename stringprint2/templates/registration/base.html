@@ -10,7 +10,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
     {% block title %}
-    <title>{{SITE_NAME}}</title>
+    <title>{{ SITE_NAME }}</title>
     {% endblock %}
 
     <link href="{% static 'css/bootstrap5.min.css' %}" rel="stylesheet">
@@ -19,7 +19,6 @@
 
 
 
-    <link href="{% static 'css/font-awesome.min.css' %}" rel="stylesheet" type="text/css">
 
 
 
@@ -29,7 +28,7 @@
 
 
             <div class="container">
-            <h1 style="text-align:center">{{SITE_NAME}}</h1>
+            <h1 style="text-align:center">{{ SITE_NAME }}</h1>
             {% block content %}
             {% endblock %}
             </div>

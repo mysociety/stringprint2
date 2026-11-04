@@ -1,7 +1,7 @@
 {% extends 'frontend/base.html' %}
 {% load extra_tags %}
     {% block title %}
-    <title>{{SITE_NAME}} - Headers</title>
+    <title>{{ SITE_NAME }} - Headers</title>
     {% endblock %}
 
 {% block content %}
@@ -9,11 +9,11 @@
 <div class="row">
     <div class="col-lg-12">
         <h2 class="page-header">
-            Modify Document Header Image
+            Document Header Image
         </h2>
         <ol class="breadcrumb">
             <li>
-                <i class="fa fa-dashboard"></i> {{article.title}}
+                {{ article.title }}
             </li>
             <li class="active">
                 Header
@@ -25,14 +25,7 @@
         {% if message %}
         {% alert message %}
         {% endif %}
-        <form method="post" action="" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class = "row">
-            <div class = "col-md-6">
-                <h3>Set Title Image</h3>
-                {% include "frontend/bootstrap_form.html" with form=form only %}
-            </div>
-        </div>
-        <input type="submit" class="btn btn-success btn-lg" value="{{submit_text}}">
-        </form>
+        <p>Header images are authored in the document repository. Edit the header entry in settings.yaml, then load the configuration with header refresh enabled.</p>
+        {% if header.image %}<img class="img-fluid" src="{{ header.image.url }}" alt="{{ header.image_alt|default:'' }}">{% else %}<p>No header image is loaded.</p>{% endif %}
+
 {% endblock %}

@@ -6,8 +6,8 @@ server the CLI spawns on 127.0.0.1:8000. Chrome.get_page is the only place
 the page is built, so replacing it lets the surrounding logic run for real:
 the skip filters, the scroll, the crop arithmetic and the output filenames.
 
-The BAKE_SERVER address is a local inside the method, so there is no seam for
-pointing it at a live_server; a real end-to-end run is out of scope here.
+The preview origin is explicit. A real export is also exercised by the
+publication browser suite against live_server.
 """
 
 from __future__ import annotations
@@ -60,6 +60,7 @@ class TestImageExport:
         kitchen_sink.export_paragraph_images(str(folder))
         assert "screenshot=true" in fake_chrome.requested_url
         assert "127.0.0.1:8000" in fake_chrome.requested_url
+        assert "/preview/kitchen-sink/" in fake_chrome.requested_url
 
     def test_the_window_is_sized_for_the_card(
         self, kitchen_sink, fake_chrome, folder
@@ -105,13 +106,12 @@ class TestSkipRules:
     def test_a_missing_element_is_skipped_rather_than_fatal(
         self, kitchen_sink, monkeypatch, folder
     ) -> None:
-        from stringprint.models import Chrome
+        from contextlib import nullcontext
         from tests.conftest import FakeDriver
 
         first_graf = kitchen_sink.content().sections[0].grafs[0]
         driver = FakeDriver(missing_orders=[first_graf.order])
-        monkeypatch.setattr(Chrome, "page", None)
-        monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
+        monkeypatch.setattr("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver))
 
         kitchen_sink.export_paragraph_images(str(folder))
 

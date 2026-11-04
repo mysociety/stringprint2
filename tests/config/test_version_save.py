@@ -20,7 +20,7 @@ def article(org, doc_folder) -> Article:
 
 
 class TestContent:
-    def test_content_creates_a_version(self, article: Article) -> None:
+    def test_source_loading_creates_a_version(self, article: Article) -> None:
         version = article.content()
         assert isinstance(version, Version)
         assert version.article_id == article.pk

@@ -2,22 +2,22 @@
 Article.render - the in-process bake that produces the published site.
 
 Marked external: this is the only part of the suite that shells out to sass
-and npx postcss, because Article.render reads self.compressed_files, which is
-only populated by django-compressor's post_compress signal.
+and PostCSS from the locked toolchain. The per-build render context collects
+compressed asset dependencies from the publication compression tag.
 
-kindle=False throughout: kindlegen is not available and create_kindle is out
-of scope. Article.render defaults kindle=True, so this is not optional.
+Web baking generates EPUB independently and leaves Kindle generation opt-in.
 """
 
 from __future__ import annotations
 
 import contextlib
-import shutil
 from pathlib import Path
 
 import pytest
+from stringprint2.services.frontend_tools import frontend_tool
 
-from stringprint.models import Chrome
+from contextlib import nullcontext
+from unittest.mock import patch
 from tests.conftest import FakeDriver
 
 pytestmark = [
@@ -26,8 +26,8 @@ pytestmark = [
     pytest.mark.slow,
     pytest.mark.needs_sass,
     pytest.mark.skipif(
-        shutil.which("sass") is None or shutil.which("npx") is None,
-        reason="needs sass and npx on PATH",
+        not Path(frontend_tool("sass")).is_file() or not Path(frontend_tool("postcss")).is_file(),
+        reason="needs the locked frontend toolchain (npm ci)",
     ),
 ]
 
@@ -37,11 +37,8 @@ def compression_enabled():
     """
     Turn the real asset pipeline on for the duration of a bake.
 
-    The output roots are deliberately left alone. django-compressor serves the
-    app's own css and js out of COMPRESS_ROOT, which is the tracked
-    stringprint2/static directory, so repointing it would make those files
-    unfindable. Its build outputs go to static/CACHE and static/COMPILED,
-    both of which are gitignored - the same places a normal run writes them.
+    Test settings isolate generated output while the static finder reads checked-in
+    assets from static_sources. This context enables real compilation only.
 
     static_precompiler snapshots its configuration into module globals at
     import time, so its Django setting cannot be changed at runtime; the module
@@ -49,47 +46,28 @@ def compression_enabled():
     makes that work.
     """
     import static_precompiler.settings
-    from django.conf import settings
 
-    names = [
-        "COMPRESS_ENABLED",
-        "MEDIA_URL",
-        "MEDIA_ROOT",
-        "STATIC_URL",
-        "COMPRESS_URL",
-        "SITE_ROOT",
-        "DEBUG",
-    ]
-    saved = {name: getattr(settings, name) for name in names}
     saved_auto_compile = static_precompiler.settings.DISABLE_AUTO_COMPILE
-
-    settings.COMPRESS_ENABLED = True
     static_precompiler.settings.DISABLE_AUTO_COMPILE = False
     try:
         yield
     finally:
-        for name, value in saved.items():
-            setattr(settings, name, value)
         static_precompiler.settings.DISABLE_AUTO_COMPILE = saved_auto_compile
 
 
 def bake(article, destination: Path) -> Path:
-    # compressed_files accumulates across renders, and render() strips the
-    # COMPRESS_URL prefix from every entry each time - so a second render over
-    # the same instance would strip already-stripped names and lose the files.
-    article.compressed_files = []
-    was_baking = getattr(article, "baking", False)
-    try:
-        with compression_enabled():
-            # no url argument: render() would otherwise overwrite
-            # production_url on the article and save it, which leaks onto the
-            # shared session fixture. The CLI does not pass one either.
-            article.render(destination, kindle=False)
-    finally:
-        # render() sets baking on the instance and never clears it. It is not a
-        # model field, so nothing else puts it back, and it silently changes
-        # what url() and social_url() return for every later test.
-        article.baking = was_baking
+    """
+    Bake with real compilation and assert that caller state is unchanged.
+    """
+    from django.conf import settings
+
+    names = ("SITE_ROOT", "DEBUG", "COMPRESS_ENABLED", "STATIC_URL", "MEDIA_URL")
+    saved = {name: getattr(settings, name) for name in names}
+    original = vars(article).copy()
+    with compression_enabled():
+        article.render(destination)
+    assert {name: getattr(settings, name) for name in names} == saved
+    assert vars(article) == original
     return destination
 
 
@@ -101,15 +79,9 @@ def baked(tmp_path_factory, django_db_blocker, request) -> Path:
     """
     article = request.getfixturevalue("kitchen_sink")
     driver = FakeDriver()
-    Chrome.page = None
-    original = Chrome.get_page
-    Chrome.get_page = classmethod(lambda cls: driver)
-    try:
+    with patch("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver)):
         with django_db_blocker.unblock():
             return bake(article, tmp_path_factory.mktemp("bake") / "baked")
-    finally:
-        Chrome.get_page = original
-        Chrome.page = None
 
 
 class TestOutputFiles:
@@ -122,6 +94,7 @@ class TestOutputFiles:
             "toc.json",
             "search_content.js",
             "paragraph_map.json",
+            "kitchen-sink.epub",
         ],
     )
     def test_the_expected_page_is_written(self, baked: Path, name: str) -> None:
@@ -167,9 +140,8 @@ class TestBakedContent:
     def test_compressed_css_is_emitted_and_copied(
         self, baked: Path, kitchen_sink
     ) -> None:
-        assert kitchen_sink.compressed_files, "post_compress signal never fired"
-        for name in kitchen_sink.compressed_files:
-            assert (baked / "static" / name).exists(), name
+        assert list((baked / "static" / "CACHE").rglob("*.css"))
+        assert list((baked / "static" / "CACHE").rglob("*.js"))
 
 
 class TestMultipageBake:
@@ -183,21 +155,79 @@ class TestMultipageBake:
             if section.order == 1:
                 continue
             assert (destination / "{0}.html".format(section.anchor())).exists()
+        assert not (destination / "multipage-doc.epub").exists()
+        assert 'type="epub"' not in (destination / "index.html").read_text()
 
 
-class TestSettingsRestoration:
-    def test_settings_are_restored_after_a_bake(self, baked) -> None:
+class TestRenderIsolation:
+    def test_failed_bake_leaves_settings_and_publication_unchanged(
+        self, kitchen_sink, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """
-        Article.render sets SITE_ROOT, DEBUG and COMPRESS_ENABLED on the
-        settings module and never puts them back. compression_enabled and
-        the autouse fixture in tests/conftest.py between them undo that -
-        this checks the undoing actually happens, so neither is quietly
-        dropped.
+        A failing build cannot change settings used by a live preview request.
         """
-        from django.conf import settings as live
+        from django.conf import settings
+        from stringprint2.services import web_rendering
 
-        assert live.SITE_ROOT != "https://example.invalid/html/kitchen-sink/"
-        assert live.COMPRESS_ENABLED is False
+        names = ("SITE_ROOT", "DEBUG", "COMPRESS_ENABLED", "STATIC_URL")
+        saved = {name: getattr(settings, name) for name in names}
+        original = vars(kitchen_sink).copy()
+
+        def fail(*args, **kwargs):
+            assert {name: getattr(settings, name) for name in names} == saved
+            raise RuntimeError("failed midway")
+
+        monkeypatch.setattr(web_rendering, "write_baked_file", fail)
+        monkeypatch.setattr(
+            type(kitchen_sink), "export_paragraph_images", lambda *args, **kwargs: None
+        )
+        with pytest.raises(RuntimeError, match="failed midway"):
+            kitchen_sink.render(tmp_path / "failed", epub=False)
+        assert {name: getattr(settings, name) for name in names} == saved
+        assert vars(kitchen_sink) == original
+
+    def test_default_bake_advertises_only_generated_downloads(
+        self, baked: Path
+    ) -> None:
+        """
+        EPUB is available independently of the unconfigured Kindle generator.
+        """
+        page = (baked / "index.html").read_text()
+        assert 'type="epub"' in page
+        assert 'type="kindle"' not in page
+        assert not (baked / "kitchen-sink.mobi").exists()
+
+    def test_repeated_bakes_do_not_reuse_compressed_file_state(
+        self, kitchen_sink, tmp_path: Path, fake_chrome
+    ) -> None:
+        """
+        Consecutive renders of one instance collect complete fresh asset lists.
+        """
+        bake(kitchen_sink, tmp_path / "first")
+        bake(kitchen_sink, tmp_path / "second")
+        assert list((tmp_path / "second" / "static" / "CACHE").rglob("*.css"))
+
+    def test_kindle_can_be_requested_without_epub_or_plain_text(
+        self, kitchen_sink, tmp_path: Path, fake_chrome, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        Each alternate output controls its own generated file and download link.
+        """
+
+        def generate(publication, destination: Path, use_temp: bool = False):
+            (destination / f"{publication.slug}.mobi").write_bytes(b"mobi")
+
+        monkeypatch.setattr(type(kitchen_sink), "create_kindle", generate)
+        destination = tmp_path / "kindle-only"
+        with compression_enabled():
+            kitchen_sink.render(destination, kindle=True, epub=False, plain=False)
+        page = (destination / "index.html").read_text()
+        assert 'type="kindle"' in page
+        assert 'type="epub"' not in page
+        assert 'type="plain"' not in page
+        assert (destination / "kitchen-sink.mobi").exists()
+        assert not (destination / "kitchen-sink.epub").exists()
+        assert not (destination / "plain.html").exists()
 
 
 class TestBootstrap5PublicationOutput:
@@ -231,9 +261,7 @@ class TestBootstrap5PublicationOutput:
         kitchen_sink,
     ) -> None:
         stylesheets = [
-            (baked / "static" / name).read_text()
-            for name in kitchen_sink.compressed_files
-            if name.endswith(".css")
+            name.read_text() for name in (baked / "static" / "CACHE").rglob("*.css")
         ]
         css = "\n".join(stylesheets)
 

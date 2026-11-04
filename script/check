@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+ENGINE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ENGINE_ROOT"
+poetry run ruff check .
+poetry run mypy
+poetry run pytest "$@"
+npm run check

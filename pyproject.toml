@@ -5,21 +5,18 @@ description = "Document publishing package"
 authors = ["Alex Parsons <alex.parsons@mysociety.org>"]
 
 [tool.poetry.scripts]
+stringprint = "stringprint2.__main__:main"
+stringprint-manage = "stringprint2.bootstrap:management_main"
 stringprint-validate = "stringprint2.configuration.cli:main"
 stringprint-migrate-tables = "stringprint2.configuration.table_migration_cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.14"
-flake8 = ">=3.8.3"
 Django = "5.2.17"
 Markdown = ">=2.6.8"
 Pillow = ">=8.3.2"
-argparse = ">=1.2.1"
 csscompressor = ">=0.9.4"
 django-autoslug = ">=1.9.3"
-django-markitup = ">=3.0.0"
-django-pipeline = ">=1.6.11"
-libsass = ">=0.12.3"
 olefile = ">=0.44"
 six = ">=1.10.0"
 django-import-export = ">=2.0.2,<3.0"
@@ -57,21 +54,70 @@ django-static-precompiler = ">=2.1"
 openpyxl = ">=2.6.4"
 xlrd = ">=1.2.0"
 PyMuPDF = ">=1.18.16"
-black = ">=22.3.0"
-pylint = ">=1.4.0"
 rich = ">=12.0.1"
 cookiecutter = ">=1.7.3"
 google-api-python-client = ">=2.42.0"
 oauth2client = ">=4.1.3"
-django-pipeline-csscompressor = {git = "https://github.com/mysociety/django-pipeline-csscompressor.git"}
 python-unsplash = {git = "https://github.com/ajparsons/python-unsplash.git"}
-# Historical migrations retain a six-file useful_inkleby import shim. Runtime
-# views, serialization, model helpers, and file handling are project-owned.
 pydantic = "^2.12"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4"
 pytest-django = "^4.9"
+ruff = "^0.16.5"
+mypy = "^2.3.1"
+django-stubs = "^6.1.0"
+
+[tool.ruff]
+target-version = "py314"
+extend-exclude = [
+    "stringprint2/static_sources",
+    "stringprint2/vendor",
+    "stringprint2/**/migrations",
+]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.ruff.lint.per-file-ignores]
+"stringprint2/proj/settings.py" = ["F821"]
+"stringprint2/stringprint/models.py" = ["F821"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+mypy_path = "."
+explicit_package_bases = true
+python_version = "3.14"
+strict = true
+show_error_codes = true
+files = [
+    "stringprint2/bootstrap.py",
+    "stringprint2/legacy_imports.py",
+    "stringprint2/charts/chart_config.py",
+    "stringprint2/proj/loaders.py",
+    "stringprint2/serialization.py",
+    "stringprint2/text_files.py",
+    "stringprint2/table_files.py",
+    "stringprint2/media_files.py",
+    "stringprint2/cli_arguments.py",
+    "stringprint2/configuration",
+    "stringprint2/services",
+    "stringprint2/publication_management",
+]
+
+[tool.django-stubs]
+django_settings_module = "stringprint2.proj.test_settings"
+
+[[tool.mypy.overrides]]
+module = ["stringprint2.charts.chart_config"]
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = ["stringprint2.publication_management.apps"]
+ignore_errors = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

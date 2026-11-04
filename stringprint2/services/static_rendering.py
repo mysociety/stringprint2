@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -24,7 +24,9 @@ class StaticView(Protocol):
     """
 
     @classmethod
-    def as_view(cls, decorators: bool = True) -> Callable[..., HttpResponse]:
+    def as_view(
+        cls, decorators: bool = True, **kwargs: Any
+    ) -> Callable[..., HttpResponse]:
         """
         Return a Django-compatible view callable.
         """
@@ -47,12 +49,15 @@ def render_static_view(
     view: type[StaticView],
     target: StaticRenderTarget,
     arguments: Sequence[object],
+    view_options: dict[str, object] | None = None,
 ) -> str:
     """
     Render a view response to text without writing to the filesystem.
     """
     request = RequestFactory().get(target.request_path)
-    content = view.as_view(decorators=False)(request, *arguments).content
+    content = view.as_view(decorators=False, **(view_options or {}))(
+        request, *arguments
+    ).content
     if b"<html" in content and target.minimise:
         content = html_minify(content)
     if isinstance(content, bytes):
@@ -65,11 +70,12 @@ def write_static_view(
     target: StaticRenderTarget,
     arguments: Sequence[object],
     transform: Callable[[str], str] | None = None,
+    view_options: dict[str, object] | None = None,
 ) -> None:
     """
     Render and atomically write one static view target.
     """
-    content = render_static_view(view, target, arguments)
+    content = render_static_view(view, target, arguments, view_options)
     if transform is not None:
         content = transform(content)
 
@@ -94,6 +100,7 @@ def write_baked_file(
     path: Path,
     arguments: Sequence[object],
     destination: Path,
+    view_options: dict[str, object] | None = None,
 ) -> None:
     """
     Render one view through the atomic renderer with relative asset URLs.
@@ -107,4 +114,5 @@ def write_baked_file(
         target,
         arguments,
         transform=lambda content: relativize_static_urls(content, depth),
+        view_options=view_options,
     )

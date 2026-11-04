@@ -5,7 +5,7 @@ Two things routinely catch people out in this codebase:
 
 * Section.nav_url and Graf.display read article.search and article.baking,
   which are not model fields - the views inject them through
-  article_settings_override. A bare Article() has to set them by hand.
+  the per-page render context. A bare Article() has to set them by hand.
 * Section.get_grafs memoises stored_grafs onto the instance, so a test
   asserting on the serialised tree should re-read the Version from the
   database rather than reuse a session-scoped in-memory object.
@@ -48,44 +48,11 @@ def reset_global_state():
     Clear the module-level mutable state that would otherwise leak between
     tests.
 
-    deepink.Footnote keeps note_count and all at class level; process_ink
-    resets the first but never the second, so Footnote.all grows for the life
-    of the process. That matters because connect_to_footnote scans it for an
-    entry with empty content and a matching local_ref, so one document's
-    unresolved footnote can capture a later document's definition.
-
     charts.display.Chart.ident comes from the global random module.
     """
-    from stringprint.models import Chrome
-    from stringprint.tools.deepink import Footnote
 
-    Footnote.note_count = 0
-    Footnote.all = []
     random.seed(0)
     yield
-    Footnote.note_count = 0
-    Footnote.all = []
-    Chrome.page = None
-
-
-@pytest.fixture(autouse=True)
-def restore_mutated_settings():
-    """
-    Article.render() sets these on the settings module and never puts them
-    back, so without this the tests that follow a render see the baked values.
-
-    MEDIA_URL/STATIC_URL/COMPRESS_URL used to be in this list too, but
-    render() no longer touches them - see write_baked_file in models.py.
-    """
-    names = [
-        "SITE_ROOT",
-        "DEBUG",
-        "COMPRESS_ENABLED",
-    ]
-    saved = {name: getattr(settings, name) for name in names}
-    yield
-    for name, value in saved.items():
-        setattr(settings, name, value)
 
 
 @pytest.fixture(scope="session")
@@ -144,14 +111,8 @@ def loaded_articles(org, django_db_blocker, doc_folder) -> Dict[str, Any]:
 @pytest.fixture(scope="session")
 def processed_articles(loaded_articles, django_db_blocker) -> Dict[str, Any]:
     """Every fixture document, processed. See loaded_articles on scoping."""
-    from stringprint.tools.deepink import Footnote
-
     with django_db_blocker.unblock():
         for article in loaded_articles.values():
-            # documents are processed in turn in one go, so the per-test reset
-            # in reset_global_state is not enough on its own here
-            Footnote.note_count = 0
-            Footnote.all = []
             article.process()
     return loaded_articles
 
@@ -207,7 +168,7 @@ class FakeDriver:
     """
     Stands in for a headless Playwright page in export_paragraph_images.
 
-    Chrome.get_page is the only place the real page is built, so replacing
+    paragraph_browser is the only place the real page is built, so replacing
     it lets the surrounding logic - the skip filters, the scroll, the crop
     arithmetic and the output filenames - run for real with no browser and no
     preview server listening on 127.0.0.1:8000.
@@ -227,7 +188,7 @@ class FakeDriver:
         self.requested_url = url
 
     def locator(self, selector):
-        order = int(selector.lstrip("#r"))
+        order = int(selector.split('"')[1])
         return FakeLocator(missing=order in self.missing_orders)
 
     def evaluate(self, script):
@@ -246,10 +207,9 @@ class FakeDriver:
 
 @pytest.fixture
 def fake_chrome(monkeypatch):
-    """Install FakeDriver as the Chrome singleton for the duration of a test."""
-    from stringprint.models import Chrome
+    """Provide a fake page through the scoped browser factory."""
 
     driver = FakeDriver()
-    monkeypatch.setattr(Chrome, "page", None)
-    monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
+    from contextlib import nullcontext
+    monkeypatch.setattr("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver))
     return driver

@@ -8,15 +8,15 @@
 {% block content %}
 <div class="page-header">
     <div class="float-end">
-        <a class="btn btn-outline-secondary" href="{% url 'publication_management:operation_list' %}"><span class="fa fa-history" aria-hidden="true"></span> Operation history</a>
-        <a class="btn btn-outline-secondary" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-book" aria-hidden="true"></span> Publications</a>
+        <a class="btn btn-outline-secondary" href="{% url 'publication_management:operation_list' %}">Operation history</a>
+        <a class="btn btn-outline-secondary" href="{% url 'publication_management:publication_list' %}">Publications</a>
     </div>
     <h1>{{ operation.operation_name|title }} <small>{{ operation.publication_slug }}</small></h1>
 </div>
 
 {% if operation.state == "pending" or operation.state == "running" or operation.state == "cancel_requested" %}
 <div class="alert alert-info" role="status">
-    <span class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+
     This page refreshes every five seconds while the operation is active.
 </div>
 {% endif %}
@@ -43,13 +43,13 @@
             <div class="card-body">
                 {% if operation.state == "pending" or operation.state == "running" %}
                 <form method="post" action="{% url 'publication_management:cancel_operation' operation.pk %}">
-                    {% csrf_token %}<button class="btn btn-danger" type="submit"><span class="fa fa-stop" aria-hidden="true"></span> Cancel operation</button>
+                    {% csrf_token %}<button class="btn btn-danger" type="submit">Cancel operation</button>
                 </form>
                 {% elif operation.state == "cancel_requested" %}
-                <p class="text-info"><span class="fa fa-clock-o" aria-hidden="true"></span> Waiting for the worker to stop safely.</p>
+                <p class="text-info">Waiting for the worker to stop safely.</p>
                 {% elif operation.state == "failed" or operation.state == "interrupted" or operation.state == "cancelled" %}
                 <form method="post" action="{% url 'publication_management:retry_operation' operation.pk %}">
-                    {% csrf_token %}<button class="btn btn-primary" type="submit"><span class="fa fa-repeat" aria-hidden="true"></span> Retry operation</button>
+                    {% csrf_token %}<button class="btn btn-primary" type="submit">Retry operation</button>
                 </form>
                 {% else %}
                 <p class="text-muted">No action is required.</p>

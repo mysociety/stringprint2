@@ -1,44 +1,30 @@
 import os
-import yaml
 from pathlib import Path
-from shutil import copy
+
+from stringprint2.services.frontend_tools import frontend_tool
+from stringprint2.configuration.runtime import load_runtime_config, runtime_config_path
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-# STRINGPRINT_CONFIG points the app at an alternate config file - used by the
-# test suite, and usable by containers. When unset the behaviour is unchanged:
-# the in-tree config.yaml, seeded from config-example.yaml on first run.
 config_override = os.environ.get("STRINGPRINT_CONFIG")
+config_file = runtime_config_path()
+runtime_config = load_runtime_config(config_file)
 
-if config_override:
-    config_file = Path(config_override)
-    if config_file.exists() is False:
-        raise RuntimeError(
-            "STRINGPRINT_CONFIG points at a missing file: {0}".format(config_file)
-        )
-else:
-    config_file = Path(BASE_DIR, "proj", "conf", "config.yaml")
-    template_config_file = Path(BASE_DIR, "proj", "conf", "config-example.yaml")
-
-    if config_file.exists() is False and template_config_file.exists():
-        copy(template_config_file, config_file)
-
-# load settings from config file
-with open(config_file) as fi:
-    config = yaml.load(fi, Loader=yaml.FullLoader)
-
-# if running as a vagrant, need to address through file system
-is_vagrant = os.path.exists("/etc/is_vagrant_vm")
-if is_vagrant:
-    for k, v in config["ORGS"].items():
-        if "storage_dir" in v:
-            v["storage_dir"] = "/sp_" + k + "_storage"
-        if "publish_dir" in v:
-            v["publish_dir"] = "/sp_" + k + "_publish"
-
-# import config settings into module
-for k, v in config.items():
-    vars()[k] = v
+SECRET_KEY = runtime_config.secret_key
+SITE_NAME = runtime_config.site_name
+TINY_PNG_KEY = runtime_config.tiny_png_key
+CHROME_DRIVER = str(runtime_config.chrome_driver or "")
+KINDLEGEN_LOC = str(runtime_config.kindlegen_location or "")
+ORGS = {
+    slug: {
+        "storage_dir": str(organisation.storage_dir),
+        **(
+            {"publish_dir": str(organisation.publish_dir)}
+            if organisation.publish_dir
+            else {}
+        ),
+    }
+    for slug, organisation in runtime_config.organisations.items()
+}
 
 local = "http://127.0.0.1:8000"
 
@@ -54,26 +40,43 @@ PAYPAL_TEST = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 PROJECT_PATH = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-# note: trailing separator is load-bearing - HeaderMixin.create_responsive
-# and create_tiny build paths by string concatenation onto MEDIA_ROOT
-MEDIA_ROOT = config.get("MEDIA_ROOT", PROJECT_PATH + "/media/")
-
-STATIC_ROOT = PROJECT_PATH + "/static/"
+# Keep existing local installations usable; new installs keep writable state
+# alongside their document repository rather than inside site-packages.
+STATE_ROOT = Path(
+    os.environ.get(
+        "STRINGPRINT_STATE_DIR",
+        str(
+            next(iter(runtime_config.organisations.values())).storage_dir
+            / ".stringprint"
+        ),
+    )
+)
+STATE_ROOT.mkdir(parents=True, exist_ok=True)
+legacy_media = Path(PROJECT_PATH) / "media"
+MEDIA_ROOT = (
+    str(
+        runtime_config.media_root
+        or (legacy_media if legacy_media.exists() else STATE_ROOT / "media")
+    )
+    + os.sep
+)
+STATIC_ROOT = str(STATE_ROOT / "static")
 COMPRESS_ROOT = STATIC_ROOT
 
 STATICFILES_DIRS = [
+    PROJECT_PATH + "/static_sources/",
     (PROJECT_PATH + "/web/"),
     ("vendor", PROJECT_PATH + "/vendor/"),
 ]
 
 ORG_TEMPLATE_DIRS = []
 
-for k, v in config["ORGS"].items():
+for k, v in ORGS.items():
     static_path = os.path.join(v["storage_dir"], "_static")
     if os.path.exists(static_path):
         STATICFILES_DIRS.append(("orgs/" + k, static_path))
 
-for k, v in config["ORGS"].items():
+for k, v in ORGS.items():
     static_path = os.path.join(v["storage_dir"], "_templates")
     if os.path.exists(static_path):
         ORG_TEMPLATE_DIRS.append((k + "/templates", static_path))
@@ -86,13 +89,13 @@ TEMPLATES = [
             "debug": DEBUG,
             "loaders": [
                 (
-                    "proj.loaders.NamespaceAwareLoader",
+                    "stringprint2.proj.loaders.NamespaceAwareLoader",
                     ORG_TEMPLATE_DIRS + [PROJECT_PATH + "/templates/"],
                 ),
                 "django.template.loaders.app_directories.Loader",
             ],
             "context_processors": [
-                "proj.universal.universal_context",
+                "stringprint2.proj.universal.universal_context",
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
@@ -116,10 +119,10 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "compressor",
-    "stringprint",
+    "stringprint2.stringprint",
     "import_export",
-    "frontend",
-    "publication_management",
+    "stringprint2.frontend",
+    "stringprint2.publication_management",
     "static_precompiler",
 )
 
@@ -137,9 +140,9 @@ MIDDLEWARE = (
     "htmlmin.middleware.HtmlMinifyMiddleware",
 )
 
-ROOT_URLCONF = "proj.urls"
+ROOT_URLCONF = "stringprint2.proj.urls"
 
-WSGI_APPLICATION = "proj.wsgi.application"
+WSGI_APPLICATION = "stringprint2.proj.wsgi.application"
 
 # CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -165,19 +168,15 @@ else:
         }
     }
 
-if IS_LIVE:
-    DATABASES = LIVE_DATEBASES
-else:
-    if LIVE_TEST:
-        print("Connecting to LIVE Data")
-        DATABASES = LIVE_DATEBASES_REMOTE
-    else:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-            }
-        }
+legacy_database = Path(BASE_DIR) / "db.sqlite3"
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(
+            legacy_database if legacy_database.is_file() else STATE_ROOT / "db.sqlite3"
+        ),
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
@@ -213,7 +212,7 @@ COMPRESS_CSS_FILTERS = [
     "compressor.filters.css_default.CssRelativeFilter",
     #'compressor.filters.css_default.CssAbsoluteFilter',
     #'compressor.filters.cssmin.rCSSMinFilter',
-    "stringprint.compiler.SVGSafeMinify",
+    "stringprint2.stringprint.compiler.SVGSafeMinify",
 ]
 
 
@@ -224,10 +223,10 @@ normal_scss = os.path.join(PROJECT_PATH, "web", "scss")
 
 STATIC_PRECOMPILER_COMPILERS = (
     (
-        "stringprint.compiler.CustomSCSS",
+        "stringprint2.stringprint.compiler.CustomSCSS",
         {
             # ""
-            "executable": "/usr/bin/sass",
+            "executable": frontend_tool("sass"),
             "sourcemap_enabled": False,
             "compass_enabled": False,
             "precision": 2,

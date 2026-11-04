@@ -133,3 +133,20 @@ def render_publication_archive(
         location=archive_destination,
         included_files=included_files,
     )
+
+
+def prepare_archive_media(
+    folder: Path, slug: str, *, hero: bool, thumbnail: bool
+) -> None:
+    """Prepare optional archive media inside the caller's publication lock."""
+    from stringprint2.media_files import create_hero, create_thumbnail, pdf_page_to_png
+
+    if hero:
+        config = validate_config(folder / "settings.yaml", PublicationConfig)
+        if config.header is not None:
+            create_hero(folder / config.header.location, folder / "hero.png")
+    cover = folder / "cover.pdf"
+    if thumbnail and cover.is_file():
+        output = folder / f"{slug}-cover.png"
+        pdf_page_to_png(cover, output)
+        create_thumbnail(output, folder / f"{slug}-thumbnail.png")

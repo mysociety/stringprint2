@@ -1,7 +1,7 @@
 {% extends 'frontend/base.html' %}
 {% load extra_tags %}
     {% block title %}
-    <title>{{SITE_NAME}} - Modify Settings</title>
+    <title>{{ SITE_NAME }} - Modify Settings</title>
     {% endblock %}
 
 {% block content %}
@@ -9,14 +9,14 @@
 <div class="row">
     <div class="col-lg-12">
         <h2 class="page-header">
-            Modify Organisation Settings
+            Organisation Settings
         </h2>
         <ol class="breadcrumb">
             <li>
-                <i class="fa fa-dashboard"></i> Dashboard
+                Dashboard
             </li>
             <li class="active">
-                <i class="fa fa-check-square"></i> Organisation Settings
+                Organisation Settings
             </li>
         </ol>
     </div>
@@ -25,13 +25,11 @@
         {% if message %}
         {% alert message %}
         {% endif %}
-        <form method="post" action="">
-        {% csrf_token %}
-        <div class = "row">
-            <div class = "col-md-6">
-                {% include "frontend/bootstrap_form.html" with form=form only %}
-            </div>
-        </div>
-        <input type="submit" class="btn btn-success btn-lg" value="{{submit_text}}">
-        </form>
+        <p>Settings are authored in the document repository. Edit its settings.yaml file, then load the configuration to preview your changes.</p>
+        <dl>
+        {% for field in form %}
+            <dt>{{ field.label }}</dt><dd>{{ field.value|default_if_none:"—" }}</dd>
+        {% endfor %}
+        </dl>
+
 {% endblock %}

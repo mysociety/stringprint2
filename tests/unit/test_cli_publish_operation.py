@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from stringprint.models import Article
-from stringprint2.__main__ import SPPrompt
+from stringprint2.cli import SPPrompt
 from stringprint2.services.publication_operations import (
     PublishPublicationRequest,
     PublishPublicationResult,
@@ -36,7 +36,7 @@ def test_publish_command_uses_fixed_typed_operation(tmp_path, monkeypatch) -> No
         return PublishPublicationResult(title="Example")
 
     monkeypatch.setattr(
-        "stringprint2.__main__.run_foreground_publication_operation", run
+        "stringprint2.cli.run_foreground_publication_operation", run
     )
 
     prompt.do_publish("no-render-zip")

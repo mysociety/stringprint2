@@ -5,6 +5,7 @@ Resolve and execute configured publication commands.
 from __future__ import annotations
 
 import importlib.util
+import shlex
 import subprocess
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -12,7 +13,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Iterator, Protocol
 
-from django.template import Context, Template
+from django.template import Context, Engine
 from pydantic import BaseModel, ConfigDict
 
 CommandRunner = Callable[[list[str], str], int]
@@ -160,10 +161,15 @@ def run_configured_command(
         return run_module_command(publication, command)
 
     resolved_runner = runner or active_command_runner.get() or run_subprocess_command
-    rendered = Template(command.template).render(
-        Context({"article": dict(template_values)})
+    command_engine = Engine(string_if_invalid="__STRINGPRINT_MISSING_%s__")
+    rendered = command_engine.from_string(command.template).render(
+        Context({"article": dict(template_values)}, autoescape=False)
     )
-    arguments = rendered.split(" ")
+    if "__STRINGPRINT_MISSING_" in rendered:
+        raise ValueError(f"Unresolved template value in command '{name}'")
+    arguments = shlex.split(rendered)
+    if not arguments:
+        raise ValueError(f"Command '{name}' contains no executable")
     return_code = resolved_runner(arguments, str(command.working_directory))
     if return_code != 0:
         raise subprocess.CalledProcessError(return_code, arguments)

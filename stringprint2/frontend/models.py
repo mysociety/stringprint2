@@ -2,7 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import models
 
 from django.contrib.auth.models import User
-from stringprint.models import Organisation, Article
+from stringprint2.stringprint.models import Organisation, Article
 from django.utils.timezone import now
 from django.core.files import File
 import os

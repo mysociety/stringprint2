@@ -16,7 +16,9 @@ RUN apt-get -qq update \
 
 # postcss is a peer dependency of postcss-cli and autoprefixer; without it
 # `npx postcss --use autoprefixer` exits with ERR_MODULE_NOT_FOUND
-RUN npm install -g sass postcss postcss-cli autoprefixer
+COPY package.json package-lock.json /opt/stringprint-frontend/
+RUN npm ci --prefix /opt/stringprint-frontend
+ENV STRINGPRINT_NODE_MODULES=/opt/stringprint-frontend/node_modules
 
 COPY bin/docker-provision script/config/packages /install/
 
@@ -26,7 +28,7 @@ COPY pyproject.toml poetry.loc[k] /
 RUN curl -sSL https://install.python-poetry.org | python - \
       && echo 'export PATH="/root/.local/bin:$PATH"' > ~/.bashrc \
       && poetry config virtualenvs.create false \
-      && poetry install \
+      && poetry install --no-root \
       # the cwebp binary bundled inside the webptools wheel installs without
       # its executable bit; create_responsive raises ValueError otherwise
       && find / -xdev -iname cwebp -exec chmod +x {} \;

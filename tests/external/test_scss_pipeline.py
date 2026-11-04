@@ -7,18 +7,18 @@ here is that the two subprocesses run and produce usable css.
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
+from stringprint2.services.frontend_tools import frontend_tool
 
 pytestmark = [
     pytest.mark.django_db,
     pytest.mark.external,
     pytest.mark.needs_sass,
     pytest.mark.skipif(
-        shutil.which("sass") is None or shutil.which("npx") is None,
-        reason="needs sass and npx on PATH",
+        not Path(frontend_tool("sass")).is_file() or not Path(frontend_tool("postcss")).is_file(),
+        reason="needs the locked frontend toolchain (npm ci)",
     ),
 ]
 
@@ -94,7 +94,7 @@ def test_a_failing_postcss_run_is_reported(monkeypatch, org) -> None:
     real_run_command = utils.run_command
 
     def failing(args, *rest, **kwargs):
-        if args and args[0] == "npx":
+        if args and Path(args[0]).name == "postcss":
             return 1, "", "boom"
         return real_run_command(args, *rest, **kwargs)
 
@@ -125,7 +125,7 @@ def test_default_publication_stylesheet_bootstrap_5_baseline(tmp_path) -> None:
     output = tmp_path / "publication.css"
     status, _, errors = utils.run_command(
         [
-            "/usr/bin/sass",
+            frontend_tool("sass"),
             "--no-source-map",
             "--load-path",
             str(Path(settings.PROJECT_PATH, "vendor", "bootstrap", "scss")),
@@ -195,7 +195,7 @@ def test_publication_theme_variable_apis_compile(
     source.write_text(variables)
     status, _, errors = utils.run_command(
         [
-            "/usr/bin/sass",
+            frontend_tool("sass"),
             "--quiet",
             "--no-source-map",
             "--load-path",

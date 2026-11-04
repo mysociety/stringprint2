@@ -89,7 +89,7 @@ def test_authenticated_layout_uses_responsive_bootstrap_shell() -> None:
     css_path = (
         Path(__file__).resolve().parents[2]
         / "stringprint2"
-        / "static"
+        / "static_sources"
         / "css"
         / "stringprint-front.css"
     )

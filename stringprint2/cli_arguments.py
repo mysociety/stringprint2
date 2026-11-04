@@ -41,7 +41,13 @@ def parse_shell_options(arguments: Sequence[str]) -> ShellOptions:
     commands: list[tuple[str, ...]] = []
     current: list[str] = []
     for token in command_tokens:
-        if token.startswith("--"):
+        if token.startswith("--") and token not in {
+            "--no-preprocess",
+            "--no-refresh",
+            "--no-hero",
+            "--no-thumbnail",
+            "--no-render-zip",
+        }:
             if current:
                 commands.append(tuple(current))
             current = [token.removeprefix("--")]

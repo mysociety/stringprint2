@@ -1,13 +1,8 @@
 #!/bin/sh
 
-default_venv_activate="$(dirname "$0")/../../venv/bin/activate"
-managepy="$(dirname "$0")/../stringprint2/stringprint2/manage.py"
+set -eu
 
-# If we aren’t already in a virtualenv, but there’s a suitable one
-# in ../venv (eg: when we’re running in the Vagrant VM), activate it.
-if [ -z "$VIRTUAL_ENV" ] && [ -e "$default_venv_activate" ]
-then
-    . $default_venv_activate
-fi
+ENGINE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ENGINE_ROOT"
 
-python3 "$managepy" "$@"
+exec poetry run python "$ENGINE_ROOT/stringprint2/manage.py" "$@"

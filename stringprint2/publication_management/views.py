@@ -45,8 +45,8 @@ if TYPE_CHECKING:
     from stringprint2.frontend.models import UserSettings
     from stringprint2.stringprint.models import Article, Organisation
 else:
-    from frontend.models import UserSettings
-    from stringprint.models import Article, Organisation
+    from stringprint2.frontend.models import UserSettings
+    from stringprint2.stringprint.models import Article, Organisation
 
 
 def publication_web_operation_allowed(
@@ -54,6 +54,8 @@ def publication_web_operation_allowed(
     operation_name: str,
 ) -> bool:
     """Require an authored allow-list entry and matching configured command."""
+    if article.org is None:
+        return False
     allowed = article.extra_values.get("web_operations", [])
     if not isinstance(allowed, list) or operation_name not in allowed:
         return False
@@ -70,16 +72,19 @@ def management_not_found(
 
 def organisation_for_request(request: HttpRequest) -> Organisation:
     """Return the user's selected organisation without creating permissions."""
+    user_id = request.user.pk
+    if user_id is None:
+        raise PermissionDenied("Authentication is required")
     membership_manager = cast("Manager[UserSettings]", getattr(UserSettings, "objects"))
     membership = (
         membership_manager.select_related("org")
-        .filter(user=request.user)
+        .filter(user_id=user_id)
         .order_by("pk")
         .first()
     )
-    if membership is None:
+    if membership is None or membership.org is None:
         raise PermissionDenied("No organisation is assigned to this user")
-    return cast("Organisation", membership.org)
+    return membership.org
 
 
 @login_required
@@ -236,6 +241,8 @@ def create_operation(
             organisation_slug=organisation.slug,
             publication_slug=publication_slug,
             refresh=request.POST.get("refresh") == "on",
+            prepare_hero=request.POST.get("prepare_hero") == "on",
+            prepare_thumbnail=request.POST.get("prepare_thumbnail") == "on",
         )
     elif operation_name == "publish":
         assert article is not None
@@ -246,6 +253,8 @@ def create_operation(
             publication_slug=publication_slug,
             render_archive=True,
             refresh=request.POST.get("refresh") == "on",
+            prepare_hero=request.POST.get("prepare_hero") == "on",
+            prepare_thumbnail=request.POST.get("prepare_thumbnail") == "on",
         )
     else:
         return HttpResponseBadRequest("Unsupported publication operation")
