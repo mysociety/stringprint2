@@ -94,6 +94,7 @@ class StringprintView:
     share_url = ""
     twitter_share_image = ""
     page_title = ""
+    render_context: dict[str, object] = {}
 
     request: HttpRequest
     record_context: bool
@@ -207,6 +208,7 @@ class StringprintView:
 
         if hasattr(settings, "SITE_ROOT"):
             context["SITE_ROOT"] = settings.SITE_ROOT
+        context.update(self.render_context)
         context["social_settings"] = self.social_settings(context)
         context["page_title"] = self.render_setting(self.page_title, context)
         return context

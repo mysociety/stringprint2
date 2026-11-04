@@ -82,8 +82,6 @@ def render_kindle_staging(
     )
 
     publication.tinify_headers()
-    settings.STATIC_URL = "./"
-    settings.DEBUG = False
 
     css_directory = staging / "css"
     media_directory = staging / "media"
@@ -116,6 +114,9 @@ def render_kindle_staging(
                 minimise=False,
             ),
             (publication.slug,),
+            transform=lambda content: content.replace(
+                f"{settings.STATIC_URL}css/kindle.css", "css/kindle.css"
+            ),
         )
 
     stylesheet = finders.find("css/kindle.css")
@@ -125,12 +126,15 @@ def render_kindle_staging(
     if publication.book_cover and Path(publication.book_cover.path).exists():
         shutil.copyfile(publication.book_cover.path, staging / "bookcover.jpg")
 
-    return_code = runner(
-        [str(getattr(settings, "KINDLEGEN_LOC", "kindlegen")), str(opf)]
-    )
+    generator = str(getattr(settings, "KINDLEGEN_LOC", "") or "kindlegen")
+    return_code = runner([generator, str(opf)])
     generated_file = staging / f"{publication.slug}.mobi"
     destination_file = destination / generated_file.name
     generated = generated_file.exists()
+    if not generated or return_code not in {0, 1}:
+        raise RuntimeError(
+            f"Kindle generation failed (exit {return_code}): {generator} did not produce a usable MOBI file."
+        )
     if generated and generated_file != destination_file:
         shutil.copyfile(generated_file, destination_file)
     return KindleRenderResult(
@@ -154,6 +158,11 @@ def render_kindle(
     Render a Kindle publication, cleaning temporary staging automatically.
     """
 
+    generator = str(getattr(settings, "KINDLEGEN_LOC", "") or "kindlegen")
+    if runner is None and shutil.which(generator) is None:
+        raise FileNotFoundError(
+            f"Kindle generator '{generator}' is unavailable. Set KINDLEGEN_LOC to an installed generator, or use EPUB instead."
+        )
     destination.mkdir(parents=True, exist_ok=True)
     context = (
         TemporaryDirectory()

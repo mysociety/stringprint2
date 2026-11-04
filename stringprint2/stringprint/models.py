@@ -770,8 +770,9 @@ class Article(models.Model):
         destination: Path,
         url: str | None = None,
         plain: bool = True,
-        kindle: bool = True,
+        kindle: bool = False,
         refresh_all: bool = False,
+        epub: bool = True,
     ) -> WebRenderResult:
         """
         Render this publication as a self-contained static website.
@@ -783,6 +784,7 @@ class Article(models.Model):
             url=url,
             plain=plain,
             kindle=kindle,
+            epub=epub,
             refresh_all=refresh_all,
         )
 

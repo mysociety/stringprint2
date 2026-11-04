@@ -32,10 +32,11 @@
 	  {% endblock %}
 	  {% block other_formats %}
 		  <p class="other-formats-text">
-		  Other formats: <a href="{{article.plain_url}}" class="alt_link" type="plain" >Plain text</a>,
-		  {% if article.pdf_url %} <a href="{{article.pdf_url}}" class="alt_link" type="pdf">PDF</a>,{% endif %}
-		  {% if kindle %}<a href="{{SITE_ROOT}}{{article.slug}}.mobi"  class="alt_link" type="kindle" >Kindle .mobi</a>{% endif %},
-		  {% if article.baking %}<a href="{{article.slug}}.epub" class="alt_link" type="epub">EPUB</a>.{% endif %}</p>
+		  Other formats:
+          {% if not article.baking or plain %}<a href="{{article.plain_url}}" class="alt_link" type="plain">Plain text</a>{% endif %}
+		  {% if article.pdf_url %} · <a href="{{article.pdf_url}}" class="alt_link" type="pdf">PDF</a>{% endif %}
+		  {% if kindle %} · <a href="{{article.slug}}.mobi" class="alt_link" type="kindle">Kindle .mobi</a>{% endif %}
+		  {% if epub %} · <a href="{{article.slug}}.epub" class="alt_link" type="epub">EPUB</a>{% endif %}</p>
       {% endblock %}
       </div>
 {% endblock %}

@@ -5,6 +5,7 @@ Render persisted publications as self-contained static websites.
 from __future__ import annotations
 
 import shutil
+from copy import copy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Protocol
@@ -146,7 +147,8 @@ def render_web_publication_staging(
     *,
     url: str | None = None,
     plain: bool = True,
-    kindle: bool = True,
+    kindle: bool = False,
+    epub: bool = True,
     refresh_all: bool = False,
 ) -> WebRenderResult:
     """
@@ -163,6 +165,8 @@ def render_web_publication_staging(
         TOCView,
     )
 
+    publication = copy(publication)
+    publication.compressed_files = []
     target_url = publication.production_url if url is None else url
     if url is not None and url != publication.production_url:
         publication.production_url = url
@@ -172,9 +176,18 @@ def render_web_publication_staging(
 
     publication.tinify_headers()
     organisation_static = create_web_directories(publication, destination)
-    settings.SITE_ROOT = target_url
-    settings.DEBUG = False
-    settings.COMPRESS_ENABLED = True
+    if kindle:
+        publication.create_kindle(destination, use_temp=True)
+    if epub and not publication.extra_values.get("skip_epub", False):
+        publication.create_ebook(destination)
+    render_context: dict[str, object] = {
+        "SITE_ROOT": target_url,
+        "debug": False,
+        "publication_bake": True,
+        "epub": (destination / f"{publication.slug}.epub").is_file(),
+        "kindle": (destination / f"{publication.slug}.mobi").is_file(),
+        "plain": plain,
+    }
 
     if publication.pdf_file:
         source = (
@@ -262,6 +275,16 @@ def render_web_publication_staging(
             "search": False,
         }
 
+    for view in (
+        BakeArticleView,
+        BakeSearchView,
+        BakeSearchContentView,
+        BakeParagraphMapView,
+        BakeTOCView,
+        BakePlainView,
+    ):
+        view.render_context = render_context
+
     setattr(publication, "baking", True)
     content = publication.display_content()
     grafs = {graf.long_combo_key(): graf for graf in content.all_grafs()}
@@ -290,6 +313,8 @@ def render_web_publication_staging(
                 if self.graf:
                     self.graf._article = current_publication
                 self.paragraph_tag = shorter_link
+
+        BakeRedirectLinkView.render_context = render_context
 
         write_baked_file(
             BakeRedirectLinkView,
@@ -381,9 +406,6 @@ def render_web_publication_staging(
             )
             copied_media_count += 1
 
-    if kindle:
-        publication.create_kindle(destination, use_temp=True)
-        publication.create_ebook(destination)
     return WebRenderResult(
         destination=destination,
         page_count=page_count,
@@ -398,7 +420,8 @@ def render_web_publication(
     *,
     url: str | None = None,
     plain: bool = True,
-    kindle: bool = True,
+    kindle: bool = False,
+    epub: bool = True,
     refresh_all: bool = False,
 ) -> WebRenderResult:
     """
@@ -419,6 +442,7 @@ def render_web_publication(
             url=url,
             plain=plain,
             kindle=kindle,
+            epub=epub,
             refresh_all=refresh_all,
         )
         if destination.exists():

@@ -298,8 +298,6 @@ class ArticleView(HomeView):
 
     def extra_params(self, context):
         params = super(ArticleView, self).extra_params(context)
-        if hasattr(settings, "SITE_ROOT"):
-            params["SITE_ROOT"] = settings.SITE_ROOT
         extra = {
             "social_settings": self.social_settings(params),
             "page_title": self._page_title(params),
