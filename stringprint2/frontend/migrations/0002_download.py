@@ -3,7 +3,6 @@
 
 from django.db import migrations, models
 import frontend.models
-import useful_inkleby.useful_django.models.mixins
 
 
 class Migration(migrations.Migration):
@@ -58,7 +57,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
     ]

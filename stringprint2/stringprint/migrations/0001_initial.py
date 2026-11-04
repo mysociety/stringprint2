@@ -3,8 +3,7 @@
 
 from django.db import migrations, models
 from django.conf import settings
-import useful_inkleby.useful_django.fields.serial
-import useful_inkleby.useful_django.models.mixins
+import stringprint2.serialization
 
 
 class Migration(migrations.Migration):
@@ -62,7 +61,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
         migrations.CreateModel(
@@ -183,7 +181,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
         migrations.CreateModel(
@@ -222,7 +219,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
         migrations.CreateModel(
@@ -280,7 +276,6 @@ class Migration(migrations.Migration):
             },
             bases=(
                 models.Model,
-                useful_inkleby.useful_django.models.mixins.StockModelHelpers,
             ),
         ),
         migrations.CreateModel(
@@ -300,7 +295,7 @@ class Migration(migrations.Migration):
                 ("raw", models.TextField(null=True, blank=True)),
                 (
                     "sections",
-                    useful_inkleby.useful_django.fields.serial.JsonBlockField(
+                    stringprint2.serialization.JsonBlockField(
                         null=True, blank=True
                     ),
                 ),

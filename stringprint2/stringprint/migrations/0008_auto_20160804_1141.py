@@ -2,7 +2,7 @@
 
 
 from django.db import migrations, models
-import useful_inkleby.useful_django.fields.serial
+import stringprint2.serialization
 
 
 class Migration(migrations.Migration):
@@ -27,13 +27,13 @@ class Migration(migrations.Migration):
                 ("anchor", models.CharField(max_length=255)),
                 (
                     "section",
-                    useful_inkleby.useful_django.fields.serial.JsonBlockField(
+                    stringprint2.serialization.JsonBlockField(
                         null=True, blank=True
                     ),
                 ),
                 (
                     "grafs",
-                    useful_inkleby.useful_django.fields.serial.JsonBlockField(
+                    stringprint2.serialization.JsonBlockField(
                         null=True, blank=True
                     ),
                 ),
