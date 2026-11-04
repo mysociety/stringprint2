@@ -106,14 +106,11 @@ class TestTemplateForm:
         article.run_command("no-such-command")
         assert calls == []
 
-    def test_a_value_containing_a_space_is_split_into_two_arguments(
+    def test_a_quoted_value_containing_spaces_is_one_argument(
         self, org, doc_folder, monkeypatch
     ) -> None:
         """
-        Known fragility: run_command does rendered_command.split(" ") with no
-        quoting, so any templated value containing a space becomes multiple
-        argv entries. Every production slug happens to be hyphenated, which is
-        why this has never bitten. Pinned; see docs/feature-inventory.md.
+        Quoted template values retain spaces without enabling shell execution.
         """
         calls = []
         monkeypatch.setattr(
@@ -122,13 +119,52 @@ class TestTemplateForm:
         )
         article = Article.objects.create(org=org, slug="kitchen-sink")
         article.load_from_yaml(doc_folder("kitchen-sink"))
-        article.org.commands["probe"] = "echo {{article.title}}"
+        article.org.commands["probe"] = 'echo "{{article.title}}"'
         try:
             article.run_command("probe")
         finally:
             del article.org.commands["probe"]
 
-        assert calls[0] == ["echo", "Kitchen", "Sink:", "A", "Study"]
+        assert calls[0] == ["echo", "Kitchen Sink: A Study"]
+
+    @pytest.mark.parametrize(
+        "template", ["echo {{article.missing}}", "  ", 'echo "unterminated']
+    )
+    def test_invalid_commands_fail_before_subprocess_execution(
+        self, org, doc_folder, monkeypatch, template: str
+    ) -> None:
+        """
+        Missing values, empty commands, and malformed quotes are actionable errors.
+        """
+        calls = []
+        monkeypatch.setattr(
+            "stringprint2.services.configured_commands.subprocess.call",
+            lambda command, cwd=None: calls.append(command) or 0,
+        )
+        article = Article.objects.create(org=org, slug="kitchen-sink")
+        article.load_from_yaml(doc_folder("kitchen-sink"))
+        article.commands["invalid"] = template
+        with pytest.raises(ValueError):
+            article.run_command("invalid")
+        assert calls == []
+
+    def test_spaces_and_shell_metacharacters_remain_literal(
+        self, org, doc_folder, monkeypatch
+    ) -> None:
+        """
+        Argument parsing neither HTML-escapes values nor invokes a shell.
+        """
+        calls = []
+        monkeypatch.setattr(
+            "stringprint2.services.configured_commands.subprocess.call",
+            lambda command, cwd=None: calls.append(command) or 0,
+        )
+        article = Article.objects.create(org=org, slug="kitchen-sink")
+        article.load_from_yaml(doc_folder("kitchen-sink"))
+        article.title = "A & B; $(example)"
+        article.commands["probe"] = 'echo   "{{article.title}}"    ""'
+        article.run_command("probe")
+        assert calls == [["echo", "A & B; $(example)", ""]]
 
     def test_a_document_command_overrides_the_org(self, org, doc_folder) -> None:
         article = Article.objects.create(org=org, slug="kitchen-sink")
@@ -152,10 +188,11 @@ class TestTemplateForm:
         article.load_from_yaml(doc_folder("kitchen-sink"))
         article.org.commands["probe"] = "echo {{article.org.name}} {{article.slug}}"
         try:
-            article.run_command("probe")
+            with pytest.raises(ValueError, match="Unresolved template value"):
+                article.run_command("probe")
         finally:
             del article.org.commands["probe"]
 
         # the org name resolves to nothing, and because the rendered command is
         # split naively on single spaces that leaves an empty argv entry behind
-        assert calls[0] == ["echo", "", "kitchen-sink"]
+        assert calls == []

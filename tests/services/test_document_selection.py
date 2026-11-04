@@ -43,3 +43,12 @@ def test_modifiers_are_passed_separately_from_document_names() -> None:
     assert selection.slugs == ("first-report",)
     assert selection.options == ("refresh", "--no-preprocess", "--no-refresh")
     assert selection.option_text == "refresh --no-preprocess --no-refresh"
+
+
+def test_legacy_modifiers_are_normalised_without_consuming_document_names() -> None:
+    """
+    Older bare options work, while publication slugs containing no- stay names.
+    """
+    selection = parse_document_selection("techno-report no-preprocess no-refresh")
+    assert selection.slugs == ("techno-report",)
+    assert selection.options == ("--no-preprocess", "--no-refresh")

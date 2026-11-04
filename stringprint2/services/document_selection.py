@@ -42,8 +42,24 @@ def parse_document_selection(value: str) -> DocumentSelection:
     """
 
     tokens = tuple(token for token in value.strip().lower().split(" ") if token)
-    options = tuple(token for token in tokens if token == "refresh" or "no-" in token)
-    slugs = tuple(token for token in tokens if token not in options)
+    modifiers = {
+        "refresh",
+        "no-preprocess",
+        "no-refresh",
+        "no-hero",
+        "no-thumbnail",
+        "no-render-zip",
+    }
+    option_tokens = tuple(
+        token for token in tokens if token.removeprefix("--") in modifiers
+    )
+    options = tuple(
+        "--" + token.removeprefix("--")
+        if token.removeprefix("--").startswith("no-")
+        else "refresh"
+        for token in option_tokens
+    )
+    slugs = tuple(token for token in tokens if token not in option_tokens)
     if not slugs:
         scope = DocumentSelectionScope.CURRENT
     elif "all" in slugs:

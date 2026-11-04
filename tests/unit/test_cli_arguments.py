@@ -33,3 +33,23 @@ def test_help_aliases_map_to_the_shell_help_command() -> None:
 def test_no_arguments_produce_no_commands() -> None:
     """An empty invocation enters the interactive shell directly."""
     assert parse_shell_options([]).commands == ()
+
+
+def test_process_flags_remain_arguments_of_the_process_command() -> None:
+    """
+    Standard flags remain attached when followed by another console command.
+    """
+    assert parse_shell_options(
+        [
+            "--setdoc",
+            "example",
+            "--process",
+            "--no-preprocess",
+            "--no-refresh",
+            "--publish",
+        ]
+    ).commands == (
+        ("setdoc", "example"),
+        ("process", "--no-preprocess", "--no-refresh"),
+        ("publish",),
+    )
