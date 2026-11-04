@@ -17,6 +17,17 @@ jobs:
           python-version: "3.14"
       - run: pipx install poetry
       - run: poetry install
+      # webptools ships cwebp without execute permission in its wheel.
+      - name: Make bundled cwebp executable
+        run: |
+          poetry run python - <<'PYTHON'
+          from pathlib import Path
+          from stat import S_IXUSR
+          from webptools.webpbin import getcwebp
+
+          binary = Path(getcwebp(None))
+          binary.chmod(binary.stat().st_mode | S_IXUSR)
+          PYTHON
       - run: poetry run ruff check .
       - run: poetry run mypy
       - run: poetry run pytest --create-db
@@ -45,6 +56,17 @@ jobs:
           cache: npm
       - run: pipx install poetry
       - run: poetry install
+      # webptools ships cwebp without execute permission in its wheel.
+      - name: Make bundled cwebp executable
+        run: |
+          poetry run python - <<'PYTHON'
+          from pathlib import Path
+          from stat import S_IXUSR
+          from webptools.webpbin import getcwebp
+
+          binary = Path(getcwebp(None))
+          binary.chmod(binary.stat().st_mode | S_IXUSR)
+          PYTHON
       - run: npm ci
       - run: poetry run playwright install --with-deps chromium
       - run: poetry run pytest tests/bake tests/external -m "external and not needs_network"
