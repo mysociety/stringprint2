@@ -1,35 +1,28 @@
 """
-Footnote, including its class-level mutable state.
+Footnotes and document-scoped numbering.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from stringprint.tools.deepink import Footnote
-
-
-@pytest.fixture(autouse=True)
-def clean_registry():
-    Footnote.note_count = 0
-    Footnote.all = []
-    yield
-    Footnote.note_count = 0
-    Footnote.all = []
+from stringprint.tools.deepink import Footnote, FootnoteRegistry, process_ink
 
 
 class TestNumbering:
     def test_numbers_start_at_one_and_increment(self) -> None:
-        assert [Footnote().num for _ in range(3)] == [1, 2, 3]
+        registry = FootnoteRegistry()
+        assert [Footnote(registry=registry).num for _ in range(3)] == [1, 2, 3]
 
     def test_section_num_starts_equal_to_num(self) -> None:
         note = Footnote()
         assert note.section_num == note.num
 
     def test_every_instance_registers_itself(self) -> None:
-        Footnote()
-        Footnote()
-        assert len(Footnote.all) == 2
+        registry = FootnoteRegistry()
+        Footnote(registry=registry)
+        Footnote(registry=registry)
+        assert len(registry.notes) == 2
 
 
 class TestNamedReferences:
@@ -101,22 +94,27 @@ class TestKindleContent:
         assert "&amp;" in Footnote(content="a & b").kindle_content()
 
 
-class TestGlobalState:
-    def test_all_is_shared_across_instances(self) -> None:
+class TestCompilationIsolation:
+    @pytest.mark.django_db
+    def test_successive_documents_do_not_share_definitions(self, kitchen_sink) -> None:
         """
-        Footnote.all and note_count are class attributes. process_ink resets
-        note_count on every run but never resets all, so the registry grows for
-        the life of the process.
-
-        That matters because connect_to_footnote scans the registry for an
-        entry with empty content and a matching local_ref - so an unresolved
-        footnote from one document can capture a later document's definition.
-        The test suite works around it with an autouse fixture in
-        tests/conftest.py. Pinned rather than fixed; see the inventory.
+        A later document cannot fill an earlier document's unresolved reference.
         """
-        first = Footnote(local_ref="[^1]")
-        assert Footnote.all == [first]
+        first = kitchen_sink.content()
+        process_ink(first, "# First\n\nMissing note.[^same]")
+        unresolved = first.sections[0].grafs[0].footnotes[0]
+        second = kitchen_sink.content()
+        process_ink(second, "# Second\n\nNote.[^same]\n\n[^same]: Second document.")
+        resolved = second.sections[0].grafs[0].footnotes[0]
+        assert unresolved.content == ""
+        assert resolved.content == "Second document."
+        assert unresolved.num == resolved.num == 1
 
-        second = Footnote(local_ref="[^2]")
-        assert Footnote.all == [first, second]
-        assert second.num == 2
+    def test_interleaved_registries_have_independent_numbering(self) -> None:
+        """
+        Interleaved compilations own their numbering independently.
+        """
+        first, second = FootnoteRegistry(), FootnoteRegistry()
+        assert Footnote(registry=first).num == 1
+        assert Footnote(registry=second).num == 1
+        assert Footnote(registry=first).num == 2

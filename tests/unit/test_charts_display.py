@@ -143,18 +143,24 @@ class TestChartRendering:
         assert "A caption" in html
         assert "Region" in html
 
-    def test_bootstrap_no_header_inserts_once_per_row(self, chart: Chart) -> None:
+    def test_bootstrap_no_header_promotes_the_header_once(self, chart: Chart) -> None:
         """
-        Known defect: in render_bootstrap_table the `if no_header` block sits
-        inside the row loop, so it runs once per row - inserting the header
-        first and then an empty list for every subsequent row. The equivalent
-        block in render_html_table is correctly outside the loop.
-
-        Pinned rather than fixed; see docs/feature-inventory.md.
+        A headerless table has the original header followed by each data row.
         """
         html = chart.render_bootstrap_table("", no_header=True)
         rows = html.count("<tr")
-        assert rows == 8, "expected 4 data rows + 1 header + 3 empty rows"
+        assert rows == 5
+        assert "<th" not in html
+
+    def test_headerless_table_with_no_data_retains_its_first_row(self) -> None:
+        """
+        A single spreadsheet row is still displayed when headers are disabled.
+        """
+        chart = Chart(chart_type="table_chart", file_name=str(TABLE))
+        chart.rows = []
+        html = chart.render_bootstrap_table("", no_header=True)
+        assert html.count("<tr") == 1
+        assert "Region" in html
 
 
 class TestChartCollection:

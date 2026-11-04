@@ -19,7 +19,6 @@ from stringprint.tools.word_convert import (
     get_tables,
     mammoth_adjust,
     markdown_table_contents,
-    remove_supports,
 )
 from stringprint2.text_files import TextFile
 
@@ -62,16 +61,6 @@ class TestFixHeader:
     def test_hashes_anywhere_count_towards_the_level(self) -> None:
         # the level is every '#' in the line, not just the leading run
         assert fix_header("# a # b") == "## a  b"
-
-
-class TestRemoveSupports:
-    def test_is_currently_a_no_op(self) -> None:
-        """
-        The body of remove_supports is unreachable - it returns its argument on
-        the first line. Pinned so the upgrade does not silently revive it.
-        """
-        given = '<li id="footnote-3"><p>text</p></li>'
-        assert remove_supports(given) == given
 
 
 class TestFixMarkdown:

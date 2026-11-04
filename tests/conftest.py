@@ -48,23 +48,12 @@ def reset_global_state():
     Clear the module-level mutable state that would otherwise leak between
     tests.
 
-    deepink.Footnote keeps note_count and all at class level; process_ink
-    resets the first but never the second, so Footnote.all grows for the life
-    of the process. That matters because connect_to_footnote scans it for an
-    entry with empty content and a matching local_ref, so one document's
-    unresolved footnote can capture a later document's definition.
-
     charts.display.Chart.ident comes from the global random module.
     """
     from stringprint.models import Chrome
-    from stringprint.tools.deepink import Footnote
 
-    Footnote.note_count = 0
-    Footnote.all = []
     random.seed(0)
     yield
-    Footnote.note_count = 0
-    Footnote.all = []
     Chrome.page = None
 
 
@@ -144,14 +133,8 @@ def loaded_articles(org, django_db_blocker, doc_folder) -> Dict[str, Any]:
 @pytest.fixture(scope="session")
 def processed_articles(loaded_articles, django_db_blocker) -> Dict[str, Any]:
     """Every fixture document, processed. See loaded_articles on scoping."""
-    from stringprint.tools.deepink import Footnote
-
     with django_db_blocker.unblock():
         for article in loaded_articles.values():
-            # documents are processed in turn in one go, so the per-test reset
-            # in reset_global_state is not enough on its own here
-            Footnote.note_count = 0
-            Footnote.all = []
             article.process()
     return loaded_articles
 

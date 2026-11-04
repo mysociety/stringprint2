@@ -4,6 +4,10 @@ Deep Ink Processor
 classes and object
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
 import markdown
 import math
 import base64
@@ -57,12 +61,23 @@ class RandomAssignment(object):
             return i
 
 
-class Footnote(SerialObject):
-    note_count = 0  # keep track of how many notes we've made
-    all = []
+@dataclass
+class FootnoteRegistry:
+    """
+    Own the footnotes belonging to one document compilation.
+    """
 
-    def __init__(self, content="", local_ref=""):
-        self.num = self.__class__.note_count + 1
+    notes: list[Footnote] = field(default_factory=list)
+
+
+class Footnote(SerialObject):
+    def __init__(
+        self,
+        content: str = "",
+        local_ref: str = "",
+        registry: FootnoteRegistry | None = None,
+    ) -> None:
+        self.num = len(registry.notes) + 1 if registry is not None else 1
         self.section_num = self.num
         if "||" in local_ref:
             self.local_ref, self.named_reference = local_ref.split("||")
@@ -71,8 +86,8 @@ class Footnote(SerialObject):
         else:
             self.local_ref = local_ref
             self.named_reference = None
-        self.__class__.note_count += 1
-        self.__class__.all.append(self)
+        if registry is not None:
+            registry.notes.append(self)
 
         self.content = ""
         self.set_content(content)
@@ -577,14 +592,14 @@ class Graf(SerialObject):
             ]
         )
 
-    def connect_to_footnote(self, text):
+    def connect_to_footnote(self, text: str, registry: FootnoteRegistry) -> None:
         for l in text.split("\n"):
             ref = re.search(r"\[\^[0-9A-Za-z*_-]+\]\:", l)
             if ref:
                 ref = ref.group()[:-1]
                 note = l[l.find(":") + 1 :].strip()
 
-                for f in Footnote.all:
+                for f in registry.notes:
                     if f.content == "" and f.local_ref == ref:
                         f.set_content(note)
 
@@ -593,7 +608,11 @@ class Graf(SerialObject):
         prev_type: str = "",
         article: Optional["Version"] = None,
         section: Optional[Section] = None,
+        footnotes: FootnoteRegistry | None = None,
     ) -> None:
+        if footnotes is None:
+            footnotes = FootnoteRegistry()
+
         def depuntuate(s):
             return re.sub(r"[^\w\s]", "", s)
 
@@ -622,8 +641,8 @@ class Graf(SerialObject):
 
         if self.h_name == "blockquote":
             self.blockquote = True
-        if re.search(r"\[\^[0-9*]+\]:", text):
-            self.connect_to_footnote(text)
+        if re.search(r"\[\^[0-9A-Za-z*_-]+\]:", text):
+            self.connect_to_footnote(text, footnotes)
             self.html = ""
             self.type = None
             return None
@@ -697,7 +716,7 @@ class Graf(SerialObject):
             match = re.search(r"\[\^.*?\]", text)
             if match:
                 q = match.group()
-                new_note = Footnote(local_ref=q)
+                new_note = Footnote(local_ref=q, registry=footnotes)
                 ref_html = "<footref>{0}</footref>".format(new_note.num)
                 text = text[: match.start()] + ref_html + text[match.end() :]
                 self.footnotes.append(new_note)
@@ -909,7 +928,7 @@ def get_content(e: Union[NavigableString, Tag]) -> str:
 
 
 def process_ink(version: "Version", content: str) -> None:
-    Footnote.note_count = 0
+    footnotes = FootnoteRegistry()
 
     processors = [
         quote_fix,
@@ -1059,7 +1078,7 @@ def process_ink(version: "Version", content: str) -> None:
                     catchup = ""
                     if section_title:
                         last_title = ng
-                    ng.process(last_type, version, s)
+                    ng.process(last_type, version, s, footnotes)
                     if ng.type:
                         order += 1
                         last_type = ng.type
