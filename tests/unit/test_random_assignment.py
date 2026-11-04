@@ -7,7 +7,7 @@ a contract across versions, and every fixture document uses seed -1.
 
 from __future__ import annotations
 
-from stringprint2.stringprint.tools.deepink import RandomAssignment
+from stringprint.tools.deepink import RandomAssignment
 
 
 class TestSequentialSeed:
@@ -39,3 +39,18 @@ class TestRandomSeed:
         first = [RandomAssignment(13).get() for _ in range(5)]
         second = [RandomAssignment(99).get() for _ in range(5)]
         assert first != second
+
+
+def test_interleaved_generators_preserve_the_legacy_sequence():
+    import random
+
+    baseline = random.Random(13)
+    expected = []
+    while len(expected) < 40:
+        value = baseline.randint(1, 10000) + 13
+        if value not in expected:
+            expected.append(value)
+    first, second = RandomAssignment(13), RandomAssignment(13)
+    assert [(first.get(), second.get()) for _ in expected] == [
+        (value, value) for value in expected
+    ]

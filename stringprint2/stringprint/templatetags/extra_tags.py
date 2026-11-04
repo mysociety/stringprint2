@@ -2,7 +2,7 @@ from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from stringprint2.stringprint.models import Article, HeaderImage, Asset
-from stringprint2.stringprint.tools.deepink import Graf
+from stringprint2.document_structure import Graf
 from typing import Dict, Union
 
 register = template.Library()

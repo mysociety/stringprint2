@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
+from stringprint2.services.document_compilation import compile_document
+from stringprint2.presentation.document import DocumentPresentation
+from stringprint2.presentation.navigation import build_table_of_contents
 import time
 import sys
 import datetime
@@ -54,9 +58,8 @@ from webptools import webplib as webp
 
 from stringprint2.serialization import JsonBlockField
 
-from stringprint2.stringprint.tools.deepink import Graf, Section
+from stringprint2.document_structure import Graf, Section
 
-from .tools.deepink import process_ink
 
 
 class OverwriteStorage(FileSystemStorage):
@@ -1267,17 +1270,10 @@ class Version(models.Model):
         construct a self.sections connected to the content
         """
 
-        for s in self.sections:
-            s._version = self
-            if s.anchor() in slugs or slugs == []:
-                s.active_section = True
-            else:
-                s.active_section = False
-            if display_first_section:
-                if s.order == 1:
-                    s.active_section = True
-                else:
-                    s.active_section = False
+        presentation = DocumentPresentation.for_version(
+            self, slugs, display_first_section=display_first_section
+        )
+        self.sections = presentation.sections
 
     def used_assets(self) -> List[Any]:
         """
@@ -1294,167 +1290,8 @@ class Version(models.Model):
                 yield s
 
     def toc(self, levels=None):
-        """
-        return a set of links for the different parts
-        """
-
-        class Link(object):
-            def __init__(self, **kwargs):
-                self.id = 0
-                self.order = 0
-                self.anchor = ""
-                self.nav_url = ""
-                self.name = ""
-                self.level = 1
-                self.__dict__.update(kwargs)
-                self._toc = None
-
-            @property
-            def collection(self):
-                return self._toc.items
-
-            def future(self):
-                if self.order + 1 < len(self.collection):
-                    return self.collection[self.order + 1]
-                return None
-
-            def future_level_difference(self):
-                f = self.future()
-                if not f:
-                    return 0
-                return f.level - self.level
-
-            def has_children(self):
-                f = self.future()
-                if not f:
-                    return False
-                else:
-                    return f.level > self.level
-
-            def caret_title(self):
-                """
-                splits title into layers based on words
-                to stop very long horizontal titles in submenus
-                """
-
-                def character_group(v):
-                    limit = 35
-                    words = v.split(" ")
-                    groups = []
-                    current = []
-                    count = 0
-                    for w in words:
-                        count += len(w)
-                        current.append(w)
-                        if count > limit:
-                            groups.append(" ".join(current))
-                            current = []
-                            count = 0
-                    if current:  # final set
-                        groups.append(" ".join(current))
-
-                    return "<br>".join(groups)
-
-                return mark_safe(character_group(self.name))
-
-            def children(self):
-                future = self._toc.items[self.order + 1 :]
-                children = []
-                for i in future:
-                    if i.level == self.level:
-                        break
-                    if i.level == self.level + 1:
-                        children.append(i)
-                return children
-
-        class Toc(object):
-            def __init__(self):
-                self.items = []
-
-            def final_level(self):
-                return self.items[-1].level
-
-            def final_level_range(self):
-                return range(0, self.final_level())
-
-            def final_level_range_left_open(self, offset=1):
-                item = 0
-                for i in self.items[::-1]:
-                    if i.level in [1, 2]:
-                        item = i.level
-                        break
-                return range(0, item - offset)
-
-            def final_level_range_left_open_minus_one(self):
-                return self.final_level_range_left_open(2)
-
-            def add(self, **kwargs):
-                item = Link(**kwargs)
-                item.order = len(self.items)
-                item._toc = self
-                self.items.append(item)
-
-            def top_two_levels(self):
-                items = []
-                for i in self.items:
-                    if i.level in [1, 2]:
-                        items.append(i)
-
-                for l in range(0, len(items)):
-                    current = items[l]
-                    current_level = current.level
-                    if l < len(items) - 1:
-                        next = items[l + 1]
-                        next_level = next.level
-                    else:
-                        next_level = 0
-                    current.reduced_diff = next_level - current_level
-                    yield current
-
-            def __iter__(self):
-                for i in self.items:
-                    yield i
-
-            def level_1(self):
-                """
-                get just top level (sections)
-                """
-                for s in self:
-                    if s.level == 1:
-                        yield s
-
-        toc = Toc()
-
-        stand_in_introduction = "Introduction"
-
-        for s in self.sections:
-            if s.name == stand_in_introduction:
-                stand_in_introduction = "Summary"
-                break
-
-        for s in self.sections:
-            if s.has_grafs():
-                name = s.name
-                if s.order == 1 and not name:
-                    name = stand_in_introduction
-                if name:
-                    toc.add(
-                        name=name,
-                        anchor=s.anchor(),
-                        nav_url=s.nav_url(),
-                        id=s.order,
-                        level=1,
-                    )
-                for g in s.get_grafs():
-                    if g.title:
-                        toc.add(
-                            name=g.title,
-                            anchor=g.anchor(),
-                            nav_url=g.nav_url(),
-                            id=g.order,
-                            level=g.header_level,
-                        )
-        return toc
+        """Build template navigation from the displayed sections."""
+        return build_table_of_contents(self.sections)
 
     def anchors(self) -> Iterator[Dict[str, Union[str, int]]]:
         """
@@ -1628,10 +1465,16 @@ class Version(models.Model):
         """
         creates the section and graf structure from raw markup
         """
-        self.article.assets.all().update(active=False)
         if not self.raw:
             self.load_from_file()
-        process_ink(self, self.raw)
+        compiled = compile_document(
+            self.raw, seed=self.article.seed,
+            assets=dict(self.article.assets.values_list("slug", "id")),
+        )
+        self.sections = list(compiled.sections)
+        self.has_notes = compiled.has_notes
+        self.article.assets.all().update(active=False)
+        self.article.assets.filter(id__in=compiled.used_asset_ids).update(active=True)
         self.update_paragraph_links()
         first_section = "start"
         if self.sections:

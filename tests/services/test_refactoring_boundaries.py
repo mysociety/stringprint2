@@ -6,6 +6,7 @@ import sys
 import pytest
 from stringprint2.configuration.loaders import ConfigurationError
 from stringprint2.configuration.runtime import load_runtime_config
+from stringprint2.services.document_compilation import compile_document
 
 def test_entry_point_import_does_not_initialize_django(tmp_path):
     environment = {**os.environ, "DJANGO_SETTINGS_MODULE": "caller.settings"}
@@ -39,6 +40,15 @@ def test_runtime_paths_do_not_depend_on_working_directory(tmp_path, monkeypatch)
         load_runtime_config(config)
 
 
+def test_compilation_needs_no_database_and_reports_missing_assets():
+    compiled = compile_document(
+        "# Title\n\n[asset:photo]\n\n[asset:missing]", seed=13, assets={"photo": 17}
+    )
+    assert compiled.used_asset_ids == frozenset({17})
+    assert compiled.diagnostics == ("Asset missing: missing",)
+    assert compiled.sections[0].grafs[0].asset == 17
+
+
 def test_legacy_imports_are_aliases_of_the_canonical_models():
     import stringprint.models
     import stringprint2.stringprint.models
@@ -49,6 +59,14 @@ def test_legacy_imports_are_aliases_of_the_canonical_models():
         apps.get_model("stringprint", "Article")
         is stringprint2.stringprint.models.Article
     )
+
+
+def test_compilation_preserves_process_random_state():
+    import random
+
+    state = random.getstate()
+    compile_document("# Test\n\nA paragraph.", seed=13, assets={})
+    assert random.getstate() == state
 
 
 def test_empty_publish_path_retains_default_output_location(tmp_path):

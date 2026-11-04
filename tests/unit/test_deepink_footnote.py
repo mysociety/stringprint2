@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import pytest
 
-from stringprint2.stringprint.tools.deepink import Footnote, FootnoteRegistry, process_ink
+from stringprint.tools.deepink import Footnote, FootnoteRegistry
+from stringprint2.services.document_compilation import compile_document
 
 
 class TestNumbering:
@@ -95,16 +96,13 @@ class TestKindleContent:
 
 
 class TestCompilationIsolation:
-    @pytest.mark.django_db
-    def test_successive_documents_do_not_share_definitions(self, kitchen_sink) -> None:
+    def test_successive_documents_do_not_share_definitions(self) -> None:
         """
         A later document cannot fill an earlier document's unresolved reference.
         """
-        first = kitchen_sink.content()
-        process_ink(first, "# First\n\nMissing note.[^same]")
+        first = compile_document("# First\n\nMissing note.[^same]", seed=13, assets={})
         unresolved = first.sections[0].grafs[0].footnotes[0]
-        second = kitchen_sink.content()
-        process_ink(second, "# Second\n\nNote.[^same]\n\n[^same]: Second document.")
+        second = compile_document("# Second\n\nNote.[^same]\n\n[^same]: Second document.", seed=13, assets={})
         resolved = second.sections[0].grafs[0].footnotes[0]
         assert unresolved.content == ""
         assert resolved.content == "Second document."
