@@ -18,11 +18,11 @@ npm run check
 npm run build
 ```
 
-The document-source repository supplies Ruff, strict mypy, and CI configuration:
+The engine supplies Ruff, strict mypy, and CI configuration. The document-source repository additionally validates its production corpus:
 
 ```bash
 poetry run ruff check .
-poetry run mypy
+(cd stringprint2 && poetry run mypy)
 poetry run python -m stringprint2.configuration .
 ```
 
@@ -60,7 +60,7 @@ Configuration is validated with Pydantic. Unsupported keys are errors; documente
 legacy aliases and organisation defaults are applied explicitly. Publication
 values crossing service boundaries use typed records or models.
 
-`__main__.py` is importable without starting the server, worker, or command loop.
+`__main__.py` is importable without initializing Django or starting the server, worker, or command loop. Explicit bootstrap then loads `cli.py`.
 Executing the console starts services according to CLI options. Process modifiers
 accept both the documented `--no-preprocess` spelling and the legacy
 `no-preprocess` form.
@@ -80,9 +80,7 @@ EPUB operation remains available. MOBI generation is opt-in and requires a worki
 web output. Download links for optional formats reflect files generated in the
 current build.
 
-The renderer uses a copy of the publication for transient flags and compressed
-asset collection. Build URLs and output availability travel through template
-context. The publication `compress` tag, loaded from `publication_assets`, forces
+The renderer passes an explicit `PublicationRenderContext` into ordinary Django publication views. Each page uses a detached publication snapshot for legacy display helpers; compression dependencies belong to the render context. Build URLs and output availability travel through template context. The publication `compress` tag, loaded from `publication_assets`, forces
 compression only for baked contexts. Web and Kindle rendering do not assign
 global Django settings. Custom publication templates containing compression blocks
 should load `publication_assets` as the built-in publication templates do.
@@ -134,9 +132,7 @@ The old dashboard, document list, and browser-upload URLs redirect to the curren
 catalog. Legacy publish and reupload URLs redirect to the selected publication's
 management page after checking organisation membership. They do not create
 database-only documents or invoke removed import queues. Source authoring remains
-in repository files and CLI workflows. Document and organisation settings and
-header-image forms remain available; header changes invoke existing derivative
-methods directly. Unknown URLs return 404.
+in repository files and CLI workflows. Document, organisation, and header-image settings remain available as read-only screens. Source files own their persisted values. Unknown URLs return 404.
 
 ## Previously documented defects
 
@@ -174,3 +170,5 @@ methods directly. Unknown URLs return 404.
 - External Sass/PostCSS and browser tests require their executables. Skipped
   integration tests should be reported as skipped, not treated as proof of
   compatibility.
+
+See [architecture and ownership](architecture.md) for compiler, media, import compatibility, and locked build-tool boundaries.
