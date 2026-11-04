@@ -16,7 +16,9 @@ RUN apt-get -qq update \
 
 # postcss is a peer dependency of postcss-cli and autoprefixer; without it
 # `npx postcss --use autoprefixer` exits with ERR_MODULE_NOT_FOUND
-RUN npm install -g sass postcss postcss-cli autoprefixer
+COPY package.json package-lock.json /opt/stringprint-frontend/
+RUN npm ci --prefix /opt/stringprint-frontend
+ENV STRINGPRINT_NODE_MODULES=/opt/stringprint-frontend/node_modules
 
 COPY bin/docker-provision script/config/packages /install/
 

@@ -6,6 +6,10 @@
     "check": "tsc --project tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "autoprefixer": "10.5.4",
+    "postcss": "8.5.26",
+    "postcss-cli": "11.0.1",
+    "sass": "1.103.1",
     "typescript": "7.0.2"
   }
 }

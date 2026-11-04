@@ -26,7 +26,7 @@ from typing import Optional
 import yaml
 
 FIXTURES = Path(__file__).parent / "tests" / "fixtures"
-REAL_STATIC_ROOT = Path(__file__).parent / "stringprint2" / "static"
+REAL_STATIC_ROOT = Path(__file__).parent / "stringprint2" / "static_sources"
 
 SESSION_ROOT: Optional[Path] = None
 DOC_SOURCE: Optional[Path] = None
@@ -47,29 +47,12 @@ def bootstrap() -> Path:
     SESSION_ROOT = Path(tempfile.mkdtemp(prefix="stringprint-tests-"))
     DOC_SOURCE = SESSION_ROOT / "doc_source"
     MEDIA_ROOT = SESSION_ROOT / "media"
-    # compressor/static_precompiler write compiled CSS/JS under STATIC_ROOT -
-    # session-scoped for the same reason MEDIA_ROOT is, so a bake/scss test
-    # run can never leave stale output in the real stringprint2/static/ tree
-    # for a dev server to serve later.
-    #
-    # STATIC_ROOT isn't purely a build destination here though: compressor's
-    # CompressorFinder and static_precompiler's StaticPrecompilerFinder are
-    # both BaseStorageFinders rooted at COMPRESS_ROOT/STATIC_ROOT, and they
-    # resolve *any* path under there, not just their own compiled output -
-    # it's how genuinely hand-authored, git-tracked assets like
-    # stringprint2/static/css/tipuesearch.css get found even though they are
-    # not listed in STATICFILES_DIRS. So the session copy has to start as a
-    # copy of the real tree (minus the gitignored build directories, so
-    # nothing stale rides along), not an empty directory.
+    # Build products are isolated; authored static assets stay read-only.
     STATIC_ROOT = SESSION_ROOT / "static"
 
     shutil.copytree(str(FIXTURES / "doc_source"), str(DOC_SOURCE))
     MEDIA_ROOT.mkdir()
-    shutil.copytree(
-        str(REAL_STATIC_ROOT),
-        str(STATIC_ROOT),
-        ignore=shutil.ignore_patterns("CACHE", "COMPILED"),
-    )
+    STATIC_ROOT.mkdir()
 
     config = {
         "CHROME_DRIVER": "/usr/bin/chromedriver",

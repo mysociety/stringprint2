@@ -10,6 +10,7 @@ import static_precompiler.url_converter as url_converter
 from compressor.filters.cssmin import rCSSMinFilter
 from rcssmin import cssmin
 import os
+from stringprint2.services.frontend_tools import frontend_tool, frontend_package
 
 
 def svg_safe(input_css: str, *args, **kwargs) -> str:
@@ -34,7 +35,7 @@ def svg_safe(input_css: str, *args, **kwargs) -> str:
 
 
 class SVGSafeMinify(rCSSMinFilter):
-    callback = "stringprint.compiler.svg_safe"
+    callback = "stringprint2.stringprint.compiler.svg_safe"
 
 
 class CustomSCSS(SCSS):
@@ -88,11 +89,10 @@ class CustomSCSS(SCSS):
 
         # postprocess using autoprefixer
         post_process = [
-            "npx",
-            "postcss",
+            frontend_tool("postcss"),
             full_output_path,
             "--use",
-            "autoprefixer",
+            frontend_package("autoprefixer"),
             "--replace",
             # without this postcss appends a base64 copy of the whole
             # stylesheet as an inline sourcemap; sass is already run with

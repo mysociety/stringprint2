@@ -2,8 +2,6 @@
 
 from django.db import migrations, models
 import stringprint2.stringprint.models
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("stringprint", "0025_auto_20190424_1555"),

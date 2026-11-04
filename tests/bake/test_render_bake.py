@@ -2,8 +2,8 @@
 Article.render - the in-process bake that produces the published site.
 
 Marked external: this is the only part of the suite that shells out to sass
-and npx postcss, because Article.render reads self.compressed_files, which is
-only populated by django-compressor's post_compress signal.
+and PostCSS from the locked toolchain. The per-build render context collects
+compressed asset dependencies from the publication compression tag.
 
 Web baking generates EPUB independently and leaves Kindle generation opt-in.
 """
@@ -11,10 +11,10 @@ Web baking generates EPUB independently and leaves Kindle generation opt-in.
 from __future__ import annotations
 
 import contextlib
-import shutil
 from pathlib import Path
 
 import pytest
+from stringprint2.services.frontend_tools import frontend_tool
 
 from contextlib import nullcontext
 from unittest.mock import patch
@@ -26,8 +26,8 @@ pytestmark = [
     pytest.mark.slow,
     pytest.mark.needs_sass,
     pytest.mark.skipif(
-        shutil.which("sass") is None or shutil.which("npx") is None,
-        reason="needs sass and npx on PATH",
+        not Path(frontend_tool("sass")).is_file() or not Path(frontend_tool("postcss")).is_file(),
+        reason="needs the locked frontend toolchain (npm ci)",
     ),
 ]
 
@@ -37,11 +37,8 @@ def compression_enabled():
     """
     Turn the real asset pipeline on for the duration of a bake.
 
-    The output roots are deliberately left alone. django-compressor serves the
-    app's own css and js out of COMPRESS_ROOT, which is the tracked
-    stringprint2/static directory, so repointing it would make those files
-    unfindable. Its build outputs go to static/CACHE and static/COMPILED,
-    both of which are gitignored - the same places a normal run writes them.
+    Test settings isolate generated output while the static finder reads checked-in
+    assets from static_sources. This context enables real compilation only.
 
     static_precompiler snapshots its configuration into module globals at
     import time, so its Django setting cannot be changed at runtime; the module

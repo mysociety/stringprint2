@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from stringprint2.services.frontend_tools import frontend_tool
 from stringprint2.configuration.runtime import load_runtime_config, runtime_config_path
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -59,10 +60,11 @@ MEDIA_ROOT = (
     )
     + os.sep
 )
-STATIC_ROOT = PROJECT_PATH + "/static/"
+STATIC_ROOT = str(STATE_ROOT / "static")
 COMPRESS_ROOT = STATIC_ROOT
 
 STATICFILES_DIRS = [
+    PROJECT_PATH + "/static_sources/",
     (PROJECT_PATH + "/web/"),
     ("vendor", PROJECT_PATH + "/vendor/"),
 ]
@@ -224,7 +226,7 @@ STATIC_PRECOMPILER_COMPILERS = (
         "stringprint2.stringprint.compiler.CustomSCSS",
         {
             # ""
-            "executable": "/usr/bin/sass",
+            "executable": frontend_tool("sass"),
             "sourcemap_enabled": False,
             "compass_enabled": False,
             "precision": 2,

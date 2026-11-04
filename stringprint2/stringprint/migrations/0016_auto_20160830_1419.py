@@ -3,8 +3,6 @@
 
 from django.db import migrations, models
 import stringprint2.stringprint.models
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("stringprint", "0015_organisation_publish_root"),

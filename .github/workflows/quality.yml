@@ -1,0 +1,50 @@
+name: Engine quality
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - run: pipx install poetry
+      - run: poetry install
+      - run: poetry run ruff check .
+      - run: poetry run mypy
+      - run: poetry run pytest --create-db
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: git diff --exit-code -- stringprint2/web/js
+  integrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: pipx install poetry
+      - run: poetry install
+      - run: npm ci
+      - run: poetry run playwright install --with-deps chromium
+      - run: poetry run pytest tests/bake tests/external -m "external and not needs_network"
