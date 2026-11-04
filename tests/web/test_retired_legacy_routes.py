@@ -25,10 +25,11 @@ def test_old_catalog_routes_redirect_without_creating_articles(
     user = User.objects.create_user(username="legacy", password="secret")
     UserSettings.objects.create(user=user, org=org)
     client.force_login(user)
+    original_count = Article.objects.count()
     response = client.post(reverse(name), {"title": "Unbacked document"})
     assert response.status_code == 302
     assert response.url == reverse("publication_management:publication_list")
-    assert not Article.objects.exists()
+    assert Article.objects.count() == original_count
 
 
 def test_retired_reupload_preserves_source_and_organisation_scope(client, org) -> None:
