@@ -9,6 +9,7 @@ import shutil
 import time
 from collections import OrderedDict
 from pathlib import Path
+from urllib.parse import urljoin
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import markdown
@@ -468,14 +469,18 @@ class Article(models.Model):
         with open(filename, "wb") as f:
             yaml.dump(output, f)
 
-    def export_paragraph_images(self, folder: str, refresh_all: bool = False) -> None:
+    def export_paragraph_images(
+        self,
+        folder: str,
+        refresh_all: bool = False,
+        *,
+        preview_origin: str = "http://127.0.0.1:8000",
+    ) -> None:
         """
         exports a folder of images - 1 for each element labeled with the
         combo key
         """
-        BAKE_SERVER = "http://127.0.0.1:8000"
-
-        url = self.social_url().replace(settings.SITE_ROOT, BAKE_SERVER)
+        url = urljoin(preview_origin, reverse("article_view", args=(self.slug,)))
         url = url + "?id={0}&screenshot=true".format(self.id)
         c = self.display_content()
         grafs_to_do = []
@@ -500,7 +505,7 @@ class Article(models.Model):
 
         for g in grafs_to_do:
             print(g.order, g.combo_key())
-            locator = page.locator("#r{0}".format(g.order))
+            locator = page.locator(f'.content-row[data-paragraph-order="{g.order}"]')
             if locator.count() == 0:
                 print("skipping - element {0} not found".format(g.order))
                 continue

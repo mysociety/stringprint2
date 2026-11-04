@@ -190,7 +190,7 @@ class FakeDriver:
         self.requested_url = url
 
     def locator(self, selector):
-        order = int(selector.lstrip("#r"))
+        order = int(selector.split('"')[1])
         return FakeLocator(missing=order in self.missing_orders)
 
     def evaluate(self, script):
