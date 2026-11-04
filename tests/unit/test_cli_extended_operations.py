@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import pytest
 
-from stringprint2.stringprint.models import Article
+from stringprint.models import Article
 from stringprint2.cli import SPPrompt
 from stringprint2.services.publication_operations import (
     ArchivePublicationRequest,

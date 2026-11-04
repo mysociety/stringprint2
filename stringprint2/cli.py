@@ -130,7 +130,7 @@ class SPPrompt(cmd.Cmd):
     prompt = "[blue](stringprint)[/blue] "
 
     def __init__(self, *args, **kwargs):
-        self.current_org: Optional[str] = None
+        self.current_org: Organisation | None = None
         self.current_doc: Optional[str] = None
         self.avaliable_docs: List[str] = []
         self.process_supervisor = LocalProcessSupervisor()
@@ -145,8 +145,13 @@ class SPPrompt(cmd.Cmd):
             print("Stop the local services first")
             return None
 
-        working_directory = Path("stringprint2", "stringprint2")
-        log_directory = Path(".stringprint", "logs")
+        working_directory = Path(__file__).resolve().parent
+        source_root = (
+            Path(self.current_org.storage_dir)
+            if self.current_org
+            else Path(next(iter(settings.ORGS.values()))["storage_dir"])
+        )
+        log_directory = source_root / ".stringprint" / "logs"
         worker = self.process_supervisor.start(
             ManagedProcessSpec(
                 name="worker",
@@ -365,20 +370,12 @@ class SPPrompt(cmd.Cmd):
             refresh_header = True
         else:
             refresh_header = False
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
         request = LoadPublicationRequest(
             organisation_slug=self.current_org.slug,
             publication_slug=self.current_doc,
             refresh_header=refresh_header,
         )
-        run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            Path(self.current_org.publish_dir, self.current_doc),
-        )
+        self._run_operation(request)
 
     def do_loadall(self, inp):
         """
@@ -469,21 +466,13 @@ class SPPrompt(cmd.Cmd):
         else:
             refresh_header = True
         preprocess = "--no-preprocess" not in refresh
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
         request = ProcessPublicationRequest(
             organisation_slug=self.current_org.slug,
             publication_slug=self.current_doc,
             refresh_header=refresh_header,
             preprocess=preprocess,
         )
-        result = run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            Path(self.current_org.publish_dir, self.current_doc),
-        )
+        result = self._run_operation(request)
         print(f"Finished Processing: {result.title}")
         self.print_status()
 
@@ -525,23 +514,19 @@ class SPPrompt(cmd.Cmd):
         Run publish script as configured for this org.
         Add 'no-render-zip' as an argument not to render a zip as part of this stpe.
         """
-        if not "no-render-zip" in inp:
-            self.do_renderzip("")
+        render_archive = "no-render-zip" not in inp
+        if render_archive and self.running_server is None:
+            raise RuntimeError("Need preview server to render documents")
 
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
         request = PublishPublicationRequest(
             organisation_slug=self.current_org.slug,
             publication_slug=self.current_doc,
-            render_archive=False,
+            render_archive=render_archive,
+            refresh="refresh" in inp.lower() or self.full_refresh,
+            prepare_hero="no-hero" not in inp,
+            prepare_thumbnail="no-thumbnail" not in inp,
         )
-        result = run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            Path(self.current_org.publish_dir, self.current_doc),
-        )
+        result = self._run_operation(request)
         print(f"Finished publishing: {result.title}")
 
     def do_quit(self, inp):
@@ -558,73 +543,48 @@ class SPPrompt(cmd.Cmd):
         """Treat end-of-input as a clean managed shutdown."""
         return self.do_quit(inp)
 
+    def _run_operation(self, request):
+        """Execute an operation for the selected publication under its lock."""
+        publication, _ = Article.objects.get_or_create(
+            org=self.current_org, slug=self.current_doc
+        )
+        return run_foreground_publication_operation(
+            request,
+            publication,
+            self.doc_folder,
+            Path(self.current_org.publish_dir, self.current_doc),
+        )
+
+    def _render(self, output_format, refresh=False):
+        return self._run_operation(
+            RenderPublicationRequest(
+                organisation_slug=self.current_org.slug,
+                publication_slug=self.current_doc,
+                output_format=output_format,
+                refresh=refresh,
+            )
+        )
+
     @select_doc
     def do_render(self, inp):
-        """
-        render web format of current document
-        """
+        """Render web format of the current document."""
         if self.running_server is None:
             print("Need preview server to render documents")
             return None
-        refresh_all = "refresh" in inp.lower() or self.full_refresh
-        path = Path(self.current_org.publish_dir, self.current_doc)
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
-        request = RenderPublicationRequest(
-            organisation_slug=self.current_org.slug,
-            publication_slug=self.current_doc,
-            output_format=PublicationRenderFormat.WEB,
-            refresh=refresh_all,
-        )
-        run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            path,
+        self._render(
+            PublicationRenderFormat.WEB,
+            refresh="refresh" in inp.lower() or self.full_refresh,
         )
 
     @select_doc
     def do_renderebook(self, inp):
-        """
-        render ebook file of current document
-        """
-        path = Path(self.current_org.publish_dir, self.current_doc)
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
-        request = RenderPublicationRequest(
-            organisation_slug=self.current_org.slug,
-            publication_slug=self.current_doc,
-            output_format=PublicationRenderFormat.EPUB,
-        )
-        run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            path,
-        )
+        """Render an EPUB file of the current document."""
+        self._render(PublicationRenderFormat.EPUB)
 
     @select_doc
     def do_renderkindle(self, inp):
-        """
-        render kindle file of current document
-        """
-        path = Path(self.current_org.publish_dir, self.current_doc)
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
-        request = RenderPublicationRequest(
-            organisation_slug=self.current_org.slug,
-            publication_slug=self.current_doc,
-            output_format=PublicationRenderFormat.KINDLE,
-        )
-        run_foreground_publication_operation(
-            request,
-            doc,
-            self.doc_folder,
-            path,
-        )
+        """Render a Kindle file of the current document."""
+        self._render(PublicationRenderFormat.KINDLE)
 
     @select_doc
     def do_renderzip(self, inp):
@@ -637,28 +597,14 @@ class SPPrompt(cmd.Cmd):
             return None
         refresh_all = "refresh" in inp.lower() or self.full_refresh
         slug = self.current_doc
-        path = self.doc_folder
-        doc, created = Article.objects.get_or_create(
-            org=self.current_org, slug=self.current_doc
-        )
-        # specify some extra files to dump in the zip
-
-        if not "no-hero" in inp:
-            self.do_hero("")
-        if not "no-thumbnail" in inp:
-            self.do_pdfpng("")
-
         request = ArchivePublicationRequest(
             organisation_slug=self.current_org.slug,
             publication_slug=slug,
             refresh=refresh_all,
+            prepare_hero="no-hero" not in inp,
+            prepare_thumbnail="no-thumbnail" not in inp,
         )
-        result = run_foreground_publication_operation(
-            request,
-            doc,
-            path,
-            Path(self.current_org.publish_dir, slug),
-        )
+        result = self._run_operation(request)
         print(f"Zip created at {result.location}")
 
     @select_doc
@@ -754,19 +700,22 @@ def main(arguments: list[str] | None = None) -> None:
         raise RuntimeError("No organisations are configured")
 
     prompt = SPPrompt(stdout=CatchOut())
-    if options.start_server:
-        panel.print(prompt.do_startserver("noprint"))
-    panel.print("")
-    panel.print("List available documents with .listdocs.")
-    panel.display()
+    try:
+        if options.start_server:
+            panel.print(prompt.do_startserver("noprint"))
+        panel.print("")
+        panel.print("List available documents with .listdocs.")
+        panel.display()
 
-    prompt.do_setorg(default_org)
-    if options.refresh:
-        prompt.do_refresh("")
-    for command in options.commands:
-        prompt.onecmd(" ".join(command))
-    if not passed_arguments or options.continue_in_shell:
-        prompt.cmdloop(intro="")
+        prompt.do_setorg(default_org)
+        if options.refresh:
+            prompt.do_refresh("")
+        for command in options.commands:
+            prompt.onecmd(" ".join(command))
+        if not passed_arguments or options.continue_in_shell:
+            prompt.cmdloop(intro="")
+    finally:
+        prompt.process_supervisor.stop_all()
 
 
 if __name__ == "__main__":

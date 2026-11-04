@@ -7,6 +7,7 @@ import pytest
 from stringprint2.configuration.loaders import ConfigurationError
 from stringprint2.configuration.runtime import load_runtime_config
 from stringprint2.services.document_compilation import compile_document
+from stringprint2.services.publication_operations import PublishPublicationRequest, run_publication_operation
 
 def test_entry_point_import_does_not_initialize_django(tmp_path):
     environment = {**os.environ, "DJANGO_SETTINGS_MODULE": "caller.settings"}
@@ -47,6 +48,30 @@ def test_compilation_needs_no_database_and_reports_missing_assets():
     assert compiled.used_asset_ids == frozenset({17})
     assert compiled.diagnostics == ("Asset missing: missing",)
     assert compiled.sections[0].grafs[0].asset == 17
+
+
+def test_failed_archive_preparation_never_publishes(tmp_path, monkeypatch):
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append("prepare")
+        raise ValueError("invalid media")
+
+    monkeypatch.setattr(
+        "stringprint2.services.publication_operations.prepare_archive_media", fail
+    )
+    monkeypatch.setattr(
+        "stringprint2.services.publication_operations.run_publication_command",
+        lambda *args: calls.append("publish"),
+    )
+    request = PublishPublicationRequest(
+        organisation_slug="test", publication_slug="example", prepare_hero=True
+    )
+    with pytest.raises(ValueError, match="invalid media"):
+        run_publication_operation(
+            request, SimpleNamespace(), tmp_path, tmp_path / "publish"
+        )
+    assert calls == ["prepare"]
 
 
 def test_legacy_imports_are_aliases_of_the_canonical_models():

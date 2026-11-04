@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from django.conf import settings
 
 import pytest
 
@@ -51,8 +52,8 @@ def test_startserver_launches_worker_then_preview_server() -> None:
     worker, server = supervisor.started
     assert worker.arguments[-1] == "run_publication_operations"
     assert server.arguments[-2:] == ("runserver", "0.0.0.0:8000")
-    assert worker.log_path == Path(".stringprint/logs/worker.log")
-    assert server.log_path == Path(".stringprint/logs/server.log")
+    assert worker.log_path == Path(settings.ORGS["default"]["storage_dir"]) / ".stringprint/logs/worker.log"
+    assert server.log_path == Path(settings.ORGS["default"]["storage_dir"]) / ".stringprint/logs/server.log"
     assert prompt.running_worker == 101
     assert prompt.running_server == 102
     assert message == "Started server with pid 102 and worker with pid 101"
