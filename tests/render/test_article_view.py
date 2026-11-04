@@ -2,7 +2,7 @@
 The main document page.
 
 These go through the Django test client, so they exercise the url conf, the
-useful_inkleby view machinery, the template chain and the org template
+project-owned view adapters, the template chain and the org template
 override together.
 """
 

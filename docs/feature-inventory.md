@@ -1,357 +1,176 @@
 # stringprint2 feature inventory
 
-What this application does, where each behaviour lives, and what the test suite
-pins. Written as the reference point for the Python 3.14 / Django 5.2 upgrade:
-the suite's job is to make that upgrade a diff you can reason about, and this
-document's job is to say what the suite is and is not watching.
+This is the current behavior and test coverage for Python 3.14 and Django 5.2.
+Implementation references name modules and entry points rather than line numbers.
+Historical defects are recorded below with their resolution; passing tests should
+assert the intended behavior rather than preserve an acknowledged defect.
 
-Line references are to the tree as it stands on Django 2.2.25 / Python 3.8.
+## Running verification
 
-## Running the tests
+From the engine repository:
 
 ```bash
-cd stringprint2
-python -m pytest                # default: no sass, no browser, no network (~16s)
-python -m pytest -m ""          # everything, including the external tier (~70s)
-python -m pytest -m external    # only the external tier
+poetry run pytest                         # default suite: no external tools/network
+poetry run pytest -m external              # external integrations and browser checks
+poetry run pytest -m "" --create-db        # all tiers, rebuilding the test database
+poetry run pytest tests/config/test_migrations.py --create-db
+npm run check
+npm run build
 ```
 
-Markers: `external` (needs a binary or the network, deselected by default),
-`needs_sass`, `needs_chrome`, `needs_network`, `slow`.
+The document-source repository supplies Ruff, strict mypy, and CI configuration:
 
-Dependencies are declared in both `pyproject.toml` files. In a container built
-before they were added: `pip install "pytest~=7.4" "pytest-django~=4.5"`.
+```bash
+poetry run ruff check .
+poetry run mypy
+poetry run python -m stringprint2.configuration .
+```
 
-The suite points the app at `tests/fixtures/doc_source` via `STRINGPRINT_CONFIG`
-(see [Settings bootstrap](#settings-bootstrap)). It copies that tree to a
-temporary directory first, because processing writes `_paragraphs.yaml` back
-into the document folder. Nothing the suite does touches the working tree; the
-only files written inside the repo are `static/CACHE` and `static/COMPILED`
-during the bake tests, both of which are gitignored.
+Tests use a disposable copy of `tests/fixtures/doc_source`, including separate
+media and static build directories. Publication processing can write paragraph
+links and image derivatives without changing authored fixtures or real reports.
+The fixture binary generator supports `python tests/fixtures/make_binaries.py --check`.
 
-## Pipeline
+The `external` marker excludes integrations from the default run. `needs_sass`,
+`needs_chrome`, `needs_network`, and `slow` describe additional requirements.
+A mocked subprocess test does not establish that the corresponding external
+program is installed or functional.
 
-The canonical order, from `SPPrompt.do_process` (`__main__.py:514`):
+## Publication pipeline
 
-| # | Step | Entry point |
+The CLI and authenticated management interface delegate to the same typed
+publication operations and services:
+
+| Stage | Implementation | Coverage |
 |---|---|---|
-| 1 | Run the document's preprocess command | `Article.run_command` (`models.py:1260`) |
-| 2 | Read `settings.yaml` | `Article.load_from_yaml` (`models.py:378`) |
-| 3 | Read `assets/assets.yaml`, build derived images | `Article.import_assets` (`models.py:569`) |
-| 4 | Read the markdown source | `Article.load_from_file` (`models.py:1358`) |
-| 5 | Parse into the Section/Graf tree | `Article.process` → `Version.process` → `deepink.process_ink` |
-| 6 | Update the stable paragraph anchors | `Version.update_paragraph_links` (`models.py:2062`) |
+| Discover configured publications | `services/publication_catalog.py` | service and web catalog tests |
+| Validate repository, organisation, publication, and assets | `configuration/models.py`, `loaders.py`, `validator.py` | `tests/configuration/`, configuration bootstrap tests |
+| Load settings, aliases, defaults, header/cover actions | `services/publication_loading.py`, model adapters | `tests/config/`, service loading tests |
+| Run configured preprocessing | `services/configured_commands.py`, `tools/preprocessing.py` | command, workflow, Word, and preprocessing tests |
+| Load authored Markdown | `services/publication_sources.py` | source and pipeline tests |
+| Import images, spreadsheets, and HTML | `services/asset_importing.py`, `Article.import_assets` | asset configuration and rendering tests |
+| Compile sections, paragraphs, references, notes, and assets | `tools/deepink.py:process_ink` | `tests/pipeline/`, parser unit tests |
+| Reconcile stable paragraph identifiers | `services/paragraph_links.py` | paragraph link, orphan, redirect, and map tests |
+| Render preview and search | `stringprint/views.py`, publication templates | `tests/render/`, real-browser tests |
+| Bake web output into sibling staging | `services/web_rendering.py`, `static_rendering.py` | service atomicity tests and `tests/bake/` |
+| Produce EPUB or optional MOBI | `services/ebook_rendering.py`, `kindle_rendering.py` | EPUB integration; Kindle staging with a fake generator |
+| Archive and publish | `services/publication_archiving.py`, publication operations | archive, workflow, and permission tests |
 
-Then, separately: `Article.render` bakes the static site, `create_ebook` builds
-the epub, and `create_kindle` builds the mobi (out of scope — see below).
+Configuration is validated with Pydantic. Unsupported keys are errors; documented
+legacy aliases and organisation defaults are applied explicitly. Publication
+values crossing service boundaries use typed records or models.
 
-There are no Django management commands. Everything is a `do_*` method on
-`SPPrompt` in `__main__.py`, dispatched by `cmd.Cmd`.
+`__main__.py` is importable without starting the server, worker, or command loop.
+Executing the console starts services according to CLI options. Process modifiers
+accept both the documented `--no-preprocess` spelling and the legacy
+`no-preprocess` form.
 
-**`__main__.py` must never be imported by a test.** At module level it calls
-`load_org_details()` (which writes to the database) and `do_startserver()`
-(which spawns a `runserver` subprocess) — `__main__.py:786-791`. Its helpers are
-reachable through `stringprint.tools.preprocessing` instead.
+Configured commands support `module::` callables and quoted command strings.
+Command strings render without HTML escaping, are parsed into argv with
+`shlex.split`, and run without a shell. Quote interpolated values that must remain
+one argument, for example `python script.py "{{article.title}}"`. Missing template
+values and malformed quoting fail before subprocess execution.
 
-## Settings bootstrap
+## Outputs and frontend behavior
 
-`proj/settings.py` reads a YAML config **at import time**, copies every
-top-level key into module globals, and derives `STATICFILES_DIRS`,
-`ORG_TEMPLATE_DIRS` and `TEMPLATES[0]["DIRS"]` from
-`ORGS[<slug>]["storage_dir"]` there and then.
+Web baking defaults to `kindle=False`, `epub=True`, and `plain=True`.
+`skip_epub: true` suppresses automatically generated EPUB output. An explicit
+EPUB operation remains available. MOBI generation is opt-in and requires a working
+`KINDLEGEN_LOC` or `kindlegen` executable. Its absence does not prevent normal
+web output. Download links for optional formats reflect files generated in the
+current build.
 
-`STRINGPRINT_CONFIG` overrides the config file path. When it is unset the
-behaviour is exactly as before: use `proj/conf/config.yaml`, seeding it from
-`config-example.yaml` on first run. `MEDIA_ROOT` also reads from the config,
-with the same default as before; its trailing separator is load-bearing,
-because `create_responsive` and `create_tiny` build paths by concatenation
-(`models.py:1546`, `1621`).
+The renderer uses a copy of the publication for transient flags and compressed
+asset collection. Build URLs and output availability travel through template
+context. The publication `compress` tag, loaded from `publication_assets`, forces
+compression only for baked contexts. Web and Kindle rendering do not assign
+global Django settings. Custom publication templates containing compression blocks
+should load `publication_assets` as the built-in publication templates do.
 
-`proj/test_settings.py` layers test-only overrides on top. Two matter:
+Whole web builds replace the destination only after successful staging. Individual
+static writes are atomic. Failed builds preserve the previous publication.
 
-- `STATIC_PRECOMPILER_DISABLE_AUTO_COMPILE` plus `COMPRESS_ENABLED = False`
-  mean the default suite needs neither `sass` nor `npx`. The bake tests turn
-  both back on.
-- `TEMPLATES[0]["OPTIONS"]["debug"]` has to be set explicitly, because
-  `settings.py` captures `DEBUG` by value when it builds `TEMPLATES` — before
-  its own later `DEBUG = True` reassignment.
+First-party JavaScript is strict TypeScript in `frontend/ts/`, compiled into static
+JavaScript. Publication interactions use native DOM APIs: navigation overflow,
+dropdowns, paragraph links, citations, notes, and search. The publication and
+management layouts use Bootstrap 5. No first-party runtime requires jQuery,
+Waypoints, Tipue, or Trumbowyg.
 
-## Feature coverage
+The browser suite exercises desktop and mobile preview navigation, dropdown
+alignment and Escape handling, TOC styling, search layout and behavior, and
+publication screenshots. Bake tests additionally check relative links, copied CSS
+and JavaScript, optional output files, repeated builds, and failure isolation.
 
-### Configuration
+## Tables and serialization
 
-| Feature | Implementation | Tests |
-|---|---|---|
-| Config file override | `proj/settings.py` | `config/test_settings_bootstrap.py` |
-| Org settings → model | `Organisation.load_from_yaml:162` | `config/test_organisation_load.py` |
-| Org links, ordering | `Organisation.org_links_ordered:194` | `config/test_organisation_load.py` |
-| Storage/publish/template dirs | `Organisation` properties `:122-136` | `config/test_organisation_load.py` |
-| Org SCSS discovery | `Organisation.org_scss:145` | `config/test_organisation_load.py` |
-| Doc settings → model | `Article.load_from_yaml:378` | `config/test_article_load_from_yaml.py` |
-| Legacy alias `sections_over_pages`→`multipage` | `models.py:392` | `config/test_article_load_from_yaml.py` |
-| Legacy alias `pdf`→`pdf_file` | `models.py:397` | `config/test_article_load_from_yaml.py` |
-| Org `default_values` templating | `models.py:403` | `config/test_article_load_from_yaml.py` |
-| Empty value suppresses an org default | `models.py:403` | `config/test_article_load_from_yaml.py` |
-| Unknown keys → `extra_values`, pruning | `models.py:383,411` | `config/test_article_load_from_yaml.py` |
-| Header image, `size: background` → −1 | `models.py:418` | `config/test_article_load_from_yaml.py` |
-| Book cover | `models.py:440` | `config/test_article_load_from_yaml.py` |
-| `production_url` default | `models.py:448` | `config/test_article_load_from_yaml.py` |
-| Migrations apply; custom fields round-trip | `stringprint/migrations/` | `config/test_migrations.py` |
+`table_files.py:DataTable` reads CSV, legacy XLS, and XLSX. New Word table assets
+are XLSX, written with openpyxl. Legacy XLS remains readable through xlrd.
+`stringprint-migrate-tables` migrates declared XLS assets and their manifests,
+with `--keep-xls` available when the original files should be retained.
 
-### Assets
+Table rendering supports a header row or treats that row as ordinary data when
+headers are disabled. Headerless Bootstrap output does not insert empty rows,
+including for spreadsheets with only one row.
 
-| Feature | Implementation | Tests |
-|---|---|---|
-| `assets.yaml` → `Asset` rows | `Article.import_assets:569` | `config/test_import_assets.py` |
-| `content_type: image` | `models.py:606` | `config/test_import_assets.py` |
-| `content_type: table` | `models.py:626` | `config/test_import_assets.py` |
-| `content_type: table-no-header` | `models.py:585` | `config/test_import_assets.py` |
-| `content_type: html` | `models.py:628` | `config/test_import_assets.py` |
-| `alt_text` falls back to `caption` when **absent** | `models.py:594` | `config/test_import_assets.py` |
-| `longdesc` → markdown | `models.py:597` | `config/test_import_assets.py` |
-| Responsive variants (768–1920) + webp | `HeaderMixin.create_responsive:1561` | `config/test_import_assets.py` |
-| Tiny variant (offline PIL fallback) | `HeaderMixin.create_tiny:1529` | `config/test_import_assets.py` |
-| Ratio / average colour | `models.py:1458,1469` | `config/test_import_assets.py` |
-| Spreadsheet → chart columns | `Chart.load_from_file:125` | `unit/test_charts_display.py` |
-| Percent / currency / `split[` / year columns | `Column.__init__:44` | `unit/test_charts_display.py` |
-| Table rendering | `Chart.render_html_table:198` | `unit/test_charts_display.py` |
+`serialization.py` owns the existing text-backed JSON representation. Registered
+Section/Graf/Footnote/Chart/Column objects retain their historical serialized shape.
+All historical field imports use the project-owned implementation. The
+`useful_inkleby` package and its inert migration mixins are removed.
 
-### Markdown parsing
+Migration tests cover a clean database, schema drift, custom-field round trips,
+and upgrading populated pre-upgrade state without changing stored JSON bytes.
 
-Every construct below is exercised by `tests/fixtures/doc_source/_docs/kitchen-sink/document.md`.
+## Management interface and legacy URLs
 
-| Construct | Handler | Tests |
-|---|---|---|
-| `# H1` → section | `deepink.py:1027` | `pipeline/test_process_ink_structure.py` |
-| `##`/`###`/`####` → graf title | `deepink.py:1000` | `pipeline/test_process_ink_structure.py` |
-| Consecutive headings → title-only graf | `deepink.py:1009` | `pipeline/test_process_ink_structure.py` |
-| Duplicate heading anchors (`_1`, `_2`) | `get_anchor_offset:984` | `pipeline/test_process_ink_structure.py` |
-| Paragraphs, `ul`, `ol` | `good_to_extract:953` | `pipeline/test_markdown_features.py` |
-| Blockquotes, grouping | `Graf.block_start:825` | `pipeline/test_process_ink_structure.py` |
-| Raw `<table>` HTML | `good_to_extract:953` | `pipeline/test_markdown_features.py` |
-| Footnotes `[^1]`, `[^*]` | `Footnote:59`, `connect_to_footnote:602` | `pipeline/test_markdown_features.py`, `unit/test_deepink_footnote.py` |
-| Labelled footnote (`Label\|\|content`) | `Footnote.set_content:79` | `unit/test_deepink_footnote.py` |
-| Asides `[[ ]]`, all four graf types | `Graf.process:613` | `pipeline/test_process_ink_structure.py` |
-| Lone `[[`, trailing `]]`, `]][[` | `deepink.py:1039`, `move_extended_close:879` | `pipeline/`, `unit/test_deepink_text_processors.py` |
-| `[asset:slug]`, missing slug | `deepink.py:704` | `pipeline/test_markdown_features.py` |
-| `[header-asset:slug]` | `deepink.py:691` | `pipeline/test_process_ink_structure.py` |
-| `[tag:]`, `[para:]`, `[page:]` | `Graf.process:613` | `pipeline/test_process_ink_structure.py` |
-| `[catchup: …]` | `deepink.py:1038` | `pipeline/test_process_ink_structure.py` |
-| `""quoted""` and the `=""` escape | `deepink.py:663` | `pipeline/test_markdown_features.py` |
-| Smart quotes | `quote_fix:867` | `unit/test_deepink_text_processors.py` |
-| Paragraph keys, seeded and sequential | `RandomAssignment:32` | `unit/test_random_assignment.py` |
+See [management-operations.md](management-operations.md) for operation states,
+permissions, worker ownership, cancellation, retry, retention, and diagnosis.
 
-### Output
+Management lives at `/manage/`. Django login and organisation membership protect
+actions; mutating operation routes require POST and CSRF protection. The CLI
+supervises the preview server and one worker. Foreground and queued operations
+share per-publication locks under the repository's `.stringprint/locks/` directory.
 
-| Feature | Implementation | Tests |
-|---|---|---|
-| Article page, single and multipage | `ArticleView:250` | `render/test_article_view.py` |
-| Org template override | `_get_template_path:392` | `render/test_article_view.py` |
-| Open Graph / Twitter metadata | `social_settings:270` | `render/test_article_view.py` |
-| `?screenshot` forces single page | `views.py:315` | `render/test_article_view.py` |
-| Cross-chapter `#tag.` and `#anchor` rewriting | `Graf.display:764` | `render/test_article_view.py` |
-| TOC JSON | `TOCView:129` | `render/test_other_views.py` |
-| Plain text | `TextView:206` | `render/test_other_views.py` |
-| Search page and index | `TipueSearchView`, `TipueContentView` | `render/test_other_views.py` |
-| Kindle HTML / OPF / NCX templates | `KindleView:79` etc. | `render/test_other_views.py` |
-| Epub chapter | `EbookChapterView:120` | `render/test_other_views.py` |
-| Per-paragraph redirect page | `RedirectLink:396` | `render/test_other_views.py` |
-| Static bake, file manifest | `Article.render:808` | `bake/test_render_bake.py` |
-| Multipage chapter files | `models.py:987` | `bake/test_render_bake.py` |
-| Compressed CSS/JS collected | `compression_callback:28` | `bake/test_render_bake.py` |
-| Epub build | `create_ebook:1093` | `external/test_ebook.py` |
-| Paragraph social cards | `export_paragraph_images:490` | `external/test_screenshots.py` |
-| SCSS compilation | `CustomSCSS:39` | `external/test_scss_pipeline.py` |
-| CSS minification, SVG-safe | `svg_safe:15` | `unit/test_compiler_svg_safe.py` |
+The old dashboard, document list, and browser-upload URLs redirect to the current
+catalog. Legacy publish and reupload URLs redirect to the selected publication's
+management page after checking organisation membership. They do not create
+database-only documents or invoke removed import queues. Source authoring remains
+in repository files and CLI workflows. Document and organisation settings and
+header-image forms remain available; header changes invoke existing derivative
+methods directly. Unknown URLs return 404.
 
-### Preprocessing and commands
+## Previously documented defects
 
-| Feature | Implementation | Tests |
-|---|---|---|
-| `module::` command form | `Article.run_command:1281` | `config/test_run_command.py` |
-| Template + subprocess form | `Article.run_command:1303` | `config/test_run_command.py` |
-| Org vs document command precedence | `models.py:1266` | `config/test_run_command.py` |
-| `SectionDelete`, `SectionMove`, `TextSnip` | `preprocessing.py:65,132,190` | `external/test_preprocessing.py` |
-| `]][[` separation | `general_find_replace:196` | `external/test_preprocessing.py` |
-| PDF cover merge | `merge_pdfs:17` | `external/test_preprocessing.py` |
-| `.docx` → markdown fixups | `word_convert.py` | `unit/test_word_convert.py` |
-| Paragraph link persistence | `Version.load/save_paragraph_links:2033` | `config/test_paragraph_links.py` |
-| Orphan re-anchoring | `Version.anchor_orphans:2120` | `config/test_paragraph_links.py` |
-
-### Not covered
-
-- **kindlegen / `create_kindle` / `renderkindle`.** The binary is unavailable
-  and there is no plan to restore it. `Article.render` defaults `kindle=True`,
-  so every bake test passes `kindle=False` — a permanent constraint, not a
-  workaround.
-- **Google Drive download** (`google_download.py`) — needs credentials.
-- **Unsplash cookiecutter hook** (`_docs/_template/hooks/`) — lives in the
-  document-source repo, needs `UNSPLASH_CLIENT_ID`.
-- **A real headless-Chrome screenshot run.** `BAKE_SERVER` is a local variable
-  inside `export_paragraph_images` (`models.py:508`), so there is no seam to
-  point it at pytest's `live_server`. The surrounding logic is covered with a
-  fake driver instead.
-- **`frontend/` views** beyond the pagination helpers. Most of that module is
-  already broken (see below) and unused by the CLI workflow.
-- **TinyPNG's key-present branch** — only the offline PIL fallback runs.
-
-## Defects fixed
-
-Nine defects were repaired once the suite was in place to catch the fallout.
-Each had been pinned by a test first, so the repair is visible as an xfail
-turning into a real assertion.
-
-| Defect | Where | Fix |
-|---|---|---|
-| `JsonBlockField(default={})` handed **every** instance the same dict — seven fields across four models. Rows still saved correctly, because whatever the shared dict held at `save()` was what got serialised, which is why it survived unnoticed; the damage was to any process holding several unsaved instances, which is what `loadall` and `loadunloaded` produce. | `models.py` ×7 | `default=dict`, plus migration `0042` |
-| `HomeView.view` filtered `Article.objects.filter(public=True)`; there is no `public` field, so `/preview/` raised `FieldError`. | `views.py:76` | list all articles, newest first |
-| `ink/base.html` included `ink/cookie.html`, which has never existed in this repository. Only `home.html` extends `base.html`, so this was the second reason the preview index 500'd. | `templates/ink/base.html:92` | include removed. Note `Organisation.ga_cookies` still has no template consumer |
-| `AssetView.view`'s else branch read `charts = [charts]`, referencing the local before assignment, so any asset without a chart raised `UnboundLocalError`. Only table assets could be viewed. | `views.py:54` | `charts = []` |
-| `ChartCollection.__init__` called `x.package_name()` on each chart, but `package_name` is a string attribute on `ChartType`, not a method on `Chart`. Any non-table chart raised `AttributeError`, so the collection only worked when it ended up empty. | `charts/display.py:36` | `Chart.package_name()` looks the type up in the registry and falls back to `corechart` |
-| `GroupedPage.reasonable_range` computed `full_range / 2`, a float under Python 3, so `range()` rejected the bounds. Every branch except the short-paginator early return was dead. | `frontend/views.py:45` | floor division |
-| Footnote definitions were matched with `\[\^[0-9\*]+\]\:` — digits and stars only — while the *reference* syntax has always allowed names. A named footnote such as `[^scotedit]` parsed as a reference and then never picked up its content. At least one production document uses this. | `deepink.py:604` | regex widened to letters, underscore and hyphen |
-| The autoprefixer pass never ran. `postcss-cli` and `autoprefixer` were installed globally but `postcss` itself was an unmet peer dependency, so `npx postcss --use autoprefixer` exited `ERR_MODULE_NOT_FOUND` — and `compile_file` captured the return code without checking it, so published CSS was unprefixed and nothing said so. | `Dockerfile:14`, `compiler.py:99` | `postcss` added to the image; a non-zero exit now raises `StaticCompilationError`. `--no-map` added too, or postcss appends a base64 copy of every stylesheet to itself |
-| `makemigrations --check` had been failing: migration `0005` recorded the chart column as `charts.fields.ChartField` while `models.py` imports it as `stringprint2.charts.fields.ChartField` — an artefact of the doubled path making one module importable under two names. | `migrations/0005` | recorded in migration `0042` |
-
-Fixing the image build means the base image needs a rebuild and a SHA bump
-before the autoprefixer change takes effect in CI; until then `compile_file`
-raises rather than silently producing unprefixed CSS, which is the point.
-
-## Known defects
-
-Still outstanding. Each one reachable by a test is pinned, with a
-`strict=True` xfail wherever the code can actually be executed, so the test
-flips to a failure the moment it is repaired.
-
-| # | Defect | Where | Pinned by |
-|---|---|---|---|
-| 1 | `render_bootstrap_table`'s `if no_header` block sits **inside** the row loop, inserting the header once and then an empty list for every remaining row. The equivalent in `render_html_table` is correctly outside. | `charts/display.py:188` | `unit/test_charts_display.py` |
-| 2 | `Footnote.note_count` and `Footnote.all` are class attributes. `process_ink` resets the first and never the second, so the registry grows for the life of the process — and `connect_to_footnote` scans it for an empty-content entry with a matching ref, so one document's unresolved footnote can capture a later document's definition. | `deepink.py:60-61` | `unit/test_deepink_footnote.py`, `conftest.py` autouse reset |
-| 3 | `Article.render` mutates three settings (`SITE_ROOT`, `DEBUG`, `COMPRESS_ENABLED`) and sets `baking` on the instance, restoring none of them. It used to also mutate `MEDIA_URL`/`STATIC_URL`/`COMPRESS_URL` to relative strings before rendering, to make baked output relocatable - that stopped working once Django started forcing `STATIC_URL`/`MEDIA_URL` reads through `_add_script_prefix` (which never returns less than `/`), so `write_baked_file` (`models.py`) now renders with those settings untouched and relativizes the *output* afterwards instead. | `models.py` (`Article.render`, `relativize_static_urls`, `write_baked_file`) | `bake/test_render_bake.py`, `conftest.py` autouse restore |
-| 4 | `Article.authenticate` references an `Access` model that does not exist. | `models.py:656` | `external/test_known_broken.py` (xfail) |
-| 5 | `frontend/views.py` calls `trigger_reprocess`, `trigger_render`, `trigger_source_import` and a `downloads` relation, none of which exist on `Article`. | `frontend/views.py` | not pinned |
-| 6 | `preprocessing.py` defines `SectionMove` **twice**. The first is shadowed and would raise `AttributeError` on construction — its `__post_init__` reads `self.before`, which is not one of its fields. | `preprocessing.py:88,132` | `external/test_preprocessing.py` |
-| 7 | `run_command` splits the rendered command on single spaces with no quoting, so any templated value containing a space becomes several argv entries, and an unresolved variable leaves an empty one. | `models.py:1313` | `config/test_run_command.py` |
-| 8 | `script/manage` resolves to `stringprint2/stringprint2/stringprint2/manage.py` — one level too deep. The devcontainer `postCreateCommand` uses it. | `script/manage` | not pinned |
-| 9 | `do_process` tests `"--no-preprocess" in refresh`, but `.github/workflows/updater.yml` passes `no-preprocess`, so the preprocess step runs regardless. | `__main__.py:519` | not pinned |
-| 10 | `remove_supports` returns its argument on the first line; the rest of the body is unreachable. | `word_convert.py:361` | `unit/test_word_convert.py` |
-| 11 | `fix_markdown` indexes `text[pos + 2]` with no bounds check, so a document ending in `__` raises `IndexError`. | `word_convert.py:97` | `unit/test_word_convert.py` |
-| 12 | Dead modules: `tools/charts.py`, `tools/serial.py`, `tools/footnote_convert.py`. `frontend/migrations` 0002 and 0004 create `Download` and `TokenSetting`, since deleted. | — | `external/test_known_broken.py` |
-
-Removed rather than fixed: `Asset.get_chart_image` (used to be #4 here) called `contents.decode("base64")` on a `str` - impossible since Python 2 - and needed `geckodriver`, never installed in the image, so nothing could ever have called it successfully. Deleted along with its call site in `prepare_assets` and the test that pinned it (`external/test_known_broken.py`). `docker-compose.yml`'s config mount (used to be #10) is fixed - it dropped the stale volume mount entirely; `STRINGPRINT_CONFIG` (or the default seed-on-first-run path) is the supported way to inject config now.
-
-
-## Upgrade risk register
-
-Ordered by how likely each is to stop the upgrade dead.
-
-1. **Tuples in `TEMPLATES[0]["DIRS"]`.** `ORG_TEMPLATE_DIRS` holds
-   `(namespace, path)` pairs, which only work because `proj.loaders.NamespaceAwareLoader`
-   unpacks them. Django validates `TEMPLATES` harder with each release, and this
-   fails at `django.setup()` — taking the whole suite down at collection. Keep
-   `config/test_settings_bootstrap.py` runnable on its own as the first
-   diagnostic. `STATICFILES_DIRS` uses the same prefix-tuple form.
-2. **`django.conf.urls.url`**, removed in Django 4.0, used by `proj/urls.py` and
-   throughout `useful_inkleby`.
-3. **`django_compressor 2.2` and `django-static-precompiler 2.1`.** Neither
-   supports Django 5.2. The whole bake tier depends on them.
-4. **The three git-pinned forks** — `useful_inkleby@d2`,
-   `django-pipeline-csscompressor`, `python-unsplash`. `useful_inkleby` supplies
-   the view framework, the serialisers and both custom model fields; it has no
-   maintained Django 5 story and will need forking.
-5. **`selenium 3.13`** — `find_element_by_*` removed in Selenium 4.
-6. **`Pillow 8.3.2`** — `Image.BICUBIC` and `ANTIALIAS` removed in Pillow 10
-   (`create_responsive` uses `BICUBIC`).
-7. **`xlrd 1.2`** — `.xls` support; 190 production assets are `.xls`.
-8. **`Markdown 2.6.8`** — the parser is invoked with no extensions, so a bump
-   changes graf HTML. `pipeline/test_markdown_features.py` is the tripwire.
-9. **`webptools 0.0.2`** ships its own `cwebp`; `create_responsive` raises
-   `ValueError` if it produces nothing, which would fail every image test at
-   once. `config/test_cwebp_available.py` is named first so the cause is
-   obvious.
-10. **Invalid escape sequences** (`"\d"`, `"\("`, `"\_"`) across
-    `word_convert.py`, `views.py`, `footnote_convert.py` and `useful_inkleby`.
-    Currently `DeprecationWarning`; a `SyntaxWarning` now and an error later.
-11. **Import-time side effects in `__main__.py`** — a classic 3.14 breakage
-    surface, and the reason no test may import it.
-12. **`pytest-django` needs ≥ 4.9 for Django 5.2**; the pins here are `^4.5`.
-
-## Appendices
-
-### A. Document `settings.yaml` keys
-
-Frequency across the 66 production documents in the parent repository, and
-which fixture document exercises each.
-
-| Key | Count | Fixture |
-|---|---|---|
-| `title`, `short_title`, `description`, `byline`, `authors`, `cite_as`, `file_source`, `publish_date`, `sections_over_pages`, `display_notes`, `display_footnotes_at_foot`, `repo_slug` | 66 | all four |
-| `header` | 65 | all but `minimal-doc` |
-| `book_cover` | 55 | `kitchen-sink` |
-| `copyright` | 53 | `kitchen-sink`, `legacy-doc`, `multipage-doc` |
-| `seed` | 52 | `kitchen-sink` (−1), `legacy-doc` (13) |
-| `subtitle` | 40 | `kitchen-sink`, `multipage-doc` |
-| `pdf` → `pdf_file` | 38 | `kitchen-sink` |
-| `commands` | 38 | `kitchen-sink` |
-| `google_doc_url` | 34 | `kitchen-sink` |
-| `pdf_location` | 28 | `legacy-doc` |
-| `unsplash_title_image_url` | 25 | `kitchen-sink` |
-| `bottom_iframe` (always empty, to suppress the org default) | 4 | `legacy-doc`, `multipage-doc` |
-| `skip_epub` | 2 | `legacy-doc`, `multipage-doc` |
-| `files` | 1 | `legacy-doc` |
-
-`header` sub-keys: `location` (65), `size` (65), then the Unsplash hook's
-`alt_text`/`source_url`/`credit`/`description` (24 each) and `unsplash_id` (22).
-`size` is `6` in 64 documents and `4` in one; the loader also accepts
-`background`, which becomes −1 (`multipage-doc` covers that).
-
-Model fields no production document sets, and which the fixtures therefore do
-not exercise: `current_version`, `kindle_location`, `first_section_name`,
-`needs_processing`, `reprocess_source`, `display_toc`, `include_citation`.
-
-### B. `assets.yaml`
-
-474 assets across 65 files. Keys: `content_type` (474), `type` (474),
-`caption` (474), `alt_text` (234), `longdesc` (6).
-
-`content_type`: `image` 274, `table` 198, `html` 2. `table-no-header` is
-supported by the loader but unused in production — the fixture covers it anyway.
-
-`type`: `png` 236, `xls` 190, `jpeg` 30, `xlsx` 8, `jpg` 8, `html` 2.
-
-The file on disk must be named `<slug>.<type>` in the assets directory.
-
-### C. Org `_conf/settings.yaml`
-
-`name`, `twitter`, `ga_code`, `ga_cookies`, `publish_root`, `icon`,
-`include_favicon`, `orglinks` (name → `{link, order}`), `commands` (name →
-shell string or `module::` path), `default_values` (name → Django template
-rendered against the document's own settings). Anything else lands in
-`extra_values`, which `Organisation.__init__` splats onto the instance.
-
-### D. External dependencies
-
-| Dependency | Used by | Marker | Present in the image |
-|---|---|---|---|
-| `sass` | `CustomSCSS` | `needs_sass` | yes |
-| `npx` + `postcss` + `autoprefixer` | `CustomSCSS` | `needs_sass` | yes (`postcss` added to the image) |
-| Playwright's Chromium | `export_paragraph_images` (`Chrome`) | `needs_chrome` | yes (`playwright install --with-deps chromium`; faked in tests) |
-| `cwebp` | `create_responsive` | — | bundled inside `webptools` |
-| PyMuPDF | `merge_pdfs`, `pdf_page_to_png` | `external` | yes |
-| `kindlegen` | `create_kindle` | — | **no**, and out of scope |
-| Google Drive API | `google_download.py` | `needs_network` | needs `GDRIVE_SERVICE_USER` |
-| TinyPNG API | `create_tiny` | `needs_network` | offline fallback used |
-
-### E. Fixture documents
-
-`tests/fixtures/doc_source/` mirrors the shape of a real document-source
-repository. Binary fixtures are generated by `tests/fixtures/make_binaries.py`,
-which reproduces them byte for byte — `python tests/fixtures/make_binaries.py --check`
-asserts that, so drift is detectable.
-
-| Document | Covers |
+| Original issue | Current resolution and regression coverage |
 |---|---|
-| `minimal-doc` | the absent-everything paths: required keys only, no `header`, no `assets/` directory at all, no `_paragraphs.yaml`, no `production_url` |
-| `kitchen-sink` | the full modern key set, all four asset content types, and every markdown construct |
-| `legacy-doc` | `seed: 13`, `pdf_location`, empty `bottom_iframe`, `files`, `skip_epub`, `[page:N]` markers, and stale paragraph links plus previously rendered link files, so orphan re-anchoring runs |
-| `multipage-doc` | `sections_over_pages`, `header.size: background`, `display_notes: false`, duplicate section names, and cross-chapter `[tag:]` and `#anchor` links |
+| Shared mutable JSON field defaults | Callable defaults; per-instance defaults and migration tests |
+| Preview index queried a removed field / missing cookie include | Corrected preview view and template; rendering tests |
+| Non-chart assets and chart package lookup failed | Corrected chart/view adapters; chart and asset tests |
+| Pagination used Python 3 floating-point division | Integer bounds; pagination unit tests |
+| Named footnotes did not receive definitions | Named definition recognition; unit and pipeline tests |
+| Headerless Bootstrap tables inserted extra rows | Promote the first row once; empty-data regression |
+| Footnotes leaked across publications | One registry per compilation; consecutive/interleaved compilation tests |
+| Web/Kindle builds leaked settings and instance flags | Per-render context and copied publication state; success, failure, and repeat-build tests |
+| Retired access, download, and source-import APIs remained callable | Unused access API removed; superseded screens redirect; permission and upload tests |
+| Duplicate SectionMove and unreachable remove_supports | Removed; retained preprocessing and Word conversion tests |
+| Configured commands split quoted values incorrectly | Explicit argv parsing and unresolved-value errors; command regressions |
+| Engine script/manage used the wrong directory depth | Root-aware Poetry launcher; command-forwarding regression |
+| Updater no-preprocess was ineffective | CLI modifier normalization and standard workflow spelling; actual command-dispatch regression |
+| Word input ending with emphasis markers raised IndexError | Bounds checks; malformed-emphasis tests |
+| Obsolete chart/serialization/footnote script modules remained | Unreferenced modules and tests that merely preserved their existence removed |
+| Autoprefixer failure was ignored | Missing tooling or nonzero compilation fails visibly; SCSS integration tests |
+
+## Remaining integration limits
+
+- A real MOBI build is not verified by the default suite. Kindle service tests use
+  an injected generator; an installed binary must be checked separately.
+- Google Drive downloads require credentials and network access. Configuration
+  and preprocessing tests do not establish access to remote documents.
+- TinyPNG's remote API branch requires credentials; the offline image path is
+  tested.
+- Per-paragraph image-export rules use a fake browser for detailed filtering
+  and crop tests. The real-browser suite additionally exports one social card
+  from the live preview using an explicit preview origin and current paragraph
+  selectors; it does not visually compare every generated card.
+- External Sass/PostCSS and browser tests require their executables. Skipped
+  integration tests should be reported as skipped, not treated as proof of
+  compatibility.

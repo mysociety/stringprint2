@@ -16,7 +16,7 @@ Features:
 
 Stringprint is intended to be paired with a folder containg the source materials.
 
-Temporary note: Amazon have removed the download link for kindlegen. You need to find `kindlegen_linux_2.6_i386_v2_9.tar.gz` and put it at `_dependencies/kindlegen_linux_2.6_i386_v2_9.tar.gz` before running setup if you want to generate .mobi files.
+Web output generates EPUB by default, unless `skip_epub: true` is configured. MOBI output is opt-in and requires an installed `kindlegen` executable or `KINDLEGEN_LOC`. The ordinary web build does not require Kindle tooling. EPUB and MOBI can also be requested as separate management operations or CLI commands.
 
 That sourcefile will contain a `vagrantfile` that will do the below automatically, but to maintain a seperate stringprint2 folder following the following instructions:
 
