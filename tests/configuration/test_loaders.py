@@ -34,7 +34,7 @@ def organisation():
     ids=lambda path: path.parent.name,
 )
 def test_fixture_publications_are_valid(settings_path: Path, organisation) -> None:
-    publication = load_publication_config(settings_path, organisation)
+    publication = load_publication_config(settings_path)
 
     assert publication.title
     assert publication.repo_slug == settings_path.parent.name
@@ -87,7 +87,7 @@ def test_unknown_publication_keys_are_rejected(
     )
 
     with pytest.raises(ConfigurationError, match="unsupported_setting"):
-        load_publication_config(config_path, organisation)
+        load_publication_config(config_path)
 
 
 def test_validation_errors_include_the_source_path(
@@ -98,4 +98,4 @@ def test_validation_errors_include_the_source_path(
     config_path.write_text("title: Incomplete\n", encoding="utf-8")
 
     with pytest.raises(ConfigurationError, match=str(config_path)):
-        load_publication_config(config_path, organisation)
+        load_publication_config(config_path)

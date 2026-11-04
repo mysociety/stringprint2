@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from stringprint2.services.image_derivatives import create_responsive, create_tiny
-from stringprint2.services.paragraph_screenshots import ScreenshotParagraph, export_paragraph_images
-
-from stringprint2.services.document_compilation import compile_document
-from stringprint2.presentation.document import DocumentPresentation
 from stringprint2.presentation.navigation import build_table_of_contents
+from stringprint2.presentation.document import DocumentPresentation
 import time
 import sys
 import datetime
@@ -26,6 +22,8 @@ from stringprint2.configuration import (
     load_organisation_config,
     load_publication_config,
 )
+from stringprint2.configuration.model_values import ConfiguredModelValues
+from stringprint2.services.publication_loading import ARTICLE_FIELDS
 from stringprint2.services import (
     build_asset_import_plan,
     build_publication_load_plan,
@@ -55,11 +53,14 @@ from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
 from stringprint2.text_files import TextFile
+from stringprint2.services.image_derivatives import create_responsive, create_tiny
+from stringprint2.services.paragraph_screenshots import ScreenshotParagraph, export_paragraph_images
 
 from stringprint2.serialization import JsonBlockField
 
 from stringprint2.document_structure import Graf, Section
 
+from stringprint2.services.document_compilation import compile_document
 
 
 class OverwriteStorage(FileSystemStorage):
@@ -82,7 +83,12 @@ def render_article_template(template: str, publication: dict[str, object]) -> st
     return Template(template).render(Context({"article": publication}))
 
 
-class Organisation(models.Model):
+class Organisation(ConfiguredModelValues, models.Model):
+    configuration_fields = frozenset({
+        "name", "twitter", "ga_code", "ga_cookies", "publish_root",
+        "include_favicon", "icon", "default_values", "commands",
+    })
+
     # for twitter card and ciations 'ny times'
     name = models.CharField(max_length=255, blank=True, null=True)
     slug = models.CharField(max_length=255, blank=True, null=True)
@@ -101,10 +107,10 @@ class Organisation(models.Model):
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        make extra values directly accessible from the object
+        Apply explicitly supported legacy configuration field overrides
         """
         super().__init__(*args, **kwargs)
-        self.__dict__.update(self.extra_values)
+        self.apply_configuration_field_overrides()
 
     @property
     def storage_dir(self) -> str:
@@ -152,25 +158,19 @@ class Organisation(models.Model):
             Path(self.storage_dir) / "_conf" / "settings.yaml"
         )
         data = organisation_config.model_dump(exclude_unset=True)
-        ignore = ["orglinks"]
-        change = False
 
         for k in list(self.extra_values.keys()):
             if k not in data:
                 del self.extra_values[k]
 
-        for k, v in data.items():
-            if k not in ignore:
-                if hasattr(self, k):
-                    current = getattr(self, k)
-                    if current != v:
-                        setattr(self, k, v)
-                        change = True
-                else:
-                    current = self.extra_values.get(k)
-                    if current != v:
-                        self.extra_values[k] = v
-                        change = True
+        for name, value in data.items():
+            if name == "orglinks":
+                continue
+            if name in self.configuration_fields:
+                self.extra_values.pop(name, None)
+                setattr(self, name, value)
+            else:
+                self.extra_values[name] = value
 
         self.save()
 
@@ -233,9 +233,9 @@ class OrgLinks(models.Model):
     order = models.IntegerField(default=0)
 
 
+class Article(ConfiguredModelValues, models.Model):
+    configuration_fields = ARTICLE_FIELDS | {"display_toc", "include_citation"}
 
-
-class Article(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     subtitle = models.CharField(max_length=255, blank=True, null=True)
     short_title = models.CharField(max_length=255, blank=True, null=True)
@@ -277,10 +277,10 @@ class Article(models.Model):
 
     def __init__(self, *args, **kwargs) -> None:
         """
-        make extra values directly accessible from the object
+        Apply explicitly supported legacy configuration field overrides
         """
         super().__init__(*args, **kwargs)
-        self.__dict__.update(self.extra_values)
+        self.apply_configuration_field_overrides()
 
     @property
     def storage_dir(self):
@@ -350,9 +350,7 @@ class Article(models.Model):
         organisation_config = load_organisation_config(
             Path(self.org.storage_dir) / "_conf" / "settings.yaml"
         )
-        publication_config = load_publication_config(
-            Path(storage_dir) / "settings.yaml", organisation_config
-        )
+        publication_config = load_publication_config(Path(storage_dir) / "settings.yaml")
         plan = build_publication_load_plan(
             publication_config,
             organisation_config,
@@ -366,6 +364,7 @@ class Article(models.Model):
         for assignment in plan.field_assignments:
             setattr(self, assignment.name, assignment.value)
         self.extra_values = plan.extra_values
+        self.apply_configuration_field_overrides()
 
         if plan.header is not None:
             header = plan.header
@@ -793,7 +792,6 @@ class Article(models.Model):
             article=self, number=self.current_version
         )
         return version
-
 
     def display_content(
         self, slugs: List[Any] = [], display_first_section: bool = False

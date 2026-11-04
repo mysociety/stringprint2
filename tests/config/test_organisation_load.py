@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from stringprint2.stringprint.models import Organisation
+from stringprint.models import Organisation
 
 pytestmark = pytest.mark.django_db
 
@@ -60,7 +60,7 @@ class TestExtraValuesPruning:
     def test_unknown_keys_in_the_yaml_are_kept(self, doc_source) -> None:
         """
         Anything that is not a model field goes to extra_values, and
-        Organisation.__init__ splats extra_values onto the instance.
+        custom options remain available through attribute fallback.
         """
         organisation = Organisation.objects.create(slug="default")
         organisation.load_from_yaml()

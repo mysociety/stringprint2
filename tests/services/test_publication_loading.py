@@ -27,8 +27,7 @@ def load_plan(slug: str, existing_extra_keys: set[str] | None = None):
     """
     organisation = load_organisation_config(FIXTURE_SOURCE / "_conf" / "settings.yaml")
     publication = load_publication_config(
-        FIXTURE_SOURCE / "_docs" / slug / "settings.yaml",
-        organisation,
+        FIXTURE_SOURCE / "_docs" / slug / "settings.yaml"
     )
     return build_publication_load_plan(
         publication,

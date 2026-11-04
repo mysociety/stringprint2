@@ -67,17 +67,8 @@ def load_organisation_config(path: Path) -> OrganisationConfig:
     return validate_config(path, OrganisationConfig)
 
 
-def load_publication_config(
-    path: Path,
-    organisation: OrganisationConfig,
-) -> PublicationConfig:
-    """
-    Load a publication configuration against its organisation context.
-
-    Organisation defaults remain modelled separately until their existing
-    Django-template rendering is extracted as a pure transformation.
-    """
-    del organisation
+def load_publication_config(path: Path) -> PublicationConfig:
+    """Validate authored publication values; the load plan resolves org defaults."""
     return validate_config(path, PublicationConfig)
 
 
