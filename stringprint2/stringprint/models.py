@@ -614,24 +614,6 @@ class Article(models.Model):
             h.create_tiny()
         self.images.filter(queue_tiny=True).update(queue_tiny=False)
 
-    def authenticate(self, user, access):
-        """
-        is the current user allowed to use this article?
-        """
-        if user.is_staff:
-            return True
-
-        access = Access.objects.get_or_none(user=user, article=self)
-        if access is None:
-            return False
-
-        if access.is_valid() is False:
-            return False
-
-        access.use_access()
-
-        return access
-
     def get_book_cover(self, path: str) -> None:
         if os.path.exists(path):
             fi = get_file(path)

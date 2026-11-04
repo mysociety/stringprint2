@@ -1,23 +1,17 @@
 from stringprint2.view_framework import (
     RedirectException,
     StringprintView,
-    after_logic,
     before_logic,
 )
 from . import forms as ff
-import os
 from stringprint.models import Article, Organisation
-from django.utils.text import slugify
 from .models import UserSettings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth.models import User
-from django.utils.timezone import now
-from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
-from wsgiref.util import FileWrapper
-from django.shortcuts import HttpResponse
-from django.conf import settings
+from django.core.paginator import Paginator, Page
+from django.core.exceptions import PermissionDenied
 
 
 class GroupedPage(Page):
@@ -230,107 +224,58 @@ class RegisterView(StringprintView):
 
 
 class NewDocView(LoggedInView):
-    template = "frontend//new_doc.html"
+    """
+    Send retired browser uploads to the source-backed publication catalog.
+    """
+
     url_patterns = [r"^document/new"]
     url_name = "document.new"
 
-    @before_logic
-    def new_doc_form_logic(self):
-        def short_title(v):
-            if ":" in v:
-                v1 = v.split(":")[0]
-            else:
-                v1 = v
-            words = v1.split(" ")
-            if words[0].lower() == "the":
-                words = words[1:]
-            return " ".join(words[:3])
-
-        request = self.request
-        form = ff.NewDocumentForm
-
-        org = UserSettings.get_org(self.request.user)
-
-        if request.POST:
-            new_document_form = form(request.POST)
-            if new_document_form.is_valid():
-                cd = new_document_form.cleaned_data
-                root = slugify(cd["title"])
-                short = short_title(cd["title"])
-                slug = root
-                count = 1
-                while Article.objects.filter(slug=slug, org=org).exists():
-                    slug = root + "_" + str(count)
-                    count += 1
-                a = Article(
-                    title=cd["title"],
-                    short_title=short,
-                    slug=slug,
-                    org=org,
-                )
-                a.save()
-                if "file" in request.FILES:
-                    a.source_file.save(root + ".docx", request.FILES["file"])
-                    print("triggering import")
-                    a.trigger_source_import()
-                    a.save()
-
-        else:
-            new_document_form = form()
-
-        self.new_document_form = new_document_form
+    def logic(self):
+        raise RedirectException(reverse("publication_management:publication_list"))
 
 
 class ReuploadFormView(ArticleEditBase, LoggedInView):
-    template = "frontend//doc_reupload.html"
+    """
+    Preserve old upload links without invoking the removed import queue.
+    """
+
     url_patterns = [r"^document/([0-9]*)/reupload"]
     url_name = "document.reupload"
 
-    @before_logic
-    def new_doc_form_logic(self):
-        request = self.request
-        form = ff.ReuploadWordForm
-        if request.POST:
-            new_document_form = form(request.POST)
-            if new_document_form.is_valid():
-                if "file" in request.FILES:
-                    self.article.source_file.save(
-                        self.article.slug + ".docx", request.FILES["file"]
-                    )
-                    print("triggering import")
-                    self.article.trigger_source_import()
-                    self.article.save()
-                    raise RedirectException(
-                        reverse("article.settings", args=(self.article.id,))
-                    )
-        else:
-            new_document_form = form()
-
-        self.message = "Warning|Caution! This will override all current text."
-        self.new_document_form = new_document_form
+    def logic(self):
+        raise RedirectException(
+            reverse(
+                "publication_management:publication_detail", args=(self.article.slug,)
+            )
+        )
 
 
-class ChangeOrgView(NewDocView):
+class ChangeOrgView(LoggedInView):
     url_patterns = [r"^orgs/change/(.*)"]
     url_name = "org.change"
     args = ("org_id",)
 
     def logic(self):
-        new_org = Organisation.objects.get(id=self.org_id)
+        new_org = Organisation.objects.filter(
+            id=self.org_id, user_settings__user=self.request.user
+        ).first()
+        if new_org is None:
+            raise PermissionDenied("No membership in the selected organisation")
         UserSettings.change_org(self.request.user, new_org)
         raise RedirectException(reverse("home"))
 
 
-class HomeView(NewDocView):
-    template = "frontend//home.html"
-    url_patterns = [r"^"]
+class HomeView(LoggedInView):
+    """
+    Redirect the original dashboard to the current management interface.
+    """
+
+    url_patterns = [r"^$"]
     url_name = "home"
 
     def logic(self):
-        org = UserSettings.get_org(self.request.user)
-        documents = Article.objects.filter(org=org).order_by("-last_updated")[:10]
-        self.documents = documents
-        self.orgs = Organisation.objects.all().order_by("name")
+        raise RedirectException(reverse("publication_management:publication_list"))
 
 
 class DocListView(HomeView):
@@ -340,16 +285,4 @@ class DocListView(HomeView):
     args = (("page_no", 1),)
 
     def logic(self):
-        page_count = 10
-        org = UserSettings.get_org(self.request.user)
-        documents = Article.objects.filter(org=org).order_by("-last_updated")
-        paginator = GroupedPaginator(documents, page_count)
-        page = self.page_no
-        try:
-            objects = paginator.page(page)
-        except PageNotAnInteger:
-            objects = paginator.page(1)
-        except EmptyPage:
-            objects = paginator.page(paginator.num_pages)
-
-        self.documents = objects
+        raise RedirectException(reverse("publication_management:publication_list"))

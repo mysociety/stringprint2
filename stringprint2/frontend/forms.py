@@ -4,10 +4,11 @@ Created on Aug 21, 2016
 @author: Alex
 """
 
+from __future__ import annotations
+
 from django import forms
 from django.contrib.auth.models import User
 from stringprint.models import Organisation, Article, HeaderImage
-from django.core.exceptions import ValidationError
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
 
@@ -24,7 +25,7 @@ class HoneyPotForm(forms.Form):
 
 
 class AdminImageWidget(AdminFileWidget):
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         output = []
         if value and getattr(value, "url", None):
             image_url = value.url
@@ -33,7 +34,7 @@ class AdminImageWidget(AdminFileWidget):
                 ' <a href="%s" target="_blank"><img src="%s" alt="%s" width=300 /></a>'
                 % (image_url, image_url, file_name)
             )
-        output.append(super(AdminFileWidget, self).render(name, value, attrs))
+        output.append(super().render(name, value, attrs, renderer=renderer))
 
         output = ["<td>{0}</td>".format(x) for x in output if x]
         output = "".join(output)
@@ -87,7 +88,8 @@ class PageHeaderImageForm(forms.ModelForm):
                         files["image_vertical"].name, files["image_vertical"]
                     )
                 ins.save()
-                ins.trigger_create_responsive()
+                ins.create_responsive()
+                ins.create_tiny()
 
     class Meta:
         model = HeaderImage
@@ -182,30 +184,6 @@ class OrgAmendForm(forms.ModelForm):
     class Meta:
         model = Organisation
         fields = ["name", "twitter", "ga_code"]
-
-
-def validate_file_extension(value):
-    if not value.name.endswith(".pdf"):
-        raise ValidationError("Error message")
-
-
-class ReuploadWordForm(HoneyPotForm):
-    file = forms.FileField(
-        label="Upload a Word file (optional)",
-        required=False,
-        validators=[validate_file_extension],
-    )
-
-
-class NewDocumentForm(HoneyPotForm):
-    title = forms.CharField(
-        label="Document Title", help_text="Don't worry, this can be changed later."
-    )
-    file = forms.FileField(
-        label="Upload a Word file (optional)",
-        required=False,
-        validators=[validate_file_extension],
-    )
 
 
 class RegisterForm(HoneyPotForm):
