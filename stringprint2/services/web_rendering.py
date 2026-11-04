@@ -155,7 +155,7 @@ def render_web_publication_staging(
     Render a publication and all supporting files to a static directory.
     """
 
-    from stringprint.views import (  # type: ignore[import-not-found]
+    from stringprint2.stringprint.views import (  # type: ignore[import-not-found]
         ArticleView,
         ParagraphMapView,
         RedirectLink,

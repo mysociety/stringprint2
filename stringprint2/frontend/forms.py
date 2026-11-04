@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from django import forms
 from django.contrib.auth.models import User
-from stringprint.models import Organisation, Article, HeaderImage
+from stringprint2.stringprint.models import Organisation, Article, HeaderImage
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
 

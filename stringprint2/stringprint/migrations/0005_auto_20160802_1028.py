@@ -2,7 +2,7 @@
 
 
 from django.db import migrations, models
-import charts.fields
+import stringprint2.charts.fields
 
 
 class Migration(migrations.Migration):
@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="asset",
             name="chart",
-            field=charts.fields.ChartField(null=True, blank=True),
+            field=stringprint2.charts.fields.ChartField(null=True, blank=True),
         ),
         migrations.AddField(
             model_name="asset",

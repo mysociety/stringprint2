@@ -45,8 +45,8 @@ if TYPE_CHECKING:
     from stringprint2.frontend.models import UserSettings
     from stringprint2.stringprint.models import Article, Organisation
 else:
-    from frontend.models import UserSettings
-    from stringprint.models import Article, Organisation
+    from stringprint2.frontend.models import UserSettings
+    from stringprint2.stringprint.models import Article, Organisation
 
 
 def publication_web_operation_allowed(

@@ -7,7 +7,7 @@ a contract across versions, and every fixture document uses seed -1.
 
 from __future__ import annotations
 
-from stringprint.tools.deepink import RandomAssignment
+from stringprint2.stringprint.tools.deepink import RandomAssignment
 
 
 class TestSequentialSeed:

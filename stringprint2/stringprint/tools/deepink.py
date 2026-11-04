@@ -27,7 +27,7 @@ from typing import Any, Iterator, List, Optional, Union
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from stringprint.models import Version, Graf
+    from stringprint2.stringprint.models import Version, Graf
 
 
 tag_re_statement = re.compile('"#tag.(.*?)"')

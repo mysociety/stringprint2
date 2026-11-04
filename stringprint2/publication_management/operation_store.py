@@ -79,7 +79,7 @@ def enqueue_publication_operation(
         publication_slug=request.publication_slug,
         operation_name=request.operation,
         parameters=parameters,
-        requested_by=requested_by,
+        requested_by_id=requested_by.pk if requested_by is not None else None,
         request_source=request_source,
     )
 

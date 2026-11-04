@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from stringprint2.__main__ import SPPrompt
+from stringprint2.cli import SPPrompt
 
 
 def test_publish_updated_runs_the_complete_pipeline_only_for_stale_documents(

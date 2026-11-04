@@ -106,7 +106,7 @@ class TestSkipRules:
     def test_a_missing_element_is_skipped_rather_than_fatal(
         self, kitchen_sink, monkeypatch, folder
     ) -> None:
-        from stringprint.models import Chrome
+        from stringprint2.stringprint.models import Chrome
         from tests.conftest import FakeDriver
 
         first_graf = kitchen_sink.content().sections[0].grafs[0]

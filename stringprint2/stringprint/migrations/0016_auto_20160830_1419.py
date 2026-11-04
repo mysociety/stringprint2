@@ -2,7 +2,7 @@
 
 
 from django.db import migrations, models
-import stringprint.models
+import stringprint2.stringprint.models
 
 
 class Migration(migrations.Migration):
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name="book_cover",
             field=models.ImageField(
                 null=True,
-                upload_to=stringprint.models.kindle_source_storage,
+                upload_to=stringprint2.stringprint.models.kindle_source_storage,
                 blank=True,
             ),
         ),

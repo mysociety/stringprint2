@@ -5,7 +5,7 @@ Tests for native authenticated-interface form widgets.
 from __future__ import annotations
 
 from stringprint2.frontend.forms import ArticlePublishForm, PageHeaderImageForm
-from stringprint.models import Article, HeaderImage
+from stringprint2.stringprint.models import Article, HeaderImage
 import pytest
 
 

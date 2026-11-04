@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from stringprint2.__main__ import SPPrompt
+from stringprint2.cli import SPPrompt
 from stringprint2.services.process_supervisor import ManagedProcessStatus
 
 
@@ -39,7 +39,7 @@ class StatusSupervisor:
 
 def test_status_reports_children_independently(monkeypatch) -> None:
     """A failed worker is visible without treating the preview server as failed."""
-    monkeypatch.setattr("stringprint2.__main__.PanelPrint", CapturingPanel)
+    monkeypatch.setattr("stringprint2.cli.PanelPrint", CapturingPanel)
     prompt = SPPrompt()
     prompt.process_supervisor = StatusSupervisor()
     prompt.running_server = 10

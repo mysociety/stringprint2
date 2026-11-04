@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from frontend.views import GroupedPage
+from stringprint2.frontend.views import GroupedPage
 
 
 class FakePaginator:

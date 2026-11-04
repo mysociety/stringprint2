@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from stringprint2.__main__ import SPPrompt
+from stringprint2.cli import SPPrompt
 from stringprint2.services.process_supervisor import ManagedProcessStatus
 
 

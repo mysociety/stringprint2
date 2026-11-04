@@ -75,7 +75,7 @@ def render_kindle_staging(
     Populate one staging directory and invoke the Kindle generator.
     """
 
-    from stringprint.views import (  # type: ignore[import-not-found]
+    from stringprint2.stringprint.views import (  # type: ignore[import-not-found]
         KindleNCX,
         KindleOPF,
         KindleView,

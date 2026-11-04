@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from stringprint.tools.deepink import Footnote, FootnoteRegistry, process_ink
+from stringprint2.stringprint.tools.deepink import Footnote, FootnoteRegistry, process_ink
 
 
 class TestNumbering:

@@ -110,7 +110,7 @@ def test_a_failing_postcss_run_is_reported(monkeypatch, org) -> None:
 
 
 def test_svg_data_uris_survive_minification(compiled) -> None:
-    from stringprint.compiler import svg_safe
+    from stringprint2.stringprint.compiler import svg_safe
 
     minified = svg_safe(open(compiled).read())
     assert "svg xmlns=" in minified

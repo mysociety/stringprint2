@@ -1,14 +1,6 @@
 #!/usr/bin/env python
-import os
-import sys
+"""Compatibility launcher for Django management commands."""
+from stringprint2.bootstrap import management_main
 
 if __name__ == "__main__":
-    try:
-        os.environ.pop("DJANGO_SETTINGS_MODULE")
-    except Exception:
-        pass
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proj.settings")
-
-    from django.core.management import execute_from_command_line
-
-    execute_from_command_line(sys.argv)
+    management_main()

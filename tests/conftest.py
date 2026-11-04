@@ -50,7 +50,7 @@ def reset_global_state():
 
     charts.display.Chart.ident comes from the global random module.
     """
-    from stringprint.models import Chrome
+    from stringprint2.stringprint.models import Chrome
 
     random.seed(0)
     yield
@@ -59,7 +59,7 @@ def reset_global_state():
 
 @pytest.fixture(scope="session")
 def org(django_db_setup, django_db_blocker):
-    from stringprint.models import Organisation
+    from stringprint2.stringprint.models import Organisation
 
     with django_db_blocker.unblock():
         organisation, _ = Organisation.objects.get_or_create(slug="default")
@@ -87,7 +87,7 @@ def loaded_articles(org, django_db_blocker, doc_folder) -> Dict[str, Any]:
     The corollary is that these rows are shared: a test may read them freely,
     and any change it makes is undone with its own transaction.
     """
-    from stringprint.models import Article
+    from stringprint2.stringprint.models import Article
 
     articles = {}
     with django_db_blocker.unblock():
@@ -210,7 +210,7 @@ class FakeDriver:
 @pytest.fixture
 def fake_chrome(monkeypatch):
     """Install FakeDriver as the Chrome singleton for the duration of a test."""
-    from stringprint.models import Chrome
+    from stringprint2.stringprint.models import Chrome
 
     driver = FakeDriver()
     monkeypatch.setattr(Chrome, "page", None)

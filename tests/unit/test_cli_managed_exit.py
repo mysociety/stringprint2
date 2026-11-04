@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from stringprint.models import Article
-from stringprint2.__main__ import SPPrompt
+from stringprint2.stringprint.models import Article
+from stringprint2.cli import SPPrompt
 from stringprint2.services.publication_operations import RenderPublicationRequest
 from stringprint2.services.publication_rendering import PublicationRenderFormat
 
@@ -64,7 +64,7 @@ def test_ebook_commands_use_locked_typed_render_operation(
     )
     captured = []
     monkeypatch.setattr(
-        "stringprint2.__main__.run_foreground_publication_operation",
+        "stringprint2.cli.run_foreground_publication_operation",
         lambda request, document, source, destination: captured.append(request),
     )
 

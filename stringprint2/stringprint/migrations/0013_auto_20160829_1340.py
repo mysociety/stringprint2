@@ -2,7 +2,7 @@
 
 
 from django.db import migrations, models
-import stringprint.models
+import stringprint2.stringprint.models
 
 
 class Migration(migrations.Migration):
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
             model_name="article",
             name="source_file",
             field=models.FileField(
-                null=True, upload_to=stringprint.models.org_source_path, blank=True
+                null=True, upload_to=stringprint2.stringprint.models.org_source_path, blank=True
             ),
         ),
         migrations.AddField(

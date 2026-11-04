@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from stringprint.models import Article, Version
+from stringprint2.stringprint.models import Article, Version
 
 pytestmark = pytest.mark.django_db
 

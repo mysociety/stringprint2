@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from stringprint.models import Chrome
+from stringprint2.stringprint.models import Chrome
 from tests.conftest import FakeDriver
 
 pytestmark = [

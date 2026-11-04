@@ -18,8 +18,8 @@ from compressor.signals import post_compress
 from .models import Article, Asset
 from stringprint2.view_framework import StringprintView
 from django.core.handlers.wsgi import WSGIRequest
-from stringprint.models import Article, Version
-from stringprint.tools.deepink import Section
+from stringprint2.stringprint.models import Article, Version
+from stringprint2.stringprint.tools.deepink import Section
 from stringprint2.services.paragraph_links import paragraph_compatibility_map
 from typing import Any, Dict, List, Type, Union
 

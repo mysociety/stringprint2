@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import fitz
-from stringprint.models import Article
-from stringprint.tools.word_convert import convert_word
+from stringprint2.stringprint.models import Article
+from stringprint2.stringprint.tools.word_convert import convert_word
 from stringprint2.text_files import TextFile
 
 from .google_download import GoogleDownloader

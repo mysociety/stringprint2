@@ -54,7 +54,7 @@ from webptools import webplib as webp
 
 from stringprint2.serialization import JsonBlockField
 
-from stringprint.tools.deepink import Graf, Section
+from stringprint2.stringprint.tools.deepink import Graf, Section
 
 from .tools.deepink import process_ink
 

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
     from stringprint2.stringprint.models import Article
 else:
-    from stringprint.models import Article
+    from stringprint2.stringprint.models import Article
 
 
 class DatabaseProgressReporter(ProgressReporter):

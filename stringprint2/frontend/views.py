@@ -4,7 +4,7 @@ from stringprint2.view_framework import (
     before_logic,
 )
 from . import forms as ff
-from stringprint.models import Article, Organisation
+from stringprint2.stringprint.models import Article, Organisation
 from .models import UserSettings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required

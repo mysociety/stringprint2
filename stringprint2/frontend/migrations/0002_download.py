@@ -2,7 +2,7 @@
 
 
 from django.db import migrations, models
-import frontend.models
+import stringprint2.frontend.models
 
 
 class Migration(migrations.Migration):
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                     "file",
                     models.FileField(
                         null=True,
-                        upload_to=frontend.models.org_download_path,
+                        upload_to=stringprint2.frontend.models.org_download_path,
                         blank=True,
                     ),
                 ),

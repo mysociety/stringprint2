@@ -237,7 +237,7 @@ def check_login_and_management_operation(
     Login and a CSRF-protected operation POST work in a real browser.
     """
     from django.contrib.auth.models import User
-    from frontend.models import UserSettings
+    from stringprint2.frontend.models import UserSettings
 
     user = User.objects.create_user(
         username="browser-manager", password="test-password"
@@ -299,7 +299,7 @@ def check_paragraph_image_export(
     """
     from types import SimpleNamespace
     from copy import copy
-    from stringprint.models import Chrome
+    from stringprint2.stringprint.models import Chrome
 
     graf = kitchen_sink.content().sections[0].grafs[0]
     publication = copy(kitchen_sink)
