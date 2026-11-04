@@ -869,28 +869,25 @@ class Article(models.Model):
         """
         creates the section and graf structure from raw markup
         """
-        self.content().process()
+        self.ensure_content().process()
         self.needs_processing = False
         self.save()
 
     def content(self) -> Version:
-        """
-        retrieve current version of content
-        """
-        q = Version.objects.filter(article=self, number=self.current_version)
-        # error handling
-        if q.count() > 1:
-            print("deleting previous")
-            q.delete()
+        """Read the current version without creating or repairing stored content.
 
-        if not q.exists():
-            print("creating new content")
-            v = Version.objects.get_or_create(
-                article=self, number=self.current_version
-            )[0]
-        else:
-            v = q[0]
-        return v
+        Missing or duplicate versions are errors: readers must never silently
+        create content or discard conflicting versions.
+        """
+        return Version.objects.get(article=self, number=self.current_version)
+
+    def ensure_content(self) -> Version:
+        """Create a current version explicitly when loading or processing source."""
+        version, _ = Version.objects.get_or_create(
+            article=self, number=self.current_version
+        )
+        return version
+
 
     def display_content(
         self, slugs: List[Any] = [], display_first_section: bool = False
@@ -908,7 +905,7 @@ class Article(models.Model):
         """
         load markdown from file
         """
-        load_publication_source(self.content(), Path(self.file_source))
+        load_publication_source(self.ensure_content(), Path(self.file_source))
 
     def title_image(self) -> Optional[HeaderImage]:
         """

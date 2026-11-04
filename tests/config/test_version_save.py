@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from stringprint2.stringprint.models import Article, Version
+from stringprint.models import Article, Version
 
 pytestmark = pytest.mark.django_db
 
@@ -20,7 +20,7 @@ def article(org, doc_folder) -> Article:
 
 
 class TestContent:
-    def test_content_creates_a_version(self, article: Article) -> None:
+    def test_source_loading_creates_a_version(self, article: Article) -> None:
         version = article.content()
         assert isinstance(version, Version)
         assert version.article_id == article.pk
