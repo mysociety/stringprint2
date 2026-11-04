@@ -50,3 +50,44 @@ def test_password_change_pages_require_and_support_authentication(client) -> Non
     client.force_login(user)
     assert client.get(reverse("password_change")).status_code == 200
     assert client.get(reverse("password_change_done")).status_code == 200
+
+
+def test_registration_creates_membership_and_logs_in(client):
+    from frontend.models import UserSettings
+
+    response = client.post(
+        reverse("register"),
+        {
+            "first_name": "Test",
+            "last_name": "Author",
+            "org_name": "Test publisher",
+            "email": "author@example.test",
+            "password": "test-password",
+            "phone_number": "",
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("home")
+    user = User.objects.get(email="author@example.test")
+    assert UserSettings.get_org(user).name == "Test publisher"
+    assert client.session["_auth_user_id"] == str(user.pk)
+
+
+def test_registration_rejects_duplicate_email_without_creating_membership(client):
+    from frontend.models import UserSettings
+
+    User.objects.create_user(username="existing", email="author@example.test")
+    response = client.post(
+        reverse("register"),
+        {
+            "first_name": "Test",
+            "last_name": "Author",
+            "org_name": "Test publisher",
+            "email": "author@example.test",
+            "password": "test-password",
+            "phone_number": "",
+        },
+    )
+    assert response.status_code == 200
+    assert "email" in response.context["form"].errors
+    assert not UserSettings.objects.exists()
