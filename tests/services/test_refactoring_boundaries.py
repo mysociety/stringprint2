@@ -61,6 +61,32 @@ def test_legacy_imports_are_aliases_of_the_canonical_models():
     )
 
 
+def test_browser_is_closed_when_capture_fails(monkeypatch):
+    from stringprint2.services.paragraph_screenshots import paragraph_browser
+
+    closed = []
+    browser = SimpleNamespace(
+        new_page=lambda: object(), close=lambda: closed.append("browser")
+    )
+
+    class Playwright:
+        chromium = SimpleNamespace(launch=lambda: browser)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            closed.append("playwright")
+
+    monkeypatch.setattr(
+        "stringprint2.services.paragraph_screenshots.sync_playwright", Playwright
+    )
+    with pytest.raises(RuntimeError, match="capture failed"):
+        with paragraph_browser():
+            raise RuntimeError("capture failed")
+    assert closed == ["browser", "playwright"]
+
+
 def test_compilation_preserves_process_random_state():
     import random
 

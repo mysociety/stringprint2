@@ -16,7 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from stringprint2.stringprint.models import Chrome
+from contextlib import nullcontext
+from unittest.mock import patch
 from tests.conftest import FakeDriver
 
 pytestmark = [
@@ -81,15 +82,9 @@ def baked(tmp_path_factory, django_db_blocker, request) -> Path:
     """
     article = request.getfixturevalue("kitchen_sink")
     driver = FakeDriver()
-    Chrome.page = None
-    original = Chrome.get_page
-    Chrome.get_page = classmethod(lambda cls: driver)
-    try:
+    with patch("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver)):
         with django_db_blocker.unblock():
             return bake(article, tmp_path_factory.mktemp("bake") / "baked")
-    finally:
-        Chrome.get_page = original
-        Chrome.page = None
 
 
 class TestOutputFiles:

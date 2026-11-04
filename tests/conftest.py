@@ -5,7 +5,7 @@ Two things routinely catch people out in this codebase:
 
 * Section.nav_url and Graf.display read article.search and article.baking,
   which are not model fields - the views inject them through
-  article_settings_override. A bare Article() has to set them by hand.
+  the per-page render context. A bare Article() has to set them by hand.
 * Section.get_grafs memoises stored_grafs onto the instance, so a test
   asserting on the serialised tree should re-read the Version from the
   database rather than reuse a session-scoped in-memory object.
@@ -50,16 +50,14 @@ def reset_global_state():
 
     charts.display.Chart.ident comes from the global random module.
     """
-    from stringprint2.stringprint.models import Chrome
 
     random.seed(0)
     yield
-    Chrome.page = None
 
 
 @pytest.fixture(scope="session")
 def org(django_db_setup, django_db_blocker):
-    from stringprint2.stringprint.models import Organisation
+    from stringprint.models import Organisation
 
     with django_db_blocker.unblock():
         organisation, _ = Organisation.objects.get_or_create(slug="default")
@@ -87,7 +85,7 @@ def loaded_articles(org, django_db_blocker, doc_folder) -> Dict[str, Any]:
     The corollary is that these rows are shared: a test may read them freely,
     and any change it makes is undone with its own transaction.
     """
-    from stringprint2.stringprint.models import Article
+    from stringprint.models import Article
 
     articles = {}
     with django_db_blocker.unblock():
@@ -170,7 +168,7 @@ class FakeDriver:
     """
     Stands in for a headless Playwright page in export_paragraph_images.
 
-    Chrome.get_page is the only place the real page is built, so replacing
+    paragraph_browser is the only place the real page is built, so replacing
     it lets the surrounding logic - the skip filters, the scroll, the crop
     arithmetic and the output filenames - run for real with no browser and no
     preview server listening on 127.0.0.1:8000.
@@ -209,10 +207,9 @@ class FakeDriver:
 
 @pytest.fixture
 def fake_chrome(monkeypatch):
-    """Install FakeDriver as the Chrome singleton for the duration of a test."""
-    from stringprint2.stringprint.models import Chrome
+    """Provide a fake page through the scoped browser factory."""
 
     driver = FakeDriver()
-    monkeypatch.setattr(Chrome, "page", None)
-    monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
+    from contextlib import nullcontext
+    monkeypatch.setattr("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver))
     return driver

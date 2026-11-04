@@ -106,13 +106,12 @@ class TestSkipRules:
     def test_a_missing_element_is_skipped_rather_than_fatal(
         self, kitchen_sink, monkeypatch, folder
     ) -> None:
-        from stringprint2.stringprint.models import Chrome
+        from contextlib import nullcontext
         from tests.conftest import FakeDriver
 
         first_graf = kitchen_sink.content().sections[0].grafs[0]
         driver = FakeDriver(missing_orders=[first_graf.order])
-        monkeypatch.setattr(Chrome, "page", None)
-        monkeypatch.setattr(Chrome, "get_page", classmethod(lambda cls: driver))
+        monkeypatch.setattr("stringprint2.services.paragraph_screenshots.paragraph_browser", lambda: nullcontext(driver))
 
         kitchen_sink.export_paragraph_images(str(folder))
 

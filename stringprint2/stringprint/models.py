@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from stringprint2.services.image_derivatives import create_responsive, create_tiny
+from stringprint2.services.paragraph_screenshots import ScreenshotParagraph, export_paragraph_images
+
 from stringprint2.services.document_compilation import compile_document
 from stringprint2.presentation.document import DocumentPresentation
 from stringprint2.presentation.navigation import build_table_of_contents
@@ -17,7 +20,6 @@ from urllib.parse import urljoin
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import markdown
-import tinify
 from stringprint2.charts import Chart
 from stringprint2.configuration import (
     load_assets_config,
@@ -52,9 +54,7 @@ from django.urls import reverse
 from django.utils.html import escape, mark_safe
 from django.utils.timezone import now
 from PIL import Image
-from playwright.sync_api import sync_playwright
 from stringprint2.text_files import TextFile
-from webptools import webplib as webp
 
 from stringprint2.serialization import JsonBlockField
 
@@ -233,38 +233,6 @@ class OrgLinks(models.Model):
     order = models.IntegerField(default=0)
 
 
-class Chrome(object):
-    """
-    Owns a single headless Playwright browser/page, reused across calls in
-    one process to avoid paying the browser startup cost per paragraph
-    image. Playwright manages its own browser binary (installed via
-    `playwright install chromium`) rather than needing a separately
-    version-matched chromedriver.
-    """
-
-    _playwright = None
-    _browser = None
-    page = None
-
-    @classmethod
-    def get_page(cls):
-        if cls.page:
-            return cls.page
-
-        cls._playwright = sync_playwright().start()
-        cls._browser = cls._playwright.chromium.launch()
-        cls.page = cls._browser.new_page()
-        return cls.page
-
-    @classmethod
-    def quit(cls) -> None:
-        if cls._browser:
-            cls._browser.close()
-        if cls._playwright:
-            cls._playwright.stop()
-        cls._playwright = None
-        cls._browser = None
-        cls.page = None
 
 
 class Article(models.Model):
@@ -473,78 +441,16 @@ class Article(models.Model):
             yaml.dump(output, f)
 
     def export_paragraph_images(
-        self,
-        folder: str,
-        refresh_all: bool = False,
-        *,
+        self, folder: str, refresh_all: bool = False, *,
         preview_origin: str = "http://127.0.0.1:8000",
     ) -> None:
-        """
-        exports a folder of images - 1 for each element labeled with the
-        combo key
-        """
         url = urljoin(preview_origin, reverse("article_view", args=(self.slug,)))
-        url = url + "?id={0}&screenshot=true".format(self.id)
-        c = self.display_content()
-        grafs_to_do = []
-        for g in c.all_grafs():
-            g.destination_location = os.path.join(
-                folder, "{0}.png".format(g.combo_key())
-            )
-            if os.path.exists(g.destination_location) and refresh_all is False:
-                continue
-            if g.plain_txt.strip() == "" or "[asset:" in g.plain_txt.lower():
-                continue
-            grafs_to_do.append(g)
-
-        if len(grafs_to_do) == 0:
-            return None
-
-        page = Chrome.get_page()
-        print(url)
-        # Updated for 1200 x 630 Bluesky/modern social media aspect ratio (1.90:1)
-        page.set_viewport_size({"width": 1200, "height": 800})
-        page.goto(url, timeout=60_000)
-
-        for g in grafs_to_do:
-            print(g.order, g.combo_key())
-            locator = page.locator(f'.content-row[data-paragraph-order="{g.order}"]')
-            if locator.count() == 0:
-                print("skipping - element {0} not found".format(g.order))
-                continue
-            box = locator.bounding_box()
-            if box is None:
-                print("skipping - element {0} not found".format(g.order))
-                continue
-
-            offset = 50
-            left_offset = 30
-            # if g.blockquote:
-            #    left_offset += 30
-
-            page.evaluate("window.scrollTo(0, {0});".format(box["y"] - offset))
-
-            # Updated dimensions for 1200 x 630 aspect ratio for Bluesky social sharing
-            width = 1200
-            height = 630
-            left = box["x"] - left_offset
-            top = offset - 8
-            right = left + 16 + width
-            bottom = top + height
-
-            # Playwright clips and writes the PNG directly - no base64/PIL
-            # round-trip needed, unlike the old full-viewport-screenshot-
-            # then-crop approach.
-            page.screenshot(
-                path=g.destination_location,
-                clip={
-                    "x": left,
-                    "y": top,
-                    "width": right - left,
-                    "height": bottom - top,
-                },
-            )
-        Chrome.quit()
+        url += f"?id={self.id}&screenshot=true"
+        paragraphs = tuple(
+            ScreenshotParagraph(order=g.order, key=g.combo_key(), text=g.plain_txt)
+            for g in self.display_content().all_grafs()
+        )
+        export_paragraph_images(url, paragraphs, Path(folder), refresh=refresh_all)
 
     def reprocessing(self):
         return self.needs_processing or self.reprocess_source
@@ -1068,123 +974,13 @@ class HeaderMixin(object):
         yield self.image.name
 
     def create_tiny(self) -> None:
-        """
-
-        Passes up to tinyimg to reduce.
-        """
-
-        tinify.key = settings.TINY_PNG_KEY
-
-        if hasattr(self, "image_vertical") and self.image_vertical:
-            images = (
-                (self.image_vertical, [768]),
-                (self.image, [992, 1200, 1440, 1920]),
-            )
-        else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
-        for i_file, res in images:
-            for width in res:
-                file_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
-                tiny_name = settings.MEDIA_ROOT + self.get_tiny_responsive_image_name(
-                    width
-                )
-                if settings.TINY_PNG_KEY:
-                    print("reducing using tinify")
-                    source = tinify.from_file(str(file_name))
-                    source.to_file(tiny_name)
-                else:
-                    # boring and simply reduction of file if not
-                    # using tinify
-                    print("using native to reduce")
-                    img = Image.open(file_name)
-                    img.save(tiny_name, optimize=True, quality=95)
+        create_tiny(self, Path(settings.MEDIA_ROOT), settings.TINY_PNG_KEY)
 
     def create_responsive(self, ignore_first: bool = True) -> None:
-        """
-        creates the different sized versions of the header image.
-
-        If vertical image will make the smaller one mirror that.
-
-        Passes up to tinyimg to reduce.
-        """
-
-        if hasattr(self, "image_vertical") and self.image_vertical:
-            images = (
-                (self.image_vertical, [768]),
-                (self.image, [992, 1200, 1440, 1920]),
-            )
-        else:
-            images = ((self.image, [768, 992, 1200, 1440, 1920]),)
-
-        pos = 0
-        web_p_files = []
-        for i_file, res in images:
-            print("creating responsive versions")
-            image = Image.open(i_file)
-            o_width, o_height = image.size
-            print(self.image.path)
-            print(f"original width {o_width}, height {o_height}")
-
-            size_adjustment = {}
-            column_size = {}
-            if isinstance(self, Asset):
-                size_adjustment = {1920: -2, 1440: 2, 1200: 2, 992: 2, 768: 12}
-                column_size = {1920: 970 * (5 / 6), 1440: 970 * (5 / 6)}
-            for width in res:
-                pos += 1
-                # if display is being scaled down, reduce size of image
-                new_width = width
-                if (pos > 1 or ignore_first is False) and self.size != -1:
-                    if width in column_size:
-                        new_width = column_size[width]
-                        print(f"forcing use of {new_width}")
-                    else:
-                        relative_size = self.size + size_adjustment.get(
-                            width, 0
-                        )  # in twelves
-                        if relative_size > 12:
-                            relative_size = 12
-                        new_width = (float(new_width) / 12) * relative_size
-                    print(
-                        f"size={self.size},relative_size={relative_size},new_width={new_width} "
-                    )
-
-                    if new_width == 960:  # minor adaption so can appear full screen
-                        new_width = 970
-                    print("resizing to {0}".format(new_width))
-                new_height = round(new_width * (float(o_height) / o_width))
-                thumbnail = image.copy()
-                print(f"{new_width=}, {o_width=}, {new_height=}")
-                if new_width < o_width and new_width > 1 and new_height > 1:
-                    thumbnail.thumbnail((new_width, new_height), Image.BICUBIC)
-                else:
-                    print("new size is larger than original, not downsizing")
-                new_name = settings.MEDIA_ROOT + self.get_responsive_image_name(width)
-                print("saving as {0}".format(new_name))
-                if os.path.exists(new_name):
-                    print("deleting")
-                    os.remove(new_name)
-                thumbnail.save(new_name)
-                webp_name = os.path.splitext(new_name)[0] + ".webp"
-                web_p_files.append([i_file.path, webp_name, new_width, new_height])
-            if os.path.exists(i_file.path) is False:
-                image.save(i_file.path)
-            for source_name, dest, new_width, new_height in web_p_files:
-                if os.path.exists(dest):
-                    print("deleting")
-                    os.remove(dest)
-                print("creating webp")
-                result = webp.cwebp(
-                    source_name,
-                    dest,
-                    f"-lossless -q 100 -resize {new_width} {new_height}",
-                )
-                if os.path.exists(dest) is False:
-                    print(result)
-                    raise ValueError(
-                        f"Webp {dest} not created, with settings:"
-                        + f"-lossless -q 100 -resize {new_width} {new_height}"
-                    )
+        create_responsive(
+            self, Path(settings.MEDIA_ROOT),
+            is_asset=isinstance(self, Asset), ignore_first=ignore_first,
+        )
 
 
 class HeaderImage(models.Model, HeaderMixin):
