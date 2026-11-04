@@ -15,6 +15,6 @@ urlpatterns += [
     re_path(r"^admin/", admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),
     path("manage/", include("publication_management.urls")),
-    re_path(r"^preview/", include_views("stringprint.views")),
+    re_path(r"^preview/", include("stringprint2.stringprint.urls")),
     re_path(r"^", include_views("frontend.views")),
 ]

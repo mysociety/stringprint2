@@ -8,6 +8,7 @@ from typing import Any
 
 from compressor.templatetags.compress import compress as parse_compress
 from django import template
+from stringprint2.services.render_context import PublicationRenderContext
 
 register = template.Library()
 
@@ -21,9 +22,11 @@ class PublicationCompressionNode(template.Node):
         self.node = node
 
     def render(self, context: template.Context) -> str:
-        return str(
-            self.node.render(context, forced=bool(context.get("publication_bake")))
-        )
+        output = str(self.node.render(context, forced=bool(context.get("publication_bake"))))
+        render_context = context.get("publication_render")
+        if isinstance(render_context, PublicationRenderContext) and render_context.baking:
+            render_context.record_assets(output)
+        return output
 
 
 @register.tag("compress")

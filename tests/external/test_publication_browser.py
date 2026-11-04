@@ -237,7 +237,7 @@ def check_login_and_management_operation(
     Login and a CSRF-protected operation POST work in a real browser.
     """
     from django.contrib.auth.models import User
-    from stringprint2.frontend.models import UserSettings
+    from frontend.models import UserSettings
 
     user = User.objects.create_user(
         username="browser-manager", password="test-password"
@@ -299,7 +299,7 @@ def check_paragraph_image_export(
     """
     from types import SimpleNamespace
     from copy import copy
-    from stringprint2.stringprint.models import Chrome
+    from contextlib import nullcontext
 
     graf = kitchen_sink.content().sections[0].grafs[0]
     publication = copy(kitchen_sink)
@@ -307,9 +307,9 @@ def check_paragraph_image_export(
     folder.mkdir()
     with monkeypatch.context() as patch:
         patch.setattr(
-            Chrome, "get_page", classmethod(lambda cls: publication_browser.page)
+            "stringprint2.services.paragraph_screenshots.paragraph_browser",
+            lambda: nullcontext(publication_browser.page)
         )
-        patch.setattr(Chrome, "quit", classmethod(lambda cls: None))
         patch.setattr(
             publication,
             "display_content",

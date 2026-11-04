@@ -12,11 +12,11 @@ from typing import Any, Protocol
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.http import HttpRequest
 from dirsync import sync  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict
 
 from stringprint2.services.static_rendering import write_baked_file
+from stringprint2.services.render_context import PublicationRenderContext
 
 
 class WebPublicationOrganisation(Protocol):
@@ -34,7 +34,6 @@ class WebPublication(Protocol):
     """
 
     assets: Any
-    compressed_files: list[str]
     extra_values: dict[str, Any]
     images: Any
     multipage: bool
@@ -155,7 +154,7 @@ def render_web_publication_staging(
     Render a publication and all supporting files to a static directory.
     """
 
-    from stringprint2.stringprint.views import (  # type: ignore[import-not-found]
+    from stringprint2.stringprint.views import (
         ArticleView,
         ParagraphMapView,
         RedirectLink,
@@ -166,7 +165,6 @@ def render_web_publication_staging(
     )
 
     publication = copy(publication)
-    publication.compressed_files = []
     target_url = publication.production_url if url is None else url
     if url is not None and url != publication.production_url:
         publication.production_url = url
@@ -180,13 +178,16 @@ def render_web_publication_staging(
         publication.create_kindle(destination, use_temp=True)
     if epub and not publication.extra_values.get("skip_epub", False):
         publication.create_ebook(destination)
-    render_context: dict[str, object] = {
-        "SITE_ROOT": target_url,
-        "debug": False,
-        "publication_bake": True,
-        "epub": (destination / f"{publication.slug}.epub").is_file(),
-        "kindle": (destination / f"{publication.slug}.mobi").is_file(),
-        "plain": plain,
+    render_context = PublicationRenderContext(
+        baking=True,
+        site_root=target_url,
+        plain=plain,
+        epub=(destination / f"{publication.slug}.epub").is_file(),
+        kindle=(destination / f"{publication.slug}.mobi").is_file(),
+    )
+    view_options: dict[str, object] = {
+        "publication": publication,
+        "render_context": render_context,
     }
 
     if publication.pdf_file:
@@ -208,83 +209,6 @@ def render_web_publication_staging(
         refresh_all=refresh_all,
     )
     vars(publication).update(publication.extra_values)
-    current_publication = publication
-
-    class BakeArticleView(ArticleView):  # type: ignore[misc]
-        share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-        twitter_share_image = "{{SITE_ROOT}}/{{article.get_share_image}}"
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": False,
-        }
-
-        def get_article(
-            self,
-            request: HttpRequest,
-            article_slug: str,
-        ) -> WebPublication:
-            return current_publication
-
-    class BakeSearchContentView(SearchContentView):  # type: ignore[misc]
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": True,
-        }
-
-    class BakeSearchView(SearchView):  # type: ignore[misc]
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": True,
-        }
-
-        def get_article(
-            self,
-            request: HttpRequest,
-            article_slug: str,
-        ) -> WebPublication:
-            return current_publication
-
-    class BakeParagraphMapView(ParagraphMapView):  # type: ignore[misc]
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": False,
-        }
-
-        def get_article(
-            self,
-            request: HttpRequest,
-            article_slug: str,
-        ) -> WebPublication:
-            return current_publication
-
-    class BakeTOCView(TOCView):  # type: ignore[misc]
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": False,
-        }
-
-    class BakePlainView(TextView):  # type: ignore[misc]
-        article_settings_override = {
-            "paywall": False,
-            "baking": True,
-            "search": False,
-        }
-
-    for view in (
-        BakeArticleView,
-        BakeSearchView,
-        BakeSearchContentView,
-        BakeParagraphMapView,
-        BakeTOCView,
-        BakePlainView,
-    ):
-        view.render_context = render_context
-
     setattr(publication, "baking", True)
     content = publication.display_content()
     grafs = {graf.long_combo_key(): graf for graf in content.all_grafs()}
@@ -295,32 +219,22 @@ def render_web_publication_staging(
     for key, value in paragraph_lookup.items():
         shorter_link = ".".join(key.split(".")[:6])
 
-        class BakeRedirectLinkView(RedirectLink):  # type: ignore[misc]
-            def load_article(
-                self,
-                request: HttpRequest,
-                article_slug: str,
-                paragraph_slug: str,
-            ) -> None:
-                self.article = current_publication
-                setattr(self.article, "baking", True)
-                self.content = content
-                self.graf = None
-                if value is True:
-                    self.graf = grafs.get(key)
-                elif value is not None:
-                    self.graf = grafs.get(value)
-                if self.graf:
-                    self.graf._article = current_publication
-                self.paragraph_tag = shorter_link
-
-        BakeRedirectLinkView.render_context = render_context
-
+        graf = (
+            grafs.get(key)
+            if value is True
+            else grafs.get(value)
+            if value is not None
+            else None
+        )
         write_baked_file(
-            BakeRedirectLinkView,
+            RedirectLink,
             destination / "l" / f"{shorter_link}.html",
-            ("blah", "blah"),
+            (publication.slug, shorter_link),
             destination,
+            view_options={
+                **view_options,
+                "redirect_target": (content, graf, shorter_link),
+            },
         )
         redirect_count += 1
 
@@ -329,36 +243,38 @@ def render_web_publication_staging(
         for section in content.sections:
             anchor = section.anchor()
             write_baked_file(
-                BakeArticleView,
+                ArticleView,
                 destination / f"{anchor}.html",
                 (publication.slug, anchor),
                 destination,
+                view_options=view_options,
             )
             page_count += 1
 
     arguments = (publication.slug,)
     targets = (
-        (BakeArticleView, destination / "index.html"),
-        (BakeSearchView, destination / "search.html"),
-        (BakeSearchContentView, destination / "search_content.js"),
-        (BakeParagraphMapView, destination / "paragraph_map.json"),
-        (BakeTOCView, destination / "toc.json"),
+        (ArticleView, destination / "index.html"),
+        (SearchView, destination / "search.html"),
+        (SearchContentView, destination / "search_content.js"),
+        (ParagraphMapView, destination / "paragraph_map.json"),
+        (TOCView, destination / "toc.json"),
     )
     for view, path in targets:
-        write_baked_file(view, path, arguments, destination)
+        write_baked_file(view, path, arguments, destination, view_options=view_options)
         page_count += 1
     if plain:
         write_baked_file(
-            BakePlainView,
+            TextView,
             destination / "plain.html",
             arguments,
             destination,
+            view_options=view_options,
         )
         page_count += 1
 
     compress_url = str(getattr(settings, "COMPRESS_URL", settings.STATIC_URL))
-    publication.compressed_files = [
-        name[len(compress_url) :] for name in publication.compressed_files
+    compressed_files = [
+        name[len(compress_url) :] for name in render_context.compressed_files
     ]
     static_files = [
         "js//sweetalert2.all.min.js",
@@ -366,7 +282,7 @@ def render_web_publication_staging(
         "css//kindle.css",
         "css//text_mode.css",
         "css//fa_reduced.css",
-        *publication.compressed_files,
+        *compressed_files,
     ]
     for filename in static_files:
         target = destination / "static" / filename

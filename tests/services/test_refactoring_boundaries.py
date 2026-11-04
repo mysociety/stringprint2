@@ -1,13 +1,21 @@
+"""Behavioral contracts for configuration, compilation, and publishing boundaries."""
+
 from pathlib import Path
 from types import SimpleNamespace
 import os
 import subprocess
 import sys
+
 import pytest
+
 from stringprint2.configuration.loaders import ConfigurationError
 from stringprint2.configuration.runtime import load_runtime_config
 from stringprint2.services.document_compilation import compile_document
-from stringprint2.services.publication_operations import PublishPublicationRequest, run_publication_operation
+from stringprint2.services.publication_operations import (
+    PublishPublicationRequest,
+    run_publication_operation,
+)
+
 
 def test_entry_point_import_does_not_initialize_django(tmp_path):
     environment = {**os.environ, "DJANGO_SETTINGS_MODULE": "caller.settings"}
@@ -112,6 +120,20 @@ def test_browser_is_closed_when_capture_fails(monkeypatch):
     assert closed == ["browser", "playwright"]
 
 
+def test_render_context_collects_cached_fragment_dependencies():
+    from stringprint2.services.render_context import PublicationRenderContext
+
+    first = PublicationRenderContext(baking=True)
+    second = PublicationRenderContext(baking=True)
+    fragment = (
+        '<link href="/static/CACHE/a.css"><script src="/static/CACHE/a.js"></script>'
+    )
+    first.record_assets(fragment)
+    first.record_assets(fragment)
+    assert first.compressed_files == ["/static/CACHE/a.css", "/static/CACHE/a.js"]
+    assert second.compressed_files == []
+
+
 def test_compilation_preserves_process_random_state():
     import random
 
@@ -126,4 +148,3 @@ def test_empty_publish_path_retains_default_output_location(tmp_path):
         'SITE_NAME: test\nSECRET_KEY: test\nORGS:\n  test:\n    storage_dir: sources\n    publish_dir: ""\n'
     )
     assert load_runtime_config(config).organisations["test"].publish_dir is None
-

@@ -55,7 +55,7 @@ def render_epub(
     Render publication chapters and active media into one EPUB file.
     """
 
-    from stringprint2.stringprint.views import EbookChapterView  # type: ignore[import-not-found]
+    from stringprint2.stringprint.views import EbookChapterView
 
     authors = publication.authors.split(",") if publication.authors else ""
     book = mkepub.Book(title=publication.title, authors=authors)
@@ -73,7 +73,9 @@ def render_epub(
         anchor = section.anchor()
         arguments = (publication.slug, anchor)
         request = RequestFactory().get(f"{publication.slug}/epub/{anchor}")
-        response = EbookChapterView.as_view(decorators=False)(request, *arguments)
+        response = EbookChapterView.as_view(decorators=False, publication=publication)(
+            request, *arguments
+        )
         content = response.content.decode("utf-8")
         book.add_page(section.name, content.replace('src="/media/', 'src="images/'))
         page_count += 1

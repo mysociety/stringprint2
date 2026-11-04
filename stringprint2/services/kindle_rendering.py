@@ -75,7 +75,7 @@ def render_kindle_staging(
     Populate one staging directory and invoke the Kindle generator.
     """
 
-    from stringprint2.stringprint.views import (  # type: ignore[import-not-found]
+    from stringprint2.stringprint.views import (
         KindleNCX,
         KindleOPF,
         KindleView,
@@ -117,6 +117,7 @@ def render_kindle_staging(
             transform=lambda content: content.replace(
                 f"{settings.STATIC_URL}css/kindle.css", "css/kindle.css"
             ),
+            view_options={"publication": publication},
         )
 
     stylesheet = finders.find("css/kindle.css")
