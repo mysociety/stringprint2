@@ -1,7 +1,7 @@
 {% extends 'frontend/base.html' %}
 {% load extra_tags %}
     {% block title %}
-    <title>{{SITE_NAME}} - Headers</title>
+    <title>{{ SITE_NAME }} - Headers</title>
     {% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
         </h2>
         <ol class="breadcrumb">
             <li>
-                <i class="fa fa-dashboard"></i> {{article.title}}
+                {{ article.title }}
             </li>
             <li class="active">
                 Header
@@ -33,6 +33,6 @@
                 {% include "frontend/bootstrap_form.html" with form=form only %}
             </div>
         </div>
-        <input type="submit" class="btn btn-success btn-lg" value="{{submit_text}}">
+        <input type="submit" class="btn btn-success btn-lg" value="{{ submit_text }}">
         </form>
 {% endblock %}

@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-header">
-    <a class="btn btn-outline-secondary float-end" href="{% url 'publication_management:publication_list' %}"><span class="fa fa-arrow-left" aria-hidden="true"></span> All publications</a>
+    <a class="btn btn-outline-secondary float-end" href="{% url 'publication_management:publication_list' %}">All publications</a>
     <h1>{{ article.title }} <small>{{ article.slug }}</small></h1>
 </div>
 
@@ -16,14 +16,14 @@
                 <form method="post" action="{% url 'publication_management:create_operation' article.slug 'load' %}">
                     {% csrf_token %}
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh_header"><label class="form-check-label">Refresh header configuration</label></div>
-                    <button class="btn btn-outline-secondary" type="submit"><span class="fa fa-download" aria-hidden="true"></span> Load configuration</button>
+                    <button class="btn btn-outline-secondary" type="submit">Load configuration</button>
                 </form>
                 <hr>
                 <form method="post" action="{% url 'publication_management:create_operation' article.slug 'process' %}">
                     {% csrf_token %}
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh_header" checked><label class="form-check-label">Refresh assets and header</label></div>
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="preprocess" checked><label class="form-check-label">Run preprocessor</label></div>
-                    <button class="btn btn-primary" type="submit"><span class="fa fa-cogs" aria-hidden="true"></span> Process publication</button>
+                    <button class="btn btn-primary" type="submit">Process publication</button>
                 </form>
             </div>
         </div>
@@ -36,13 +36,13 @@
                     {% csrf_token %}
                     <div class="mb-3"><label for="output-format">Format</label><select class="form-select" id="output-format" name="output_format"><option value="web">Web</option><option value="epub">EPUB</option><option value="kindle">Kindle</option></select></div>
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
-                    <button class="btn btn-primary" type="submit"><span class="fa fa-file" aria-hidden="true"></span> Render</button>
+                    <button class="btn btn-primary" type="submit">Render</button>
                 </form>
                 <hr>
                 <form method="post" action="{% url 'publication_management:create_operation' article.slug 'archive' %}">
                     {% csrf_token %}
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
-                    <button class="btn btn-outline-secondary" type="submit"><span class="fa fa-file-archive-o" aria-hidden="true"></span> Create ZIP archive</button>
+                    <button class="btn btn-outline-secondary" type="submit">Create ZIP archive</button>
                 </form>
             </div>
         </div>
@@ -57,7 +57,7 @@
         <form method="post" action="{% url 'publication_management:create_operation' article.slug 'publish' %}">
             {% csrf_token %}
             <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="refresh"><label class="form-check-label">Full refresh</label></div>
-            <button class="btn btn-warning" type="submit"><span class="fa fa-cloud-upload" aria-hidden="true"></span> Publish</button>
+            <button class="btn btn-warning" type="submit">Publish</button>
         </form>
     </div>
 </div>

@@ -1,7 +1,7 @@
 {% extends 'frontend/base.html' %}
 {% load extra_tags %}
     {% block title %}
-    <title>{{SITE_NAME}} - Get Tokens</title>
+    <title>{{ SITE_NAME }} - Get Tokens</title>
     {% endblock %}
 
 {% block content %}
@@ -13,10 +13,10 @@
         </h2>
         <ol class="breadcrumb">
             <li>
-                <i class="fa fa-dashboard"></i> Dashboard
+                Dashboard
             </li>
             <li class="active">
-                <i class="fa fa-cubes"></i> Get Tokens
+                Get Tokens
             </li>
         </ol>
     </div>
@@ -30,11 +30,11 @@
         <div class="col-md-4" style="text-align:center">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h3 class="card-title mb-0">{{o.verbose}}</h3>
+                    <h3 class="card-title mb-0">{{ o.verbose }}</h3>
                 </div>
-                <h3>{{ o.verbose }} for £{{o.price|int}}</h3>
+                <h3>{{ o.verbose }} for £{{ o.price|int }}</h3>
                 <br>
-                {{o.p_form.render}}
+                {{ o.p_form.render }}
                 <br>
             </div>
         </div>

@@ -1,6 +1,6 @@
 {% extends 'frontend/base.html' %}
     {% block title %}
-    <title>{{SITE_NAME}} - All Documents</title>
+    <title>{{ SITE_NAME }} - All Documents</title>
     {% endblock %}
 
 {% block content %}
@@ -12,7 +12,7 @@
         </h2>
         <ol class="breadcrumb">
             <li class="active">
-                <i class="fa fa-dashboard"></i> Dashboard
+                Dashboard
             </li>
             <li class="active">
                 All Documents
@@ -29,7 +29,7 @@
     <div class="col-lg-8">
         <div class="card mb-4">
             <div class="card-header">
-                <h3 class="card-title mb-0"><i class="fa fa-list fa-fw"></i>All Documents</h3>
+                <h3 class="card-title mb-0">All Documents</h3>
             </div>
             <div class="card-body">
                 {% include 'frontend/doc_list_widget.html' %}
@@ -47,9 +47,9 @@
 	{% endif %}
 	{% for p in documents.reasonable_range %}
 		{% if pages.number == p %}
-			<li class="active"><a href="{% url 'list_view' 'status' p %}">{{p}}</a></li>
+			<li class="active"><a href="{% url 'list_view' 'status' p %}">{{ p }}</a></li>
 		{% else %}
-			<li><a href="{% url 'document.list' p %}">{{p}}</a></li>
+			<li><a href="{% url 'document.list' p %}">{{ p }}</a></li>
 		{% endif %}
 	{% endfor %}
     {% if documents.has_next %}
